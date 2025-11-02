@@ -1,4 +1,5 @@
-import '@/app/globals.css'
+/* eslint-disable import/no-unresolved */
+import '@presentation/app/globals.css'
 import { Text, View } from 'react-native'
 
 export default function AppLayout() {

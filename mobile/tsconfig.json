@@ -5,8 +5,23 @@
     "experimentalDecorators": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "src/*"
+      "@application/*": [
+        "src/core/application/*"
+      ],
+      "@domain/*": [
+        "src/core/domain/*"
+      ],
+      "@infrastructure/*": [
+        "src/core/infrastructure/*"
+      ],
+      "@presentation/app/*": [
+        "src/app/*"
+      ],
+      "@presentation/ui/*": [
+        "src/ui/*"
+      ],
+      "@shared/*": [
+        "src/shared/*"
       ]
     }
   }
