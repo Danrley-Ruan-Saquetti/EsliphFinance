@@ -3,22 +3,24 @@
   "compilerOptions": {
     "strict": true,
     "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "strictPropertyInitialization": false,
     "baseUrl": ".",
     "paths": {
-      "@application/*": [
-        "src/core/application/*"
+      "@/*": [
+        "src/*.ts"
       ],
-      "@domain/*": [
-        "src/core/domain/*"
-      ],
-      "@infrastructure/*": [
-        "src/core/infrastructure/*"
+      "@core/*": [
+        "src/core/*"
       ],
       "@presentation/app/*": [
         "src/app/*"
       ],
       "@presentation/ui/*": [
         "src/ui/*"
+      ],
+      "@scripts/*": [
+        "src/scripts/*"
       ],
       "@shared/*": [
         "src/shared/*"
