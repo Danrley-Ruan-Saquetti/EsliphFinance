@@ -1,5 +1,7 @@
 import { drizzle } from 'drizzle-orm/expo-sqlite'
 import { openDatabaseSync } from 'expo-sqlite'
 
-const expoDb = openDatabaseSync('esliph_finance.db')
+import { env } from '@shared/env'
+
+const expoDb = openDatabaseSync(env.DATABASE_NAME)
 export const db = drizzle(expoDb, { casing: 'snake_case' })
