@@ -1,0 +1,30 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "strictPropertyInitialization": false,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "src/*.ts"
+      ],
+      "@core/*": [
+        "src/core/*"
+      ],
+      "@presentation/app/*": [
+        "src/app/*"
+      ],
+      "@presentation/ui/*": [
+        "src/ui/*"
+      ],
+      "@scripts/*": [
+        "src/scripts/*"
+      ],
+      "@shared/*": [
+        "src/shared/*"
+      ]
+    }
+  }
+}
