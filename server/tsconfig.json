@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
-    "moduleResolution": "bundler",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
     "resolvePackageJsonExports": true,
     "esModuleInterop": true,
     "isolatedModules": true,
@@ -23,7 +23,6 @@
     "noFallthroughCasesInSwitch": false,
     "strictPropertyInitialization": false,
     "baseUrl": "./",
-    "ignoreDeprecations": "6.0",
     "paths": {
       "@*": [
         "src/*"
