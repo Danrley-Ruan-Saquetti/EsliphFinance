@@ -31,7 +31,7 @@ export default defineConfig(
       'linebreak-style': ['off', 'windows'],
       quotes: ['warn', 'single'],
       semi: ['warn', 'never'],
-      curly: ['warn', 'multi-line'],
+      curly: 'warn',
       eqeqeq: 'off',
       'no-trailing-spaces': 'warn',
       'no-multiple-empty-lines': 'off',
