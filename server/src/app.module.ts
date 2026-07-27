@@ -1,9 +1,8 @@
-import { AppController } from '@app.controller'
 import { Module } from '@nestjs/common'
 
+import { HttpModule } from '@infra/http/http.module'
+
 @Module({
-  imports: [],
-  controllers: [AppController],
-  providers: [],
+  imports: [HttpModule],
 })
-export class AppModule { }
+export class AppModule {}
