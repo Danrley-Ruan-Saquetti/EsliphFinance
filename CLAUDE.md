@@ -4,13 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Visão geral
 
-EsliphFinance é um aplicativo de finanças pessoais. O repositório é um monorepo sem ferramenta de workspaces — cada diretório é um projeto independente, com o seu próprio `package.json`, lockfile e toolchain. Não há build, CI ou script que amarre os projetos: eles são desenvolvidos e executados separadamente, a partir de dentro do respectivo diretório.
+EsliphFinance é um aplicativo de finanças pessoais. O repositório é um monorepo sem ferramenta de workspaces — cada diretório é um projeto independente, com o seu próprio `package.json`, lockfile e toolchain. Não há build nem script que amarre os projetos: eles são desenvolvidos e executados separadamente, a partir de dentro do respectivo diretório. O CI é por projeto — um workflow em `.github/workflows/` por diretório, disparado apenas pelas alterações naquele caminho.
 
 | Diretório | O que é |
 | --------- | ------- |
 | `server/` | API backend (NestJS + PostgreSQL, tudo via Docker; nada de `npm` no host — os comandos são alvos do `Makefile`, e `make help` lista todos). **Tem o seu próprio `CLAUDE.md`** com stack, arquitetura e comandos — leia-o antes de mexer em qualquer coisa aqui. |
 | `mobile/` | Aplicativo Expo / React Native, com scripts npm próprios rodando direto no host. Consulte o diretório para a sua stack e comandos. |
 | `docs/`   | Documentação de produto. |
+| `.github/workflows/` | Pipelines do GitHub Actions. `server-tests.yml` roda os testes unitários e e2e do backend nos pushes e pull requests para `main` e `develop`, através dos mesmos alvos do `Makefile` usados no desenvolvimento. |
 
 ## `docs/requirements.md` é a fonte de verdade
 

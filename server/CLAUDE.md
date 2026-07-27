@@ -172,6 +172,7 @@ test/                            # testes e2e e factories
 - **E2E** ficam na raiz de `test/` (`*.e2e-spec.ts`) e sobem a aplicação Nest. Quando passarem a bater no serviço `database`, preferir um schema isolado por execução para não sujar o banco de desenvolvimento.
 - Coverage está habilitado por padrão nos unitários, então qualquer execução grava em `coverage/`.
 - Casos de uso novos entram com teste unitário; o teste deve referenciar a RN que implementa.
+- No CI (`.github/workflows/server-tests.yml`) os testes rodam pelos mesmos alvos (`make deps-ci`, `make test`, `make test-e2e`), dentro do Docker Compose, a cada push e pull request para `main` e `develop` que toque em `server/`.
 
 ```sh
 make test                             # unitários
