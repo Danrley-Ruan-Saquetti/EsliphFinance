@@ -1,0 +1,50 @@
+name: esliph-finance
+
+services:
+  workspace:
+    image: node:22-bookworm
+    container_name: workspace
+    working_dir: /workspace
+    stdin_open: true
+    tty: true
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@database:5432/${POSTGRES_DB:-esliph_finance}
+    volumes:
+      - ./:/workspace
+    command: tail -f /dev/null
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - esliph-network
+
+  database:
+    image: postgres:17-alpine
+    container_name: database
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-esliph_finance}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-esliph_finance}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - esliph-network
+
+volumes:
+  npm-cache:
+  postgres-data:
+networks:
+  esliph-network:
