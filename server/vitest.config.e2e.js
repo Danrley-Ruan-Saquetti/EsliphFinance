@@ -5,11 +5,9 @@ export default defineConfig({
   test: {
     globals: true,
     root: './',
-    include: ['test/units/**/*.spec.ts'],
+    include: ['test/**/*.e2e-spec.ts'],
     coverage: {
-      provider: 'v8',
-      enabled: true,
-      reportsDirectory: './coverage'
+      enabled: false
     },
   },
   plugins: [

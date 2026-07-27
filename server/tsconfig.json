@@ -24,11 +24,11 @@
     "strictPropertyInitialization": false,
     "baseUrl": "./",
     "paths": {
+      "@tests/*": [
+        "test/*"
+      ],
       "@*": [
         "src/*"
-      ],
-      "@tests": [
-        "test/*"
       ]
     }
   }

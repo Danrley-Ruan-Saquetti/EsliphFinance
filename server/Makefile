@@ -23,15 +23,16 @@ help:
 	@echo "  make nest ARGS=\"g module x\"  Executa o Nest CLI"
 	@echo ""
 	@echo "Qualidade"
-	@echo "  make test                 Suíte completa"
-	@echo "  make test-watch           Testes em modo watch"
+	@echo "  make test                 Testes unitários"
+	@echo "  make test-watch           Testes unitários em modo watch"
+	@echo "  make test-e2e             Testes end-to-end"
 	@echo "  make test-cov             Testes com relatório de cobertura"
 	@echo "  make test-file FILE=<path>   Testa um arquivo ou padrão"
 	@echo "  make test-name NAME=\"<nome>\"  Testa um caso isolado"
 	@echo "  make lint                 ESLint com --fix"
 	@echo "  make format               Prettier --write"
 	@echo "  make typecheck            tsc --noEmit"
-	@echo "  make check                typecheck + lint + test"
+	@echo "  make check                typecheck + lint + testes"
 	@echo ""
 	@echo "Ambiente"
 	@echo "  make up                   Sobe todos os serviços em background"
@@ -105,6 +106,10 @@ test-watch:
 	docker compose run --rm workspace npm run test:watch
 .PHONY: test-watch
 
+test-e2e:
+	docker compose run --rm workspace npm run test:e2e
+.PHONY: test-e2e
+
 test-cov:
 	docker compose run --rm workspace npm run test:cov
 .PHONY: test-cov
@@ -129,7 +134,7 @@ typecheck:
 	docker compose run --rm workspace npx tsc --noEmit
 .PHONY: typecheck
 
-check: typecheck lint test
+check: typecheck lint test test-e2e
 .PHONY: check
 
 # --- Ambiente -------------------------------------------------------------
