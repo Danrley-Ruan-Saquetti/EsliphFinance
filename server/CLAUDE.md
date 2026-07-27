@@ -15,7 +15,7 @@ API do EsliphFinance. Este documento cobre apenas o backend; o contexto geral do
 | Ambiente         | Docker + Docker Compose            |
 | Comandos         | Makefile                           |
 
-> Estado atual do repositório: o projeto está no esqueleto inicial do Nest. Drizzle, driver do Postgres e autenticação ainda **não** foram adicionados — o que está descrito abaixo é a arquitetura-alvo a ser seguida conforme o código for crescendo.
+> Estado atual do repositório: a fundação arquitetural está implementada (camadas, `core/`, pipe global de validação, padrão `Either`, aliases) e há um **módulo de exemplo** em `src/domain/example` servindo de referência de estrutura — ele não faz parte do domínio real. Drizzle, driver do Postgres e autenticação ainda **não** foram adicionados; o que depende deles está marcado abaixo.
 
 ## Ambiente Docker
 
@@ -61,15 +61,16 @@ make nest ARGS="g module user"  # Nest CLI
 **Qualidade**
 
 ```sh
-make test                     # suíte completa
+make test                     # testes unitários
 make test-watch               # vitest em watch
+make test-e2e                 # testes end-to-end
 make test-cov                 # com relatório de cobertura
 make test-file FILE=<caminho|padrão>  # um arquivo
 make test-name NAME="<nome>"  # um caso isolado
 make lint                     # eslint --fix
 make format                   # prettier --write
 make typecheck                # tsc --noEmit
-make check                    # typecheck + lint + test
+make check                    # typecheck + lint + testes
 ```
 
 **Ambiente e banco**
@@ -110,8 +111,11 @@ src/
   core/                          # blocos de construção compartilhados, sem regra de negócio
     entities/                    #   Entity, AggregateRoot, UniqueEntityID
     value-objects/               #   ValueObject base, Money (centavos — RNF004)
-    errors/                      #   erros base de domínio/aplicação
+    errors/                      #   BaseError e erros genéricos de aplicação
+    events/                      #   contrato de evento de domínio
+    types/                       #   utilitários de tipo (Optional)
     either.ts                    #   retorno explícito de sucesso/erro dos use-cases
+    use-case.ts                  #   contrato dos use-cases
 
   domain/
     <contexto>/                  # user, asset, transaction, invoice, budget, goal, ...
@@ -125,43 +129,53 @@ src/
         services/                #   portas de serviços externos (hasher, criptografia...)
 
   infra/
-    database/drizzle/
-      schemas/                   # definição das tabelas (drizzle)
-      mappers/                   # domínio <-> persistência
-      repositories/              # implementações das interfaces de application/repositories
-      migrations/
+    database/
+      drizzle/                   # schemas, mappers, repositories, migrations
+      in-memory/                 # implementações em memória das portas
+      database.module.ts         # wiring do Nest: liga porta -> implementação
     http/
       controllers/               # finos: traduzem HTTP <-> use-case, nunca contêm regra
-      pipes/                     # ZodValidationPipe
+      pipes/                     # ZodValidationPipe (por rota, schema no construtor)
       presenters/                # domínio -> JSON de resposta
+      http.module.ts             # controllers + instanciação dos use-cases
     auth/                        # JWT, guards, estratégias (RNF005)
     cryptography/                # implementações de hash/JWT
     env/                         # schema Zod das variáveis de ambiente
-    <contexto>.module.ts         # wiring do Nest: liga porta -> implementação
 
-test/                            # factories e repositórios in-memory
+  app.module.ts                  # raiz: agrega os módulos e o que é transversal
+  main.ts
+
+test/                            # testes e2e e factories
 ```
+
+`src/domain/example` (entidade `Note`) e os arquivos correspondentes em `src/infra` são o **módulo de exemplo**: uma fatia vertical completa que serve de modelo ao criar um contexto novo. Não é domínio real e deve sair quando deixar de ser útil como referência.
 
 ### Convenções
 
 - **Contextos** derivam dos requisitos: usuários/autenticação, grupos de ativos, ativos, cartões de débito, categorias, tags, transações, faturas, orçamentos, metas, lançamentos favoritos, anexos, relatórios e notificações.
-- **Casos de uso** expõem um único método `execute(request)` e retornam `Either<Erro, Sucesso>` — erros esperados de negócio são valor de retorno, não exceção.
-- **Repositórios** são declarados como classe abstrata / interface em `domain/<ctx>/application/repositories` e registrados no módulo Nest apontando para a implementação Drizzle. O uso de `Repository` no use-case é sempre pelo tipo abstrato.
-- **Zod** valida nas bordas: corpo/query/params HTTP (via `ZodValidationPipe`) e variáveis de ambiente. A validação de entrada não substitui as invariantes do domínio, que ficam nas entidades.
+- **Casos de uso** implementam `UseCase<Request, Response>` (`@core/use-case`): um único método `execute(request)` que retorna `Either<Erro, Sucesso>` — erros esperados de negócio são valor de retorno, não exceção. Exceção fica para falha inesperada e para invariante de domínio violada (`InvariantError`, lançado pela entidade).
+- **Erros** herdam de `BaseError` (`@core/errors/base-error`) e expõem um `code` estável; a tradução para status HTTP acontece na infraestrutura, nunca dentro do caso de uso.
+- **Casos de uso não recebem `@Injectable()`**: são registrados nos módulos Nest com `useFactory` + `inject`, o que mantém a aplicação livre do framework.
+- **Repositórios** são declarados como classe abstrata em `domain/<ctx>/application/repositories` (a classe abstrata também é o token de injeção) e ligados à implementação em `infra/database/database.module.ts`. O uso no caso de uso é sempre pelo tipo abstrato.
+- **Zod** valida nas bordas: corpo/query/params HTTP e variáveis de ambiente. O `ZodValidationPipe` (`@infra/http/pipes/zod-validation-pipe`) recebe o schema no construtor e é aplicado por rota, no parâmetro — `@Body(new ZodValidationPipe(schema)) body: z.infer<typeof schema>` —, então um controller pode ter quantos schemas precisar. A validação de entrada não substitui as invariantes do domínio, que ficam nas entidades.
 - **Dinheiro** é encapsulado em um Value Object `Money` sobre inteiro em centavos; nunca `float`, nem em coluna do banco.
 - **Propriedade do registro** é verificada dentro do caso de uso, não por filtro implícito no repositório: buscar o registro e comparar o dono antes de ler ou alterar.
 - **Exclusões** são majoritariamente lógicas ou bloqueadas por vínculos — conferir a RN correspondente antes de implementar um delete.
-- **Path aliases**: `@*` → `src/*`, `@tests` → `test/*`.
+- **Nomenclatura**: arquivos em kebab-case com sufixo de papel (`create-note.ts`, `notes-repository.ts`, `create-note.controller.ts`, `note-presenter.ts`, `http.module.ts`); um artefato por arquivo, com o nome do arquivo espelhando o do artefato; contextos no singular, repositórios no plural do agregado.
+- **Path aliases**: `@*` → `src/*`, `@tests/*` → `test/*`. Import relativo só entre arquivos irmãos da mesma pasta.
 
 ## Testes
 
-- **Unitários** ficam ao lado do arquivo testado (`*.spec.ts`) e cobrem entidades e casos de uso usando **repositórios in-memory**, sem Docker de banco e sem NestJS.
-- **E2E** ficam em `test/` (`*.e2e-spec.ts`), sobem a aplicação Nest e batem no serviço `database`. Preferir um schema isolado por execução para não sujar o banco de desenvolvimento.
-- Coverage está habilitado por padrão no `vitest.config.js`, então qualquer execução grava em `coverage/`.
+- Todo teste vive em `test/` — nada de `*.spec.ts` dentro de `src/`.
+- São **duas configurações do Vitest**: `vitest.config.js` coleta `test/units/**/*.spec.ts` (unitários) e `vitest.config.e2e.js` coleta `test/**/*.e2e-spec.ts` (e2e). Um arquivo fora desses padrões não é executado por ninguém.
+- **Unitários** ficam em `test/units/` **no mesmo caminho do arquivo testado em `src/`** (`src/domain/example/application/use-cases/create-note.ts` → `test/units/domain/example/application/use-cases/create-note.spec.ts`) e cobrem entidades e casos de uso usando **repositórios in-memory**, sem Docker de banco e sem NestJS.
+- **E2E** ficam na raiz de `test/` (`*.e2e-spec.ts`) e sobem a aplicação Nest. Quando passarem a bater no serviço `database`, preferir um schema isolado por execução para não sujar o banco de desenvolvimento.
+- Coverage está habilitado por padrão nos unitários, então qualquer execução grava em `coverage/`.
 - Casos de uso novos entram com teste unitário; o teste deve referenciar a RN que implementa.
 
 ```sh
-make test                             # suíte completa
+make test                             # unitários
+make test-e2e                         # end-to-end
 make test-file FILE=<caminho|padrão>  # um arquivo
 make test-name NAME="<nome>"          # um caso isolado
 make test-cov                         # com relatório de cobertura
