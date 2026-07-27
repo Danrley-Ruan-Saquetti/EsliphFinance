@@ -13,8 +13,5 @@
   "quoteProps": "preserve",
   "semi": false,
   "singleAttributePerLine": false,
-  "useTabs": false,
-  "functionParenNewline": "never",
-  "arrayInlineSingleLine": true,
-  "objectLiteralInlineSingleLine": true
+  "useTabs": false
 }
