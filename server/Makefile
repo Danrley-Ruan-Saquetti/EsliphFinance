@@ -47,9 +47,15 @@ help:
 	@echo "  make db                   Sobe apenas o Postgres"
 	@echo "  make db-cli               psql conectado ao banco"
 	@echo "  make db-logs              Logs do Postgres"
-	@echo "  make db-reset             Recria o banco do zero (APAGA os dados)"
+	@echo "  make db-reset             Recria o banco do zero e migra (APAGA os dados)"
 	@echo "  make db-dump DUMP=<path>  Exporta o banco (padrão: $(DUMP))"
 	@echo "  make db-restore DUMP=<path>  Importa um dump para o banco"
+	@echo ""
+	@echo "Migrations (Drizzle Kit)"
+	@echo "  make db-generate NAME=<nome>  Gera uma migration a partir do schema"
+	@echo "  make db-migrate           Aplica as migrations pendentes"
+	@echo "  make db-check             Verifica conflitos entre as migrations"
+	@echo "  make db-studio            Abre o Drizzle Studio em http://localhost:4983"
 .PHONY: help
 
 # --- Dependências ---------------------------------------------------------
@@ -183,6 +189,7 @@ db-logs:
 db-reset:
 	docker compose down -v --remove-orphans
 	docker compose up -d database
+	$(MAKE) db-migrate
 .PHONY: db-reset
 
 db-dump:
@@ -193,3 +200,21 @@ db-dump:
 db-restore:
 	docker compose exec -T database psql -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-esliph_finance} < $(DUMP)
 .PHONY: db-restore
+
+# --- Migrations -----------------------------------------------------------
+
+db-generate:
+	docker compose run --rm workspace npm run db:generate -- $(if $(NAME),--name=$(NAME))
+.PHONY: db-generate
+
+db-migrate:
+	docker compose run --rm migrate
+.PHONY: db-migrate
+
+db-check:
+	docker compose run --rm workspace npm run db:check
+.PHONY: db-check
+
+db-studio:
+	docker compose run --rm --publish 4983:4983 workspace npm run db:studio
+.PHONY: db-studio
