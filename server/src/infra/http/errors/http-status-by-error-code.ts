@@ -5,6 +5,7 @@ const HTTP_STATUS_BY_ERROR_CODE: Record<string, HttpStatus | undefined> = {
   INVARIANT_VIOLATION: HttpStatus.UNPROCESSABLE_ENTITY,
   RESOURCE_NOT_FOUND: HttpStatus.NOT_FOUND,
   NOT_ALLOWED: HttpStatus.FORBIDDEN,
+  INSECURE_TRANSPORT: HttpStatus.FORBIDDEN,
 }
 
 export function httpStatusByErrorCode(code: string): HttpStatus {

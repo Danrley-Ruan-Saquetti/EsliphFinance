@@ -64,6 +64,7 @@ src/
       database.module.ts           # liga cada porta à sua implementação
     http/
       controllers/                 # finos: traduzem HTTP <-> caso de uso, nunca contêm regra
+      middlewares/                 # CORS, headers de segurança, HTTPS, identificador de requisição
       pipes/                       # ZodValidationPipe
       presenters/                  # domínio -> JSON de resposta
       http.module.ts               # controllers + instanciação dos casos de uso
@@ -163,24 +164,65 @@ import { HttpModule } from '@infra/http/http.module'
 
 Imports relativos ficam reservados para arquivos irmãos dentro da mesma pasta.
 
+## Configuração e segurança
+
+### Variáveis de ambiente
+
+Toda a configuração vem de variáveis de ambiente validadas com Zod em `src/infra/env/env.ts` e lidas pelo `EnvService`. A validação roda no bootstrap, dentro do `ConfigModule`: se faltar uma variável obrigatória ou algum valor for inválido, a aplicação **não sobe** e o erro lista cada problema em uma linha.
+
+```
+Invalid environment variables:
+  - DATABASE_URL is required
+  - PORT: Too small: expected number to be >0
+```
+
+| Variável            | Padrão                             | Para que serve                                                            |
+| ------------------- | ---------------------------------- | ------------------------------------------------------------------------- |
+| `NODE_ENV`          | `development`                      | `development`, `test` ou `production`; endurece a validação em produção    |
+| `PORT`              | `3000`                             | Porta da API                                                              |
+| `DATABASE_URL`      | obrigatória                        | URL de conexão — o `database` do Compose em desenvolvimento               |
+| `DATABASE_SSL`      | `false`                            | `true` para instâncias gerenciadas em nuvem (RNF003)                      |
+| `DATABASE_POOL_MAX` | `10`                               | Tamanho máximo do pool                                                    |
+| `CORS_ORIGINS`      | `*`                                | Origens aceitas, separadas por vírgula; `*` é rejeitado em produção        |
+| `ENFORCE_HTTPS`     | `true` em produção, `false` fora   | Redireciona HTTP para HTTPS e habilita o HSTS (RNF007)                    |
+| `HSTS_MAX_AGE`      | `31536000`                         | Duração, em segundos, do `Strict-Transport-Security`                      |
+
+Nenhum segredo é versionado: `.env` está no `.gitignore` e só o `.env.example`, com defaults de desenvolvimento, vai para o repositório. Em produção a `DATABASE_URL` aponta para a instância em nuvem, com `DATABASE_SSL="true"`, e vem do ambiente. Ao introduzir uma variável nova, atualize o schema, o `.env.example` e o `docker-compose.yml`.
+
+Com `NODE_ENV="production"` a validação é mais estrita e a aplicação recusa subir se `ENFORCE_HTTPS="false"` ou se `CORS_ORIGINS` contiver `*`.
+
+### HTTPS (RNF007)
+
+O TLS termina no proxy à frente da API — o processo Node atende em HTTP dentro da rede privada. O proxy é obrigado a **sobrescrever** o header `x-forwarded-proto` com o protocolo real do cliente, porque é ele que o `HttpsRedirectMiddleware` usa para decidir; quando o TLS termina na própria aplicação, `request.secure` cobre o caso.
+
+Com `ENFORCE_HTTPS="true"`, toda requisição que chega em HTTP recebe **308 Permanent Redirect** para a mesma URL em `https://` — o 308 preserva método e corpo, então um `POST` é refeito pelo cliente sem perder o payload. Requisição sem header `Host`, para a qual não há destino de redirecionamento, é recusada com `403 INSECURE_TRANSPORT`.
+
+O `Strict-Transport-Security` só é anunciado quando `ENFORCE_HTTPS="true"`: em ambiente HTTP ele não teria efeito e travaria o domínio de desenvolvimento no navegador.
+
+### Headers de segurança e CORS
+
+`SecurityHeadersMiddleware` aplica o helmet com uma política fechada, apropriada para uma API que só responde JSON, e remove o `X-Powered-By`:
+
+| Header                         | Valor                                       |
+| ------------------------------ | ------------------------------------------- |
+| `Content-Security-Policy`      | `default-src 'none'; frame-ancestors 'none'` |
+| `X-Frame-Options`              | `DENY`                                      |
+| `X-Content-Type-Options`       | `nosniff`                                   |
+| `Referrer-Policy`              | `no-referrer`                               |
+| `Cross-Origin-Resource-Policy` | `same-origin`                               |
+| `Strict-Transport-Security`    | só com `ENFORCE_HTTPS="true"`               |
+
+`CorsMiddleware` monta a política a partir de `CORS_ORIGINS`, aceita `Content-Type`, `Authorization` e `x-request-id`, expõe `x-request-id` ao cliente e guarda o preflight por 24 horas. Credenciais de navegador ficam desabilitadas: a autenticação é por Bearer token (RNF005), não por cookie.
+
+A ordem no `HttpModule` é `CorsMiddleware → SecurityHeadersMiddleware → RequestIdMiddleware → HttpsRedirectMiddleware`, para que o preflight seja respondido antes de tudo, os headers de segurança valham inclusive nas respostas de erro e o identificador de requisição já exista quando o redirecionamento ou a recusa acontece.
+
 ## Banco de dados e migrations
 
 Persistência com **Drizzle ORM** sobre PostgreSQL, e **Drizzle Kit** para as migrations.
 
 ### Conexão
 
-`DrizzleService` (`src/infra/database/drizzle/drizzle.service.ts`) é o único dono do pool `pg`. Ele abre a conexão no bootstrap (`onModuleInit` valida o acesso ao banco, então a aplicação falha logo se ele estiver indisponível) e a encerra no shutdown (`onApplicationShutdown`, habilitado por `app.enableShutdownHooks()` no `main.ts`).
-
-Toda a configuração vem de variáveis de ambiente validadas com Zod em `src/infra/env/env.ts` e lidas pelo `EnvService`:
-
-| Variável            | Padrão                                                          | Para que serve                                                  |
-| ------------------- | --------------------------------------------------------------- | --------------------------------------------------------------- |
-| `DATABASE_URL`      | `postgresql://postgres:postgres@database:5432/esliph_finance`    | URL de conexão — o `database` do Compose em desenvolvimento     |
-| `DATABASE_SSL`      | `false`                                                          | `true` para instâncias gerenciadas em nuvem (RNF003)            |
-| `DATABASE_POOL_MAX` | `10`                                                             | Tamanho máximo do pool                                          |
-| `PORT`              | `3000`                                                           | Porta da API                                                    |
-
-Nenhuma credencial é versionada: em produção a `DATABASE_URL` aponta para a instância em nuvem, com `DATABASE_SSL="true"`, e vem do ambiente.
+`DrizzleService` (`src/infra/database/drizzle/drizzle.service.ts`) é o único dono do pool `pg`. Ele abre a conexão no bootstrap (`onModuleInit` valida o acesso ao banco, então a aplicação falha logo se ele estiver indisponível) e a encerra no shutdown (`onApplicationShutdown`, habilitado por `app.enableShutdownHooks()` no `main.ts`). A `DATABASE_URL`, o `DATABASE_SSL` e o `DATABASE_POOL_MAX` que ele usa vêm do `EnvService` — ver [Variáveis de ambiente](#variáveis-de-ambiente).
 
 ### Schema e migrations
 
