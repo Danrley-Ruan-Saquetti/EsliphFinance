@@ -9,6 +9,8 @@ describe('Note (entidade de exemplo)', () => {
     const note = Note.create({ ownerId: new UniqueEntityID(), title: 'Título', content: 'Conteúdo' })
 
     expect(note.id.toString()).toBeTruthy()
+    expect(note.title).toBe('Título')
+    expect(note.content).toBe('Conteúdo')
     expect(note.createdAt).toBeInstanceOf(Date)
     expect(note.updatedAt).toBeUndefined()
   })

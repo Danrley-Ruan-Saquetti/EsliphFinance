@@ -6,15 +6,15 @@ on:
       - main
       - develop
     paths:
-      - 'server/**'
-      - '.github/workflows/server-tests.yml'
+      - "server/**"
+      - ".github/workflows/server-tests.yml"
   pull_request:
     branches:
       - main
       - develop
     paths:
-      - 'server/**'
-      - '.github/workflows/server-tests.yml'
+      - "server/**"
+      - ".github/workflows/server-tests.yml"
 
 concurrency:
   group: server-tests-${{ github.ref }}
@@ -32,14 +32,18 @@ jobs:
       - name: Checkout do repositório
         uses: actions/checkout@v5
 
+      - name: Configurar o Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
       - name: Instalar dependências
-        run: make deps-ci
+        run: npm ci
 
       - name: Testes unitários
-        run: make test
-
-      - name: Testes end-to-end
-        run: make test-e2e
+        run: npm test
 
       - name: Publicar relatório de cobertura
         if: always()
@@ -48,7 +52,3 @@ jobs:
           name: server-coverage
           path: server/coverage
           if-no-files-found: ignore
-
-      - name: Derrubar os containers
-        if: always()
-        run: make down

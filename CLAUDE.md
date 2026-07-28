@@ -11,7 +11,7 @@ EsliphFinance é um aplicativo de finanças pessoais. O repositório é um monor
 | `server/` | API backend (NestJS + PostgreSQL, tudo via Docker; nada de `npm` no host — os comandos são alvos do `Makefile`, e `make help` lista todos). **Tem o seu próprio `CLAUDE.md`** com stack, arquitetura e comandos — leia-o antes de mexer em qualquer coisa aqui. |
 | `mobile/` | Aplicativo Expo / React Native, com scripts npm próprios rodando direto no host. Consulte o diretório para a sua stack e comandos. |
 | `docs/`   | Documentação de produto. |
-| `.github/workflows/` | Pipelines do GitHub Actions. `server-tests.yml` roda os testes unitários e e2e do backend nos pushes e pull requests para `main` e `develop`, através dos mesmos alvos do `Makefile` usados no desenvolvimento. |
+| `.github/workflows/` | Pipelines do GitHub Actions. `server-tests.yml` roda os testes unitários e e2e do backend nos pushes e pull requests para `main` e `develop`, direto no Node 22 do runner (sem Docker), com o Postgres como *service container*. |
 
 ## `docs/requirements.md` é a fonte de verdade
 
