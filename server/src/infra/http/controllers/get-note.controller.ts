@@ -1,9 +1,6 @@
-import { BadRequestException, Controller, ForbiddenException, Get, NotFoundException, Param, Query } from '@nestjs/common'
+import { Controller, Get, Param, Query } from '@nestjs/common'
 import { z } from 'zod'
 
-import { BaseError } from '@core/errors/base-error'
-import { NotAllowedError } from '@core/errors/not-allowed-error'
-import { ResourceNotFoundError } from '@core/errors/resource-not-found-error'
 import { GetNoteUseCase } from '@domain/example/application/use-cases/get-note'
 import { ZodValidationPipe } from '@infra/http/pipes/zod-validation-pipe'
 import { NotePresenter } from '@infra/http/presenters/note-presenter'
@@ -26,16 +23,7 @@ export class GetNoteController {
     const result = await this.getNote.execute({ noteId: params.id, ownerId: query.ownerId })
 
     if (result.isLeft()) {
-      const error: BaseError = result.value
-
-      if (error instanceof ResourceNotFoundError) {
-        throw new NotFoundException(error.message)
-      }
-      if (error instanceof NotAllowedError) {
-        throw new ForbiddenException(error.message)
-      }
-
-      throw new BadRequestException(error.message)
+      throw result.value
     }
 
     return { note: NotePresenter.toHTTP(result.value.note) }
