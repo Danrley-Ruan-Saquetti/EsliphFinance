@@ -191,7 +191,7 @@ test/
 - Coverage está habilitado por padrão nos unitários, então qualquer execução grava em `coverage/`. A meta é **100% dos arquivos testáveis**, com o `vitest.config.js` reprovando abaixo de **85%**; ficam fora da conta o bootstrap, os módulos Nest, o `DrizzleService`, os repositórios e schemas Drizzle e os repositórios in-memory.
 - Casos de uso novos entram com teste unitário; o teste deve referenciar a RN que implementa.
 - A skill `spec-writer` (em `.claude/skills/`) traz o padrão completo de escrita dos specs, a lista de edge cases do domínio e o checklist.
-- No CI (`.github/workflows/server-tests.yml`) os testes rodam pelos mesmos alvos (`make deps-ci`, `make test`, `make db-migrate`, `make test-e2e`), dentro do Docker Compose, a cada push e pull request para `main` e `develop` que toque em `server/`.
+- No CI (`.github/workflows/server-tests.yml`) os testes rodam **sem Docker**: Node 22 via `actions/setup-node` e os scripts npm direto (`npm ci`, `npm test`, `npm run db:migrate`, `npm run test:e2e`), com o Postgres subindo como *service container* do GitHub Actions em `localhost:5432`. O `Makefile` continua sendo o caminho do desenvolvimento local; ao criar um alvo novo que o CI precise, adicione o script npm equivalente ao workflow. Roda a cada push e pull request para `main` e `develop` que toque em `server/`.
 
 ```sh
 make test                             # unitários
