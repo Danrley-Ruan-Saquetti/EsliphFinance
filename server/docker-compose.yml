@@ -8,10 +8,14 @@ services:
     stdin_open: true
     tty: true
     environment:
+      NODE_ENV: ${NODE_ENV:-development}
       DATABASE_URL: ${DATABASE_URL:-postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@database:5432/${POSTGRES_DB:-esliph_finance}}
       DATABASE_SSL: ${DATABASE_SSL:-false}
       DATABASE_POOL_MAX: ${DATABASE_POOL_MAX:-10}
       PORT: ${PORT:-3000}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      ENFORCE_HTTPS: ${ENFORCE_HTTPS:-false}
+      HSTS_MAX_AGE: ${HSTS_MAX_AGE:-31536000}
     volumes:
       - ./:/workspace
     command: tail -f /dev/null

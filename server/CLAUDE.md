@@ -148,7 +148,7 @@ src/
       controllers/               # finos: traduzem HTTP <-> use-case, nunca contêm regra
       errors/                    #   contrato de erro da API e mapa código -> status HTTP
       filters/                   #   AllExceptionsFilter: exceção -> resposta de erro padrão
-      middlewares/               #   RequestIdMiddleware: correlação de requisição
+      middlewares/               #   CORS, headers de segurança, HTTPS e correlação de requisição
       pipes/                     # ZodValidationPipe (por rota, schema no construtor)
       presenters/                # domínio -> JSON de resposta
       http.module.ts             # controllers + instanciação dos use-cases
@@ -177,6 +177,7 @@ test/
 - **Persistência** passa por `DrizzleService`, o único dono do pool `pg`: ele abre a conexão no `onModuleInit` e a encerra no `onApplicationShutdown`. Nenhum outro arquivo instancia `Pool` ou chama `drizzle()`.
 - **Schema do banco** vive em `infra/database/drizzle/schemas/` e é a fonte das migrations — alterar tabela é editar o schema e rodar `make db-generate NAME=<nome>`, nunca DDL manual nem edição do SQL já aplicado. Esses arquivos usam import relativo entre irmãos, porque o Drizzle Kit os lê fora do build do Nest e não resolve os path aliases.
 - **Mapper** por agregado (`DrizzleNoteMapper`) traduz registro do banco ↔ entidade; o repositório não monta entidade à mão e a entidade não conhece a tabela.
+- **Configuração** vive inteira em `infra/env`: `envSchema` (Zod) declara toda variável, `validateEnv` roda no bootstrap pelo `ConfigModule` e derruba a aplicação com a lista de variáveis ausentes ou inválidas, e o `EnvService` é a única forma de ler uma variável — nada de `process.env` espalhado. Variável nova entra no schema, no `.env.example` e no `docker-compose.yml`, junto (ver [Configuração e segurança de transporte](#configuração-e-segurança-de-transporte)).
 - **Zod** valida nas bordas: corpo/query/params HTTP e variáveis de ambiente. O `ZodValidationPipe` (`@infra/http/pipes/zod-validation-pipe`) recebe o schema no construtor e é aplicado por rota, no parâmetro — `@Body(new ZodValidationPipe(schema)) body: z.infer<typeof schema>` —, então um controller pode ter quantos schemas precisar. A validação de entrada não substitui as invariantes do domínio, que ficam nas entidades.
 - **Dinheiro** é encapsulado em um Value Object `Money` sobre inteiro em centavos; nunca `float`, nem em coluna do banco.
 - **Propriedade do registro** é verificada dentro do caso de uso, não por filtro implícito no repositório: buscar o registro e comparar o dono antes de ler ou alterar.
@@ -217,6 +218,29 @@ Toda resposta de erro — validação, regra de negócio ou falha inesperada —
 O mapa código → status vive em `@infra/http/errors/http-status-by-error-code`. Ao criar um erro de negócio novo, herde de `BaseError` com um `code` estável e acrescente a entrada ali se 400 não servir.
 
 Resposta 5xx nunca devolve a mensagem original nem stack trace: o corpo traz `Internal server error` e o stack vai só para o log, junto de método, rota, status e `requestId`. Erros esperados (4xx) não são logados.
+
+## Configuração e segurança de transporte
+
+| Variável            | Padrão                           | Para que serve                                                         |
+| ------------------- | -------------------------------- | ---------------------------------------------------------------------- |
+| `NODE_ENV`          | `development`                    | `development`, `test` ou `production`; endurece a validação em produção |
+| `PORT`              | `3000`                           | Porta da API                                                           |
+| `DATABASE_URL`      | obrigatória                      | URL de conexão                                                         |
+| `DATABASE_SSL`      | `false`                          | `true` para instâncias gerenciadas em nuvem (RNF003)                   |
+| `DATABASE_POOL_MAX` | `10`                             | Tamanho máximo do pool                                                 |
+| `CORS_ORIGINS`      | `*`                              | Origens aceitas, separadas por vírgula                                 |
+| `ENFORCE_HTTPS`     | `true` em produção, `false` fora | Redireciona HTTP para HTTPS e habilita o HSTS (RNF007)                 |
+| `HSTS_MAX_AGE`      | `31536000`                       | Duração, em segundos, do `Strict-Transport-Security`                   |
+
+Em `NODE_ENV="production"` o `envSchema` recusa `ENFORCE_HTTPS="false"` e recusa `*` em `CORS_ORIGINS` — as duas coisas derrubam o bootstrap, não geram aviso.
+
+Três middlewares cuidam do transporte, aplicados no `HttpModule` na ordem `CorsMiddleware → SecurityHeadersMiddleware → RequestIdMiddleware → HttpsRedirectMiddleware`:
+
+- **`CorsMiddleware`** monta a política a partir de `CORS_ORIGINS`, expõe o `x-request-id` e mantém as credenciais de navegador desabilitadas — a autenticação é por Bearer token (RNF005), não por cookie.
+- **`SecurityHeadersMiddleware`** aplica o helmet com CSP `default-src 'none'`, `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy: no-referrer` e `Cross-Origin-Resource-Policy: same-origin`; o `Strict-Transport-Security` só entra com `ENFORCE_HTTPS="true"`.
+- **`HttpsRedirectMiddleware`** decide pelo `x-forwarded-proto` (o TLS termina no proxy, que é obrigado a sobrescrever esse header) com fallback para `request.secure`. Requisição insegura vira **308**, que preserva método e corpo; sem `Host` para onde redirecionar, vira `403 INSECURE_TRANSPORT`.
+
+Nenhum segredo é versionado: só o `.env.example` vai para o repositório, com defaults de desenvolvimento.
 
 ## Testes
 

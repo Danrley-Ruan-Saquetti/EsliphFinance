@@ -9,7 +9,10 @@ import { CreateNoteController } from '@infra/http/controllers/create-note.contro
 import { GetNoteController } from '@infra/http/controllers/get-note.controller'
 import { HealthController } from '@infra/http/controllers/health.controller'
 import { AllExceptionsFilter } from '@infra/http/filters/all-exceptions-filter'
+import { CorsMiddleware } from '@infra/http/middlewares/cors-middleware'
+import { HttpsRedirectMiddleware } from '@infra/http/middlewares/https-redirect-middleware'
 import { RequestIdMiddleware } from '@infra/http/middlewares/request-id-middleware'
+import { SecurityHeadersMiddleware } from '@infra/http/middlewares/security-headers-middleware'
 
 @Module({
   imports: [DatabaseModule],
@@ -33,6 +36,6 @@ import { RequestIdMiddleware } from '@infra/http/middlewares/request-id-middlewa
 })
 export class HttpModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
-    consumer.apply(RequestIdMiddleware).forRoutes('*')
+    consumer.apply(CorsMiddleware, SecurityHeadersMiddleware, RequestIdMiddleware, HttpsRedirectMiddleware).forRoutes('*')
   }
 }

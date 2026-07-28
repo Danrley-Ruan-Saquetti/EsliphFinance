@@ -3,13 +3,9 @@ import { beforeEach, describe, expect, it } from 'vitest'
 
 import { Env } from '@infra/env/env'
 import { EnvService } from '@infra/env/env.service'
+import { makeEnv } from '@tests/factories/make-env'
 
-const env: Env = {
-  DATABASE_URL: 'postgresql://postgres:postgres@database:5432/esliph_finance',
-  DATABASE_SSL: false,
-  DATABASE_POOL_MAX: 10,
-  PORT: 3000,
-}
+const env = makeEnv({ NODE_ENV: 'development' })
 
 let requestedKeys: (keyof Env)[]
 let sut: EnvService
@@ -34,6 +30,10 @@ describe('EnvService', () => {
     expect(sut.get('PORT')).toBe(env.PORT)
     expect(sut.get('DATABASE_SSL')).toBe(false)
     expect(sut.get('DATABASE_POOL_MAX')).toBe(10)
+    expect(sut.get('NODE_ENV')).toBe('development')
+    expect(sut.get('CORS_ORIGINS')).toEqual(['*'])
+    expect(sut.get('ENFORCE_HTTPS')).toBe(false)
+    expect(sut.get('HSTS_MAX_AGE')).toBe(31536000)
   })
 
   it('deve consultar a configuração pela mesma chave solicitada', () => {
