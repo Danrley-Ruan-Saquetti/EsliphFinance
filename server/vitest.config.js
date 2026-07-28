@@ -9,7 +9,22 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       enabled: true,
-      reportsDirectory: './coverage'
+      reportsDirectory: './coverage',
+      include: ['src/**/*.ts'],
+      exclude: [
+        'src/main.ts',
+        'src/**/*.module.ts',
+        'src/infra/database/drizzle/drizzle.service.ts',
+        'src/infra/database/drizzle/repositories/**',
+        'src/infra/database/drizzle/schemas/**',
+        'src/infra/database/in-memory/**'
+      ],
+      thresholds: {
+        lines: 85,
+        functions: 85,
+        branches: 85,
+        statements: 85
+      }
     },
   },
   plugins: [
