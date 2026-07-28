@@ -146,6 +146,9 @@ src/
       database.module.ts         # wiring do Nest: liga porta -> implementação
     http/
       controllers/               # finos: traduzem HTTP <-> use-case, nunca contêm regra
+      errors/                    #   contrato de erro da API e mapa código -> status HTTP
+      filters/                   #   AllExceptionsFilter: exceção -> resposta de erro padrão
+      middlewares/               #   RequestIdMiddleware: correlação de requisição
       pipes/                     # ZodValidationPipe (por rota, schema no construtor)
       presenters/                # domínio -> JSON de resposta
       http.module.ts             # controllers + instanciação dos use-cases
@@ -168,7 +171,7 @@ test/
 
 - **Contextos** derivam dos requisitos: usuários/autenticação, grupos de ativos, ativos, cartões de débito, categorias, tags, transações, faturas, orçamentos, metas, lançamentos favoritos, anexos, relatórios e notificações.
 - **Casos de uso** implementam `UseCase<Request, Response>` (`@core/use-case`): um único método `execute(request)` que retorna `Either<Erro, Sucesso>` — erros esperados de negócio são valor de retorno, não exceção. Exceção fica para falha inesperada e para invariante de domínio violada (`InvariantError`, lançado pela entidade).
-- **Erros** herdam de `BaseError` (`@core/errors/base-error`) e expõem um `code` estável; a tradução para status HTTP acontece na infraestrutura, nunca dentro do caso de uso.
+- **Erros** herdam de `BaseError` (`@core/errors/base-error`) e expõem um `code` estável; a tradução para status HTTP acontece na infraestrutura, nunca dentro do caso de uso — nem no controller, que apenas lança o erro do `Either` e deixa o filtro global responder (ver [Contrato de erro da API](#contrato-de-erro-da-api)).
 - **Casos de uso não recebem `@Injectable()`**: são registrados nos módulos Nest com `useFactory` + `inject`, o que mantém a aplicação livre do framework.
 - **Repositórios** são declarados como classe abstrata em `domain/<ctx>/application/repositories` (a classe abstrata também é o token de injeção) e ligados à implementação em `infra/database/database.module.ts`. O uso no caso de uso é sempre pelo tipo abstrato.
 - **Persistência** passa por `DrizzleService`, o único dono do pool `pg`: ele abre a conexão no `onModuleInit` e a encerra no `onApplicationShutdown`. Nenhum outro arquivo instancia `Pool` ou chama `drizzle()`.
@@ -181,6 +184,40 @@ test/
 - **Nomenclatura**: arquivos em kebab-case com sufixo de papel (`create-note.ts`, `notes-repository.ts`, `create-note.controller.ts`, `note-presenter.ts`, `http.module.ts`); um artefato por arquivo, com o nome do arquivo espelhando o do artefato; contextos no singular, repositórios no plural do agregado.
 - **Path aliases**: `@*` → `src/*`, `@tests/*` → `test/*`. Import relativo só entre arquivos irmãos da mesma pasta.
 
+## Contrato de erro da API
+
+Toda resposta de erro — validação, regra de negócio ou falha inesperada — sai no mesmo formato, produzido pelo `AllExceptionsFilter` (`@infra/http/filters/all-exceptions-filter`), registrado globalmente com `APP_FILTER` no `HttpModule`:
+
+```json
+{
+  "statusCode": 422,
+  "code": "VALIDATION_FAILED",
+  "message": "Validation failed",
+  "details": [{ "field": "ownerId", "message": "Invalid UUID" }],
+  "path": "/notes",
+  "timestamp": "2026-07-28T12:00:00.000Z",
+  "requestId": "6d0f1a1e-2b6b-4a5f-9a0e-2f2b0e7d51c3"
+}
+```
+
+- `code` é o `code` estável do `BaseError` e é o que o app mobile deve consumir para decidir o que fazer — nunca a mensagem, que é texto para diagnóstico.
+- `details` só aparece em erro de validação, com um item por issue do Zod; `field` é o caminho do campo (`owner.id`) ou a origem do argumento quando o erro não é de um campo específico.
+- `requestId` vem do `RequestIdMiddleware`, que aceita o header `x-request-id` do cliente ou gera um UUID, devolve-o no header da resposta e o repete no corpo.
+
+| Categoria                 | Origem                                              | Status               |
+| ------------------------- | --------------------------------------------------- | -------------------- |
+| Validação de entrada      | `ValidationError`, lançado pelo `ZodValidationPipe` | 422                  |
+| Invariante de domínio     | `InvariantError`, lançado pela entidade             | 422                  |
+| Registro inexistente      | `ResourceNotFoundError`                             | 404                  |
+| Registro de outro usuário | `NotAllowedError`                                   | 403                  |
+| Demais erros de negócio   | qualquer `BaseError` sem mapeamento                 | 400                  |
+| Exceção do NestJS         | `HttpException` (rota inexistente, método...)       | o da própria exceção |
+| Falha inesperada          | qualquer outra coisa                                | 500                  |
+
+O mapa código → status vive em `@infra/http/errors/http-status-by-error-code`. Ao criar um erro de negócio novo, herde de `BaseError` com um `code` estável e acrescente a entrada ali se 400 não servir.
+
+Resposta 5xx nunca devolve a mensagem original nem stack trace: o corpo traz `Internal server error` e o stack vai só para o log, junto de método, rota, status e `requestId`. Erros esperados (4xx) não são logados.
+
 ## Testes
 
 - Todo teste vive em `test/` — nada de `*.spec.ts` dentro de `src/`.
@@ -191,7 +228,7 @@ test/
 - Coverage está habilitado por padrão nos unitários, então qualquer execução grava em `coverage/`. A meta é **100% dos arquivos testáveis**, com o `vitest.config.js` reprovando abaixo de **85%**; ficam fora da conta o bootstrap, os módulos Nest, o `DrizzleService`, os repositórios e schemas Drizzle e os repositórios in-memory.
 - Casos de uso novos entram com teste unitário; o teste deve referenciar a RN que implementa.
 - A skill `spec-writer` (em `.claude/skills/`) traz o padrão completo de escrita dos specs, a lista de edge cases do domínio e o checklist.
-- No CI (`.github/workflows/server-tests.yml`) os testes rodam **sem Docker**: Node 22 via `actions/setup-node` e os scripts npm direto (`npm ci`, `npm test`, `npm run db:migrate`, `npm run test:e2e`), com o Postgres subindo como *service container* do GitHub Actions em `localhost:5432`. O `Makefile` continua sendo o caminho do desenvolvimento local; ao criar um alvo novo que o CI precise, adicione o script npm equivalente ao workflow. Roda a cada push e pull request para `main` e `develop` que toque em `server/`.
+- No CI (`.github/workflows/server-tests.yml`) os testes rodam **sem Docker**: Node 22 via `actions/setup-node` e os scripts npm direto (`npm ci`, `npm test`, `npm run db:migrate`, `npm run test:e2e`), com o Postgres subindo como _service container_ do GitHub Actions em `localhost:5432`. O `Makefile` continua sendo o caminho do desenvolvimento local; ao criar um alvo novo que o CI precise, adicione o script npm equivalente ao workflow. Roda a cada push e pull request para `main` e `develop` que toque em `server/`.
 
 ```sh
 make test                             # unitários

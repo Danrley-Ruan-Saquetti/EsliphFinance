@@ -36,12 +36,12 @@ describe('Criar nota (e2e)', () => {
     expect(response.body.note).toEqual(expect.objectContaining({ id: expect.any(String) as string, title: 'Título', content: 'Conteúdo' }))
   })
 
-  it('POST /notes rejeita corpo inválido com 400', async () => {
+  it('POST /notes rejeita corpo inválido com 422', async () => {
     const response = await request(app.getHttpServer()).post('/notes').send({ ownerId: 'não-é-uuid', title: '', content: 'Conteúdo' })
 
-    expect(response.statusCode).toBe(400)
+    expect(response.statusCode).toBe(422)
+    expect(response.body.code).toBe('VALIDATION_FAILED')
     expect(response.body.message).toBe('Validation failed')
-    expect(response.body.errors.fieldErrors).toHaveProperty('ownerId')
-    expect(response.body.errors.fieldErrors).toHaveProperty('title')
+    expect(response.body.details.map((detail: { field: string }) => detail.field)).toEqual(['ownerId', 'title'])
   })
 })
