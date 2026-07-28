@@ -54,8 +54,13 @@ src/
 
   infra/
     database/
-      drizzle/                     # schemas, mappers, repositories, migrations
-      in-memory/                   # implementações em memória das portas
+      drizzle/
+        schemas/                   #   tabelas Drizzle (fonte das migrations)
+        mappers/                   #   registro do banco <-> entidade de domínio
+        repositories/              #   implementações Drizzle das portas
+        migrations/                #   SQL versionado gerado pelo Drizzle Kit
+        drizzle.service.ts         #   pool de conexão no ciclo de vida do Nest
+      in-memory/                   # implementações em memória das portas (testes unitários)
       database.module.ts           # liga cada porta à sua implementação
     http/
       controllers/                 # finos: traduzem HTTP <-> caso de uso, nunca contêm regra
@@ -64,7 +69,7 @@ src/
       http.module.ts               # controllers + instanciação dos casos de uso
     auth/                          # JWT, guards, estratégias (RNF005)
     cryptography/                  # implementações de hash/JWT
-    env/                           # schema Zod das variáveis de ambiente
+    env/                           # schema Zod das variáveis de ambiente + EnvService
 
   app.module.ts                    # raiz: agrega os módulos e o que é transversal
   main.ts
@@ -158,10 +163,49 @@ import { HttpModule } from '@infra/http/http.module'
 
 Imports relativos ficam reservados para arquivos irmãos dentro da mesma pasta.
 
+## Banco de dados e migrations
+
+Persistência com **Drizzle ORM** sobre PostgreSQL, e **Drizzle Kit** para as migrations.
+
+### Conexão
+
+`DrizzleService` (`src/infra/database/drizzle/drizzle.service.ts`) é o único dono do pool `pg`. Ele abre a conexão no bootstrap (`onModuleInit` valida o acesso ao banco, então a aplicação falha logo se ele estiver indisponível) e a encerra no shutdown (`onApplicationShutdown`, habilitado por `app.enableShutdownHooks()` no `main.ts`).
+
+Toda a configuração vem de variáveis de ambiente validadas com Zod em `src/infra/env/env.ts` e lidas pelo `EnvService`:
+
+| Variável            | Padrão                                                          | Para que serve                                                  |
+| ------------------- | --------------------------------------------------------------- | --------------------------------------------------------------- |
+| `DATABASE_URL`      | `postgresql://postgres:postgres@database:5432/esliph_finance`    | URL de conexão — o `database` do Compose em desenvolvimento     |
+| `DATABASE_SSL`      | `false`                                                          | `true` para instâncias gerenciadas em nuvem (RNF003)            |
+| `DATABASE_POOL_MAX` | `10`                                                             | Tamanho máximo do pool                                          |
+| `PORT`              | `3000`                                                           | Porta da API                                                    |
+
+Nenhuma credencial é versionada: em produção a `DATABASE_URL` aponta para a instância em nuvem, com `DATABASE_SSL="true"`, e vem do ambiente.
+
+### Schema e migrations
+
+O schema é declarado em `src/infra/database/drizzle/schemas/` e é a fonte das migrations — **nunca altere o banco à mão**. O fluxo é sempre: editar o schema, gerar a migration, revisar o SQL, aplicar.
+
+```sh
+make db-generate NAME=create_notes_table  # gera a migration a partir do schema
+make db-migrate                           # aplica as migrations pendentes
+make db-check                             # verifica conflitos entre migrations
+make db-studio                            # Drizzle Studio em http://localhost:4983
+make db-reset                             # recria o banco do zero e migra (APAGA os dados)
+```
+
+O SQL gerado e os metadados ficam em `src/infra/database/drizzle/migrations/` e são versionados. O Drizzle registra o que já foi aplicado na tabela `drizzle.__drizzle_migrations`, então `make db-migrate` é idempotente.
+
+`make db-migrate` roda pelo serviço `migrate` do `docker-compose.yml` (perfil `migration`), que espera o Postgres ficar saudável antes de executar — o mesmo caminho usado pelo CI antes dos testes e2e.
+
+### Mappers e repositórios
+
+A entidade de domínio nunca conhece a tabela. Um **mapper** (`DrizzleNoteMapper`) traduz nos dois sentidos, e o **repositório** (`DrizzleNotesRepository`) implementa a porta declarada no domínio. Trocar a implementação é uma linha em `database.module.ts`; o resto da aplicação não muda.
+
 ## Testes
 
 - **Unitários** ficam em `test/units/`, **no mesmo caminho do arquivo testado dentro de `src/`**: `src/domain/example/application/use-cases/create-note.ts` é testado por `test/units/domain/example/application/use-cases/create-note.spec.ts`. Cobrem entidades e casos de uso com repositórios em memória — sem NestJS e sem banco. Todo caso de uso novo entra com teste, e o teste referencia a RN que implementa.
-- **E2E** (`test/**/*.e2e-spec.ts`) sobem a aplicação Nest e batem nas rotas HTTP.
+- **E2E** (`test/**/*.e2e-spec.ts`) sobem a aplicação Nest e batem nas rotas HTTP contra o Postgres do Compose, com as migrations já aplicadas (`make db-migrate`). Cada spec limpa as tabelas que usa antes de rodar.
 - Como os testes ficam fora de `src/`, eles importam sempre pelos aliases (`@core/…`, `@domain/…`, `@infra/…`).
 
 ```sh

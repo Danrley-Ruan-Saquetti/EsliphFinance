@@ -16,10 +16,7 @@ type GetNoteQuery = z.infer<typeof getNoteQuerySchema>
 
 @Controller('/notes')
 export class GetNoteController {
-
-  constructor(
-    private readonly getNote: GetNoteUseCase
-  ) { }
+  constructor(private readonly getNote: GetNoteUseCase) {}
 
   @Get('/:id')
   async handle(
