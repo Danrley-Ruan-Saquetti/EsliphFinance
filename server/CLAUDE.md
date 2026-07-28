@@ -137,7 +137,7 @@ src/
   infra/
     database/
       drizzle/
-        schemas/                 #   tabelas Drizzle — fonte das migrations
+        schemas/                 #   tabelas Drizzle — fonte das migrations; `moneyAmount` para coluna monetária
         mappers/                 #   registro do banco <-> entidade
         repositories/            #   implementações Drizzle das portas
         migrations/              #   SQL versionado gerado pelo Drizzle Kit
@@ -151,6 +151,7 @@ src/
       middlewares/               #   CORS, headers de segurança, HTTPS e correlação de requisição
       pipes/                     # ZodValidationPipe (por rota, schema no construtor)
       presenters/                # domínio -> JSON de resposta
+      schemas/                   # schemas Zod reutilizáveis de entrada (moneySchema)
       http.module.ts             # controllers + instanciação dos use-cases
     auth/                        # JWT, guards, estratégias (RNF005)
     cryptography/                # implementações de hash/JWT
@@ -179,7 +180,7 @@ test/
 - **Mapper** por agregado (`DrizzleNoteMapper`) traduz registro do banco ↔ entidade; o repositório não monta entidade à mão e a entidade não conhece a tabela.
 - **Configuração** vive inteira em `infra/env`: `envSchema` (Zod) declara toda variável, `validateEnv` roda no bootstrap pelo `ConfigModule` e derruba a aplicação com a lista de variáveis ausentes ou inválidas, e o `EnvService` é a única forma de ler uma variável — nada de `process.env` espalhado. Variável nova entra no schema, no `.env.example` e no `docker-compose.yml`, junto (ver [Configuração e segurança de transporte](#configuração-e-segurança-de-transporte)).
 - **Zod** valida nas bordas: corpo/query/params HTTP e variáveis de ambiente. O `ZodValidationPipe` (`@infra/http/pipes/zod-validation-pipe`) recebe o schema no construtor e é aplicado por rota, no parâmetro — `@Body(new ZodValidationPipe(schema)) body: z.infer<typeof schema>` —, então um controller pode ter quantos schemas precisar. A validação de entrada não substitui as invariantes do domínio, que ficam nas entidades.
-- **Dinheiro** é encapsulado em um Value Object `Money` sobre inteiro em centavos; nunca `float`, nem em coluna do banco.
+- **Dinheiro** é encapsulado no Value Object `Money` sobre inteiro em centavos; nunca `float`, nem em coluna do banco (ver [Valores monetários](#valores-monetários)).
 - **Propriedade do registro** é verificada dentro do caso de uso, não por filtro implícito no repositório: buscar o registro e comparar o dono antes de ler ou alterar.
 - **Exclusões** são majoritariamente lógicas ou bloqueadas por vínculos — conferir a RN correspondente antes de implementar um delete.
 - **Nomenclatura**: arquivos em kebab-case com sufixo de papel (`create-note.ts`, `notes-repository.ts`, `create-note.controller.ts`, `note-presenter.ts`, `http.module.ts`); um artefato por arquivo, com o nome do arquivo espelhando o do artefato; contextos no singular, repositórios no plural do agregado.
@@ -218,6 +219,29 @@ Toda resposta de erro — validação, regra de negócio ou falha inesperada —
 O mapa código → status vive em `@infra/http/errors/http-status-by-error-code`. Ao criar um erro de negócio novo, herde de `BaseError` com um `code` estável e acrescente a entrada ali se 400 não servir.
 
 Resposta 5xx nunca devolve a mensagem original nem stack trace: o corpo traz `Internal server error` e o stack vai só para o log, junto de método, rota, status e `requestId`. Erros esperados (4xx) não são logados.
+
+## Valores monetários
+
+Todo valor monetário é **inteiro em centavos** (RNF004) da entrada à persistência; as duas casas decimais existem apenas na exibição. `number` cru não circula: quem representa dinheiro é o Value Object `Money` (`@core/value-objects/money`), imutável, que só aceita inteiro seguro em centavos e lança `InvariantError` para fracionário, `NaN`, infinito ou estouro do inteiro seguro.
+
+| Operação                    | Comportamento                                                                                       |
+| --------------------------- | --------------------------------------------------------------------------------------------------- |
+| `add` / `subtract`          | Devolvem um novo `Money`; valor negativo é válido (saldo devedor, estorno).                          |
+| `multiply(factor)`          | Aceita fator fracionário e arredonda para o centavo mais próximo, afastando-se do zero (`166.5 → 167`, `-166.5 → -167`). |
+| `allocate(parts)`           | Divisão com rateio: reparte o valor em `parts` inteiras e joga a diferença de arredondamento na **primeira** parte (RN065). A soma das partes é sempre igual ao total. |
+| `toString()`                | Formata com duas casas e ponto decimal (`123456 → "1234.56"`, `-5 → "-0.05"`) — sem símbolo de moeda e sem locale, que são decisão do cliente. |
+
+As três bordas:
+
+- **Entrada** usa o `moneySchema` (`@infra/http/schemas/money-schema`), que valida o inteiro em centavos e já transforma em `Money` — compõe com o `ZodValidationPipe` como qualquer outro schema. Restrição adicional (valor obrigatoriamente positivo, por exemplo) fica em quem usa o schema, não nele.
+- **Persistência** usa a coluna `moneyAmount(name)` (`@infra/database/drizzle/schemas/money-amount`), um `bigint` com `mode: 'number'`. Nenhum campo monetário usa `numeric`, `real` ou `double precision`.
+- **Saída** passa pelo `MoneyPresenter`, que expõe as duas representações no mesmo objeto e sempre com os mesmos nomes:
+
+```json
+{ "amountInCents": 123456, "formatted": "1234.56" }
+```
+
+O app mobile deve calcular sobre `amountInCents` e usar `formatted` só para exibir.
 
 ## Configuração e segurança de transporte
 
