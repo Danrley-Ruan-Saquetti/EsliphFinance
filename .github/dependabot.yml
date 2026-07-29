@@ -1,0 +1,21 @@
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /server
+    schedule:
+      interval: weekly
+      day: monday
+    labels:
+      - dependencies
+      - server-api
+
+  - package-ecosystem: docker
+    directory: /inventory
+    schedule:
+      interval: weekly
+      day: monday
+    labels:
+      - dependencies
+      - server-api
+      - docker
