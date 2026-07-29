@@ -15,7 +15,7 @@ API do EsliphFinance. Este documento cobre apenas o backend; o contexto geral do
 | Ambiente         | Docker + Docker Compose            |
 | Comandos         | Makefile                           |
 
-> Estado atual do repositório: a fundação arquitetural está implementada (camadas, `core/`, pipe global de validação, padrão `Either`, aliases), a persistência com Drizzle e o pipeline de migrations estão no ar, e há um **módulo de exemplo** em `src/domain/example` servindo de referência de estrutura — ele não faz parte do domínio real. Autenticação ainda **não** foi adicionada; o que depende dela está marcado abaixo.
+> Estado atual do repositório: a fundação arquitetural está implementada (camadas, `core/`, pipe global de validação, padrão `Either`, aliases), a persistência com Drizzle e o pipeline de migrations estão no ar, e há um **módulo de exemplo** em `src/domain/example` servindo de referência de estrutura — ele não faz parte do domínio real. O primeiro contexto real é `src/domain/user`, com o cadastro de usuário (`POST /users`, RF001) e a porta `HashGenerator` implementada por bcrypt em `src/infra/cryptography`. Autenticação ainda **não** foi adicionada; o que depende dela está marcado abaixo.
 
 ## Ambiente Docker
 
@@ -213,6 +213,7 @@ Toda resposta de erro — validação, regra de negócio ou falha inesperada —
 | Invariante de domínio     | `InvariantError`, lançado pela entidade             | 422                  |
 | Registro inexistente      | `ResourceNotFoundError`                             | 404                  |
 | Registro de outro usuário | `NotAllowedError`                                   | 403                  |
+| Conflito com registro existente | `EmailAlreadyInUseError` (RN002, RN014)       | 409                  |
 | Demais erros de negócio   | qualquer `BaseError` sem mapeamento                 | 400                  |
 | Exceção do NestJS         | `HttpException` (rota inexistente, método...)       | o da própria exceção |
 | Falha inesperada          | qualquer outra coisa                                | 500                  |

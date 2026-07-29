@@ -6,6 +6,7 @@ const HTTP_STATUS_BY_ERROR_CODE: Record<string, HttpStatus | undefined> = {
   RESOURCE_NOT_FOUND: HttpStatus.NOT_FOUND,
   NOT_ALLOWED: HttpStatus.FORBIDDEN,
   INSECURE_TRANSPORT: HttpStatus.FORBIDDEN,
+  EMAIL_ALREADY_IN_USE: HttpStatus.CONFLICT,
 }
 
 export function httpStatusByErrorCode(code: string): HttpStatus {
