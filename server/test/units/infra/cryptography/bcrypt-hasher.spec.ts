@@ -30,4 +30,16 @@ describe('BcryptHasher', () => {
 
     expect(hash).not.toBe(anotherHash)
   })
+
+  it('deve confirmar a senha comparada contra o hash armazenado (RN004)', async () => {
+    const hash = await sut.hash('senha-secreta')
+
+    expect(await sut.compare('senha-secreta', hash)).toBe(true)
+  })
+
+  it('deve recusar a senha que não originou o hash armazenado (RN004)', async () => {
+    const hash = await sut.hash('senha-secreta')
+
+    expect(await sut.compare('outra-senha', hash)).toBe(false)
+  })
 })

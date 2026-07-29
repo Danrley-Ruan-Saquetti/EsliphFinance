@@ -11,6 +11,10 @@ describe('Email', () => {
     expect(email.toString()).toBe('fulano@exemplo.com')
   })
 
+  it('deve normalizar o e-mail sem exigir que ele seja válido', () => {
+    expect(Email.normalize('  Fulano-Exemplo.COM  ')).toBe('fulano-exemplo.com')
+  })
+
   it('deve considerar iguais dois e-mails que só diferem em caixa e espaços', () => {
     expect(Email.create('Fulano@Exemplo.com').equals(Email.create(' fulano@exemplo.com '))).toBe(true)
   })

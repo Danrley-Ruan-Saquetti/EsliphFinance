@@ -15,7 +15,7 @@ API do EsliphFinance. Este documento cobre apenas o backend; o contexto geral do
 | Ambiente         | Docker + Docker Compose            |
 | Comandos         | Makefile                           |
 
-> Estado atual do repositório: a fundação arquitetural está implementada (camadas, `core/`, pipe global de validação, padrão `Either`, aliases), a persistência com Drizzle e o pipeline de migrations estão no ar, e há um **módulo de exemplo** em `src/domain/example` servindo de referência de estrutura — ele não faz parte do domínio real. O primeiro contexto real é `src/domain/user`, com o cadastro de usuário (`POST /users`, RF001) e a porta `HashGenerator` implementada por bcrypt em `src/infra/cryptography`. Autenticação ainda **não** foi adicionada; o que depende dela está marcado abaixo.
+> Estado atual do repositório: a fundação arquitetural está implementada (camadas, `core/`, pipe global de validação, padrão `Either`, aliases), a persistência com Drizzle e o pipeline de migrations estão no ar, e há um **módulo de exemplo** em `src/domain/example` servindo de referência de estrutura — ele não faz parte do domínio real. O primeiro contexto real é `src/domain/user`, com o cadastro de usuário (`POST /users`, RF001) e o login (`POST /sessions`, RF002, RN004). O guard de autenticação, a renovação do token (RN006, RN007) e o encerramento de sessão (RN008) ainda **não** foram adicionados; o que depende deles está marcado abaixo.
 
 ## Ambiente Docker
 
@@ -153,8 +153,8 @@ src/
       presenters/                # domínio -> JSON de resposta
       schemas/                   # schemas Zod reutilizáveis de entrada (moneySchema)
       http.module.ts             # controllers + instanciação dos use-cases
-    auth/                        # JWT, guards, estratégias (RNF005)
-    cryptography/                # implementações de hash/JWT
+    auth/                        # guards e estratégias (RNF005)
+    cryptography/                # implementações das portas de hash, assinatura JWT e geração de token
     env/                         # schema Zod das variáveis de ambiente + EnvService
 
   app.module.ts                  # raiz: agrega os módulos e o que é transversal
@@ -213,6 +213,7 @@ Toda resposta de erro — validação, regra de negócio ou falha inesperada —
 | Invariante de domínio     | `InvariantError`, lançado pela entidade             | 422                  |
 | Registro inexistente      | `ResourceNotFoundError`                             | 404                  |
 | Registro de outro usuário | `NotAllowedError`                                   | 403                  |
+| Credenciais de login inválidas | `InvalidCredentialsError` (RN004)              | 401                  |
 | Conflito com registro existente | `EmailAlreadyInUseError` (RN002, RN014)       | 409                  |
 | Demais erros de negócio   | qualquer `BaseError` sem mapeamento                 | 400                  |
 | Exceção do NestJS         | `HttpException` (rota inexistente, método...)       | o da própria exceção |
@@ -265,8 +266,11 @@ O app mobile deve calcular sobre `amountInCents` e usar `formatted` só para exi
 | `CORS_ORIGINS`      | `*`                              | Origens aceitas, separadas por vírgula                                 |
 | `ENFORCE_HTTPS`     | `true` em produção, `false` fora | Redireciona HTTP para HTTPS e habilita o HSTS (RNF007)                 |
 | `HSTS_MAX_AGE`      | `31536000`                       | Duração, em segundos, do `Strict-Transport-Security`                   |
+| `JWT_SECRET`        | obrigatória                      | Segredo HS256 de assinatura do token de acesso, mínimo de 32 caracteres (RNF005) |
+| `ACCESS_TOKEN_EXPIRES_IN_SECONDS`  | `900`             | Validade do token de acesso (RN005)                                    |
+| `REFRESH_TOKEN_EXPIRES_IN_SECONDS` | `2592000`         | Validade do token de renovação; precisa ser maior que a do token de acesso (RN006) |
 
-Em `NODE_ENV="production"` o `envSchema` recusa `ENFORCE_HTTPS="false"` e recusa `*` em `CORS_ORIGINS` — as duas coisas derrubam o bootstrap, não geram aviso.
+Em `NODE_ENV="production"` o `envSchema` recusa `ENFORCE_HTTPS="false"` e recusa `*` em `CORS_ORIGINS` — as duas coisas derrubam o bootstrap, não geram aviso. Em qualquer ambiente ele também recusa um `REFRESH_TOKEN_EXPIRES_IN_SECONDS` menor ou igual ao `ACCESS_TOKEN_EXPIRES_IN_SECONDS` (RN006).
 
 Três middlewares cuidam do transporte, aplicados no `HttpModule` na ordem `CorsMiddleware → SecurityHeadersMiddleware → RequestIdMiddleware → HttpsRedirectMiddleware`:
 
@@ -275,6 +279,15 @@ Três middlewares cuidam do transporte, aplicados no `HttpModule` na ordem `Cors
 - **`HttpsRedirectMiddleware`** decide pelo `x-forwarded-proto` (o TLS termina no proxy, que é obrigado a sobrescrever esse header) com fallback para `request.secure`. Requisição insegura vira **308**, que preserva método e corpo; sem `Host` para onde redirecionar, vira `403 INSECURE_TRANSPORT`.
 
 Nenhum segredo é versionado: só o `.env.example` vai para o repositório, com defaults de desenvolvimento.
+
+## Autenticação
+
+O login (`POST /sessions`, RN004) troca e-mail e senha por um par de tokens. Os dois têm naturezas diferentes de propósito:
+
+- **Token de acesso**: JWT HS256 assinado com `JWT_SECRET`, carregando o id do usuário em `sub` e expiração curta (RN005, RNF005). É autocontido e não é persistido. Quem o emite é a porta `AccessTokenGenerator`, implementada pelo `JwtAccessTokenGenerator`.
+- **Token de renovação**: valor aleatório opaco de 32 bytes em `base64url`, **não** um JWT — ele precisa ser invalidável a qualquer momento (RN007, RN008, RN009, RN013), e um JWT autocontido não permite isso. O que vai para a tabela `refresh_tokens` é o **SHA-256 do token**, nunca o valor entregue ao cliente; a busca posterior é feita pelo mesmo hash. Quem o gera e deriva o hash é a porta `RefreshTokenGenerator`, implementada pelo `CryptoRefreshTokenGenerator`.
+
+A senha é comparada contra o hash armazenado pela porta `HashComparer` (bcrypt), e o `BcryptHasher` implementa tanto ela quanto o `HashGenerator`. E-mail inexistente e senha incorreta devolvem o **mesmo** `InvalidCredentialsError` (401), com a mesma mensagem, para não revelar quais e-mails estão cadastrados.
 
 ## Testes
 

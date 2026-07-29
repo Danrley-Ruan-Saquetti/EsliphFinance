@@ -6,6 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { AppModule } from '@app.module'
 import { DrizzleService } from '@infra/database/drizzle/drizzle.service'
+import { refreshTokens } from '@infra/database/drizzle/schemas/refresh-tokens'
 import { users } from '@infra/database/drizzle/schemas/users'
 
 describe('Cadastrar usuário (e2e)', () => {
@@ -19,7 +20,10 @@ describe('Cadastrar usuário (e2e)', () => {
     app = moduleFixture.createNestApplication()
     await app.init()
 
-    await app.get(DrizzleService).db.delete(users)
+    const drizzle = app.get(DrizzleService)
+
+    await drizzle.db.delete(refreshTokens)
+    await drizzle.db.delete(users)
   })
 
   afterAll(async () => {
