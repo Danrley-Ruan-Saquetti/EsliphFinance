@@ -41,7 +41,7 @@ describe('Criar nota (e2e)', () => {
 
     expect(response.statusCode).toBe(422)
     expect(response.body.code).toBe('VALIDATION_FAILED')
-    expect(response.body.message).toBe('Validation failed')
+    expect(response.body.message).toBe('Falha na validação')
     expect(response.body.details.map((detail: { field: string }) => detail.field)).toEqual(['ownerId', 'title'])
   })
 })

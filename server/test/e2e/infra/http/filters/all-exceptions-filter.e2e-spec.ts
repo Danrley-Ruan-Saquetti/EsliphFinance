@@ -37,7 +37,7 @@ describe('Contrato de erro da API (e2e)', () => {
       expect.objectContaining({
         statusCode: 422,
         code: 'VALIDATION_FAILED',
-        message: 'Validation failed',
+        message: 'Falha na validação',
         path: '/notes',
         timestamp: expect.any(String) as string,
         requestId: expect.any(String) as string,
@@ -51,7 +51,7 @@ describe('Contrato de erro da API (e2e)', () => {
 
     expect(response.statusCode).toBe(404)
     expect(response.body.code).toBe('RESOURCE_NOT_FOUND')
-    expect(response.body.message).toBe('Note not found')
+    expect(response.body.message).toBe('Nota não encontrada')
     expect(response.body.details).toBeUndefined()
   })
 
@@ -107,7 +107,7 @@ describe('Contrato de erro inesperado da API (e2e)', () => {
 
     expect(response.statusCode).toBe(500)
     expect(response.body.code).toBe('INTERNAL_SERVER_ERROR')
-    expect(response.body.message).toBe('Internal server error')
+    expect(response.body.message).toBe('Erro interno do servidor')
     expect(response.body.requestId).toEqual(expect.any(String))
     expect(JSON.stringify(response.body)).not.toContain('Connection terminated unexpectedly')
     expect(response.body.stack).toBeUndefined()

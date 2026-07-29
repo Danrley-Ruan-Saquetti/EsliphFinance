@@ -172,14 +172,14 @@ test/
 
 - **Contextos** derivam dos requisitos: usuários/autenticação, grupos de ativos, ativos, cartões de débito, categorias, tags, transações, faturas, orçamentos, metas, lançamentos favoritos, anexos, relatórios e notificações.
 - **Casos de uso** implementam `UseCase<Request, Response>` (`@core/use-case`): um único método `execute(request)` que retorna `Either<Erro, Sucesso>` — erros esperados de negócio são valor de retorno, não exceção. Exceção fica para falha inesperada e para invariante de domínio violada (`InvariantError`, lançado pela entidade).
-- **Erros** herdam de `BaseError` (`@core/errors/base-error`) e expõem um `code` estável; a tradução para status HTTP acontece na infraestrutura, nunca dentro do caso de uso — nem no controller, que apenas lança o erro do `Either` e deixa o filtro global responder (ver [Contrato de erro da API](#contrato-de-erro-da-api)).
+- **Erros** herdam de `BaseError` (`@core/errors/base-error`), expõem um `code` estável em inglês e carregam a mensagem em português (ver [Idioma das mensagens](#idioma-das-mensagens)); a tradução para status HTTP acontece na infraestrutura, nunca dentro do caso de uso — nem no controller, que apenas lança o erro do `Either` e deixa o filtro global responder (ver [Contrato de erro da API](#contrato-de-erro-da-api)).
 - **Casos de uso não recebem `@Injectable()`**: são registrados nos módulos Nest com `useFactory` + `inject`, o que mantém a aplicação livre do framework.
 - **Repositórios** são declarados como classe abstrata em `domain/<ctx>/application/repositories` (a classe abstrata também é o token de injeção) e ligados à implementação em `infra/database/database.module.ts`. O uso no caso de uso é sempre pelo tipo abstrato.
 - **Persistência** passa por `DrizzleService`, o único dono do pool `pg`: ele abre a conexão no `onModuleInit` e a encerra no `onApplicationShutdown`. Nenhum outro arquivo instancia `Pool` ou chama `drizzle()`.
 - **Schema do banco** vive em `infra/database/drizzle/schemas/` e é a fonte das migrations — alterar tabela é editar o schema e rodar `make db-generate NAME=<nome>`, nunca DDL manual nem edição do SQL já aplicado. Esses arquivos usam import relativo entre irmãos, porque o Drizzle Kit os lê fora do build do Nest e não resolve os path aliases.
 - **Mapper** por agregado (`DrizzleNoteMapper`) traduz registro do banco ↔ entidade; o repositório não monta entidade à mão e a entidade não conhece a tabela.
 - **Configuração** vive inteira em `infra/env`: `envSchema` (Zod) declara toda variável, `validateEnv` roda no bootstrap pelo `ConfigModule` e derruba a aplicação com a lista de variáveis ausentes ou inválidas, e o `EnvService` é a única forma de ler uma variável — nada de `process.env` espalhado. Variável nova entra no schema, no `.env.example` e no `docker-compose.yml`, junto (ver [Configuração e segurança de transporte](#configuração-e-segurança-de-transporte)).
-- **Zod** valida nas bordas: corpo/query/params HTTP e variáveis de ambiente. O `ZodValidationPipe` (`@infra/http/pipes/zod-validation-pipe`) recebe o schema no construtor e é aplicado por rota, no parâmetro — `@Body(new ZodValidationPipe(schema)) body: z.infer<typeof schema>` —, então um controller pode ter quantos schemas precisar. A validação de entrada não substitui as invariantes do domínio, que ficam nas entidades.
+- **Zod** valida nas bordas: corpo/query/params HTTP e variáveis de ambiente. O `ZodValidationPipe` (`@infra/http/pipes/zod-validation-pipe`) recebe o schema no construtor, valida com o locale português do Zod e é aplicado por rota, no parâmetro — `@Body(new ZodValidationPipe(schema)) body: z.infer<typeof schema>` —, então um controller pode ter quantos schemas precisar. A validação de entrada não substitui as invariantes do domínio, que ficam nas entidades.
 - **Dinheiro** é encapsulado no Value Object `Money` sobre inteiro em centavos; nunca `float`, nem em coluna do banco (ver [Valores monetários](#valores-monetários)).
 - **Propriedade do registro** é verificada dentro do caso de uso, não por filtro implícito no repositório: buscar o registro e comparar o dono antes de ler ou alterar.
 - **Exclusões** são majoritariamente lógicas ou bloqueadas por vínculos — conferir a RN correspondente antes de implementar um delete.
@@ -194,15 +194,16 @@ Toda resposta de erro — validação, regra de negócio ou falha inesperada —
 {
   "statusCode": 422,
   "code": "VALIDATION_FAILED",
-  "message": "Validation failed",
-  "details": [{ "field": "ownerId", "message": "Invalid UUID" }],
+  "message": "Falha na validação",
+  "details": [{ "field": "ownerId", "message": "UUID inválido" }],
   "path": "/notes",
   "timestamp": "2026-07-28T12:00:00.000Z",
   "requestId": "6d0f1a1e-2b6b-4a5f-9a0e-2f2b0e7d51c3"
 }
 ```
 
-- `code` é o `code` estável do `BaseError` e é o que o app mobile deve consumir para decidir o que fazer — nunca a mensagem, que é texto para diagnóstico.
+- `code` é o `code` estável do `BaseError`, em inglês, e é o que o app mobile deve consumir para decidir o que fazer — nunca a mensagem, que é texto de apresentação.
+- `message` e `details[].message` são **em português**, prontos para exibição: é a regra de idioma do repositório (ver [Idioma das mensagens](#idioma-das-mensagens)).
 - `details` só aparece em erro de validação, com um item por issue do Zod; `field` é o caminho do campo (`owner.id`) ou a origem do argumento quando o erro não é de um campo específico.
 - `requestId` vem do `RequestIdMiddleware`, que aceita o header `x-request-id` do cliente ou gera um UUID, devolve-o no header da resposta e o repete no corpo.
 
@@ -218,7 +219,15 @@ Toda resposta de erro — validação, regra de negócio ou falha inesperada —
 
 O mapa código → status vive em `@infra/http/errors/http-status-by-error-code`. Ao criar um erro de negócio novo, herde de `BaseError` com um `code` estável e acrescente a entrada ali se 400 não servir.
 
-Resposta 5xx nunca devolve a mensagem original nem stack trace: o corpo traz `Internal server error` e o stack vai só para o log, junto de método, rota, status e `requestId`. Erros esperados (4xx) não são logados.
+Resposta 5xx nunca devolve a mensagem original nem stack trace: o corpo traz `Erro interno do servidor` e o stack vai só para o log, junto de método, rota, status e `requestId`. Erros esperados (4xx) não são logados.
+
+## Idioma das mensagens
+
+Identificador, nome de arquivo e `code` de erro são em inglês; **toda mensagem que chega ao usuário é em português**, porque o app é para um público brasileiro e o texto da API é exibido como está.
+
+- **Erro de negócio e invariante** recebem a frase pronta no ponto em que são lançados — `new ResourceNotFoundError('Nota não encontrada')`, `new InvariantError('O título da nota não pode ser vazio')`. `ResourceNotFoundError` e `NotAllowedError` levam a mensagem inteira, não um nome de recurso interpolado, justamente para a concordância de gênero sair certa.
+- **Validação de entrada** sai traduzida sem esforço: o `ZodValidationPipe` passa o locale português do Zod (`z.locales.pt()`) em cada `safeParse`, então a mensagem padrão já vem como `UUID inválido` ou `Muito pequeno: esperado que string tivesse >=1 caracteres`. Mensagem customizada em schema (`moneySchema`) também é escrita em português.
+- **Continuam em inglês**, por serem diagnóstico de quem opera a aplicação e não texto de tela: os logs, a validação das variáveis de ambiente (`@infra/env/validate-env`, que derruba o bootstrap) e a mensagem que o próprio Nest gera para `HttpException` de rota inexistente ou método não permitido (`Cannot GET /unknown`) — nesse caso o cliente decide pelo `code`.
 
 ## Valores monetários
 

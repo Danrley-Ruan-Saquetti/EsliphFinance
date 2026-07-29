@@ -32,6 +32,7 @@ Regras que atravessam os dois projetos e valem sempre:
 ## Convenções do repositório
 
 - **Idioma**: código, nomes de arquivos e identificadores em inglês; documentação, requisitos, comentários e mensagens de commit em português.
+- **Idioma das mensagens**: todo texto que chega ao usuário é em **português** — o `message` e o `details[].message` das respostas da API, os erros de validação de entrada e de invariante de domínio, e os textos de tela do mobile. Continuam em inglês apenas o que não é exibido: identificadores, códigos de erro (`RESOURCE_NOT_FOUND`), logs e as mensagens de falha na validação das variáveis de ambiente, que são diagnóstico de quem opera a aplicação.
 - **Commits**: prefixo de tipo em minúsculo seguido de descrição capitalizada — `config: Configurando Vitest com coverage para testes`, `refactor: Alterando para usar o nome do banco definido na variável de ambiente`.
 - **Branches**: `master` é a branch principal; o backend está sendo desenvolvido na branch `server`.
 - **Variáveis de ambiente**: cada projeto tem o seu `.env` (ignorado pelo git) e um `.env.example` versionado. Ao introduzir uma variável nova, atualize o `.env.example` correspondente.

@@ -91,7 +91,7 @@ async execute({ noteId, ownerId }: GetNoteRequest): Promise<GetNoteResponse> {
   const note = await this.notesRepository.findById(noteId)
 
   if (!note) {
-    return left(new ResourceNotFoundError('Note'))
+    return left(new ResourceNotFoundError('Nota não encontrada'))
   }
 
   return right({ note })
@@ -104,7 +104,7 @@ async execute({ noteId, ownerId }: GetNoteRequest): Promise<GetNoteResponse> {
 
 O nome é a única documentação que o projeto aceita, então ele carrega um peso maior aqui do que no código comum.
 
-- **Idioma**: identificadores, arquivos e mensagens de erro em inglês. Descrições de teste (`describe`/`it`) em português, como o repositório já faz.
+- **Idioma**: identificadores e arquivos em inglês. Descrições de teste (`describe`/`it`) em português, como o repositório já faz. **Mensagem de erro é texto de usuário e vai em português** — `new InvariantError('O título da nota não pode ser vazio')`, `new ResourceNotFoundError('Nota não encontrada')` —, enquanto o `code` do erro continua em inglês e é o que o cliente consome.
 - **Arquivos**: kebab-case com sufixo do papel — `create-note.ts`, `notes-repository.ts`, `create-note.controller.ts`, `note-presenter.ts`. Um artefato por arquivo, e o nome do arquivo espelha o do artefato.
 - **Diga o domínio, não o mecanismo**: `isOwnedBy`, `archive`, `validateTitle` — não `checkData`, `process`, `handleItem`.
 - **Booleano** afirma um fato: `isOwnedBy`, `hasOverdueInvoice`. Nada de `flag`, `status` genérico ou negação embutida (`isNotPaid` obriga o leitor a resolver uma dupla negativa depois do `!`).
@@ -142,7 +142,7 @@ Antes de dar a tarefa por concluída:
 - [ ] Nenhum ponto e vírgula; aspas simples; 2 espaços.
 - [ ] Linha em branco antes de todo `return` e depois dos blocos de declaração.
 - [ ] Imports agrupados: externos, linha em branco, internos por alias em ordem alfabética.
-- [ ] Nomes em inglês, sem abreviação e sem ruído; descrições de teste em português.
+- [ ] Nomes em inglês, sem abreviação e sem ruído; descrições de teste e mensagens de erro em português.
 - [ ] Use-case retorna `Either`; erro de negócio não é `throw`.
 - [ ] Guard clauses no lugar de aninhamento.
 - [ ] Nenhum valor monetário como `number` cru.

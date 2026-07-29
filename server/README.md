@@ -108,7 +108,7 @@ export class GetNoteUseCase implements UseCase<GetNoteRequest, GetNoteResponse> 
   async execute({ noteId, ownerId }: GetNoteRequest): Promise<GetNoteResponse> {
     const note = await this.notesRepository.findById(noteId)
 
-    if (!note) return left(new ResourceNotFoundError('Note'))
+    if (!note) return left(new ResourceNotFoundError('Nota não encontrada'))
     if (note.ownerId.toString() !== ownerId) return left(new NotAllowedError())
 
     return right({ note })
@@ -118,7 +118,7 @@ export class GetNoteUseCase implements UseCase<GetNoteRequest, GetNoteResponse> 
 
 - **`Left` é erro esperado de negócio** — registro inexistente, registro de outro usuário, vínculo que impede a exclusão. É valor de retorno, entra na assinatura e o controller é obrigado a tratá-lo.
 - **Exceção é falha inesperada** ou invariante de domínio violada (`InvariantError`), lançada pela entidade quando um dado que a borda deveria ter barrado chega até ela.
-- Erros herdam de `BaseError` e carregam um `code` estável; a tradução para status HTTP é feita na infraestrutura, nunca dentro do caso de uso.
+- Erros herdam de `BaseError` e carregam um `code` estável em inglês, com a mensagem em português — é ela que o cliente exibe; a tradução para status HTTP é feita na infraestrutura, nunca dentro do caso de uso.
 - Casos de uso **não** recebem `@Injectable()`: são registrados no módulo Nest com `useFactory`, o que mantém a aplicação livre do framework.
 
 ### Validação de entrada
@@ -137,7 +137,7 @@ type CreateNoteBody = z.infer<typeof createNoteBodySchema>
 async handle(@Body(new ZodValidationPipe(createNoteBodySchema)) body: CreateNoteBody) { ... }
 ```
 
-Vale para qualquer parâmetro (`@Body`, `@Query`, `@Param`) e o tipo do handler sai do próprio schema, via `z.infer` — schema e tipo nunca saem de sincronia. O handler recebe o dado já validado e coerido; entrada inválida vira `400` com `{ message: 'Validation failed', errors }`.
+Vale para qualquer parâmetro (`@Body`, `@Query`, `@Param`) e o tipo do handler sai do próprio schema, via `z.infer` — schema e tipo nunca saem de sincronia. O handler recebe o dado já validado e coerido; entrada inválida vira `422` com `{ code: 'VALIDATION_FAILED', message: 'Falha na validação', details }`, e as mensagens de campo saem em português, pelo locale do Zod que o pipe aplica.
 
 Validar na borda **não substitui** as invariantes do domínio: a entidade continua responsável por rejeitar estados inválidos.
 

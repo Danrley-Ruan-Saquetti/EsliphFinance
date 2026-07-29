@@ -24,10 +24,10 @@ export class Note extends AggregateRoot<NoteProps> {
     const normalized = title.trim()
 
     if (!normalized) {
-      throw new InvariantError('Note title must not be empty')
+      throw new InvariantError('O título da nota não pode ser vazio')
     }
     if (normalized.length > Note.TITLE_MAX_LENGTH) {
-      throw new InvariantError(`Note title must not exceed ${Note.TITLE_MAX_LENGTH} characters`)
+      throw new InvariantError(`O título da nota não pode ter mais de ${Note.TITLE_MAX_LENGTH} caracteres`)
     }
 
     return normalized

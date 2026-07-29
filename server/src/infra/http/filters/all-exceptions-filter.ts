@@ -10,7 +10,7 @@ import { RequestIdMiddleware } from '@infra/http/middlewares/request-id-middlewa
 
 type ErrorDescription = Pick<ErrorResponse, 'statusCode' | 'code' | 'message' | 'details'>
 
-const INTERNAL_ERROR_MESSAGE = 'Internal server error'
+const INTERNAL_ERROR_MESSAGE = 'Erro interno do servidor'
 const SERVER_ERROR_MINIMUM_STATUS: number = HttpStatus.INTERNAL_SERVER_ERROR
 
 @Catch()
