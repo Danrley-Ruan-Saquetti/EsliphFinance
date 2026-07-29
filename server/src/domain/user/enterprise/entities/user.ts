@@ -1,0 +1,65 @@
+import { AggregateRoot } from '@core/entities/aggregate-root'
+import { UniqueEntityID } from '@core/entities/unique-entity-id'
+import { InvariantError } from '@core/errors/invariant-error'
+import { Optional } from '@core/types/optional'
+import { Email } from '@domain/user/enterprise/value-objects/email'
+
+export interface UserProps {
+  name: string
+  email: Email
+  passwordHash: string
+  createdAt: Date
+  updatedAt?: Date | null
+  deletedAt?: Date | null
+}
+
+export class User extends AggregateRoot<UserProps> {
+  static readonly NAME_MAX_LENGTH = 120
+
+  static create(props: Optional<UserProps, 'createdAt'>, id?: UniqueEntityID): User {
+    const name = User.validateName(props.name)
+
+    return new User({ ...props, name, createdAt: props.createdAt ?? new Date() }, id)
+  }
+
+  private static validateName(name: string): string {
+    const normalized = name.trim()
+
+    if (!normalized) {
+      throw new InvariantError('O nome do usuário não pode ser vazio')
+    }
+    if (normalized.length > User.NAME_MAX_LENGTH) {
+      throw new InvariantError(`O nome do usuário não pode ter mais de ${User.NAME_MAX_LENGTH} caracteres`)
+    }
+
+    return normalized
+  }
+
+  get name(): string {
+    return this.props.name
+  }
+
+  get email(): Email {
+    return this.props.email
+  }
+
+  get passwordHash(): string {
+    return this.props.passwordHash
+  }
+
+  get createdAt(): Date {
+    return this.props.createdAt
+  }
+
+  get updatedAt(): Date | null | undefined {
+    return this.props.updatedAt
+  }
+
+  get deletedAt(): Date | null | undefined {
+    return this.props.deletedAt
+  }
+
+  get isDeleted(): boolean {
+    return Boolean(this.props.deletedAt)
+  }
+}
