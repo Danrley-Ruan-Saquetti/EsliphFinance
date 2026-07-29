@@ -14,7 +14,7 @@ class PaymentRefusedError extends BaseError {
   readonly code = 'PAYMENT_REFUSED'
 
   constructor() {
-    super('Payment refused by the provider')
+    super('Pagamento recusado pela operadora')
   }
 }
 
@@ -59,8 +59,8 @@ describe('AllExceptionsFilter', () => {
 
   it('deve responder 422 com a lista de campos e mensagens para erro de validação', () => {
     const details = [
-      { field: 'title', message: 'Title is required' },
-      { field: 'amountInCents', message: 'Expected number' },
+      { field: 'title', message: 'O título é obrigatório' },
+      { field: 'amountInCents', message: 'Tipo inválido: esperado número' },
     ]
 
     const { statusCode, body } = catchException(new ValidationError(details))
@@ -68,16 +68,16 @@ describe('AllExceptionsFilter', () => {
     expect(statusCode).toBe(HttpStatus.UNPROCESSABLE_ENTITY)
     expect(body.statusCode).toBe(HttpStatus.UNPROCESSABLE_ENTITY)
     expect(body.code).toBe('VALIDATION_FAILED')
-    expect(body.message).toBe('Validation failed')
+    expect(body.message).toBe('Falha na validação')
     expect(body.details).toEqual(details)
   })
 
   it('deve responder 404 com o código do erro quando o recurso não existe', () => {
-    const { statusCode, body } = catchException(new ResourceNotFoundError('Note'))
+    const { statusCode, body } = catchException(new ResourceNotFoundError('Nota não encontrada'))
 
     expect(statusCode).toBe(HttpStatus.NOT_FOUND)
     expect(body.code).toBe('RESOURCE_NOT_FOUND')
-    expect(body.message).toBe('Note not found')
+    expect(body.message).toBe('Nota não encontrada')
     expect(body.details).toBeUndefined()
   })
 
@@ -89,7 +89,7 @@ describe('AllExceptionsFilter', () => {
   })
 
   it('deve responder 422 quando uma invariante de domínio é violada', () => {
-    const { statusCode, body } = catchException(new InvariantError('Note title must not be empty'))
+    const { statusCode, body } = catchException(new InvariantError('O título da nota não pode ser vazio'))
 
     expect(statusCode).toBe(HttpStatus.UNPROCESSABLE_ENTITY)
     expect(body.code).toBe('INVARIANT_VIOLATION')
@@ -100,7 +100,7 @@ describe('AllExceptionsFilter', () => {
 
     expect(statusCode).toBe(HttpStatus.BAD_REQUEST)
     expect(body.code).toBe('PAYMENT_REFUSED')
-    expect(body.message).toBe('Payment refused by the provider')
+    expect(body.message).toBe('Pagamento recusado pela operadora')
   })
 
   it('deve converter exceção do framework para o mesmo contrato de resposta', () => {
@@ -123,7 +123,7 @@ describe('AllExceptionsFilter', () => {
 
     expect(statusCode).toBe(HttpStatus.INTERNAL_SERVER_ERROR)
     expect(body.code).toBe('INTERNAL_SERVER_ERROR')
-    expect(body.message).toBe('Internal server error')
+    expect(body.message).toBe('Erro interno do servidor')
     expect(JSON.stringify(body)).not.toContain('Connection terminated unexpectedly')
   })
 
@@ -131,7 +131,7 @@ describe('AllExceptionsFilter', () => {
     const { statusCode, body } = catchException('falha em uma biblioteca externa')
 
     expect(statusCode).toBe(HttpStatus.INTERNAL_SERVER_ERROR)
-    expect(body.message).toBe('Internal server error')
+    expect(body.message).toBe('Erro interno do servidor')
     expect(loggerError).toHaveBeenCalledWith(expect.any(String), 'falha em uma biblioteca externa')
   })
 
@@ -139,7 +139,7 @@ describe('AllExceptionsFilter', () => {
     const { body } = catchException(new HttpException('Database password is invalid', HttpStatus.SERVICE_UNAVAILABLE))
 
     expect(body.statusCode).toBe(HttpStatus.SERVICE_UNAVAILABLE)
-    expect(body.message).toBe('Internal server error')
+    expect(body.message).toBe('Erro interno do servidor')
   })
 
   it('deve registrar o erro inesperado em log com o identificador da requisição', () => {
@@ -156,7 +156,7 @@ describe('AllExceptionsFilter', () => {
   })
 
   it('deve devolver a rota, o instante e o identificador da requisição em toda resposta de erro', () => {
-    const { body } = catchException(new ResourceNotFoundError('Note'), { [RequestIdMiddleware.HEADER]: 'correlation-2' })
+    const { body } = catchException(new ResourceNotFoundError('Nota não encontrada'), { [RequestIdMiddleware.HEADER]: 'correlation-2' })
 
     expect(body.path).toBe('/notes/1')
     expect(body.requestId).toBe('correlation-2')
@@ -164,7 +164,7 @@ describe('AllExceptionsFilter', () => {
   })
 
   it('deve gerar um identificador de requisição quando a requisição não tem correlação', () => {
-    const { body } = catchException(new ResourceNotFoundError('Note'))
+    const { body } = catchException(new ResourceNotFoundError('Nota não encontrada'))
 
     expect(body.requestId).toEqual(expect.any(String))
   })

@@ -5,6 +5,6 @@ export class ValidationError extends BaseError {
   readonly code = 'VALIDATION_FAILED'
 
   constructor(readonly details: FieldError[]) {
-    super('Validation failed')
+    super('Falha na validação')
   }
 }

@@ -21,7 +21,7 @@ describe('moneySchema', () => {
 
     expect(result.success).toBe(false)
     if (!result.success) {
-      expect(result.error.issues[0].message).toBe('Amount must be an integer in cents')
+      expect(result.error.issues[0].message).toBe('O valor deve ser um número inteiro em centavos')
     }
   })
 

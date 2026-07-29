@@ -11,7 +11,7 @@ export class Money extends ValueObject<MoneyProps> {
 
   static fromCents(amountInCents: number): Money {
     if (!Number.isSafeInteger(amountInCents)) {
-      throw new InvariantError('Money amount must be a safe integer number of cents')
+      throw new InvariantError('O valor monetário deve ser um número inteiro seguro de centavos')
     }
 
     return new Money({ amountInCents })
@@ -43,7 +43,7 @@ export class Money extends ValueObject<MoneyProps> {
 
   allocate(parts: number): Money[] {
     if (!Number.isInteger(parts) || parts < 1) {
-      throw new InvariantError('Money must be allocated into a positive whole number of parts')
+      throw new InvariantError('O valor monetário deve ser rateado em um número inteiro positivo de partes')
     }
 
     const share = Math.trunc(this.amountInCents / parts)

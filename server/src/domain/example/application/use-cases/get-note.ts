@@ -19,7 +19,7 @@ export class GetNoteUseCase implements UseCase<GetNoteRequest, GetNoteResponse> 
     const note = await this.notesRepository.findById(noteId)
 
     if (!note) {
-      return left(new ResourceNotFoundError('Note'))
+      return left(new ResourceNotFoundError('Nota não encontrada'))
     }
 
     if (!this.isOwnedBy(note, ownerId)) {

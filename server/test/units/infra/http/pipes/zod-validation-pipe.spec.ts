@@ -27,7 +27,7 @@ describe('ZodValidationPipe', () => {
       const { code, message, details } = error as ValidationError
 
       expect(code).toBe('VALIDATION_FAILED')
-      expect(message).toBe('Validation failed')
+      expect(message).toBe('Falha na validação')
       expect(details.map(detail => detail.field)).toEqual(['title', 'amountInCents'])
       expect(details.every(detail => detail.message.length > 0)).toBe(true)
     }
@@ -41,6 +41,17 @@ describe('ZodValidationPipe', () => {
       expect.unreachable('deveria ter lançado')
     } catch (error) {
       expect((error as ValidationError).details[0].field).toBe('owner.id')
+    }
+  })
+
+  it('deve descrever o campo inválido em português', () => {
+    const sut = new ZodValidationPipe(z.object({ ownerId: z.uuid() }))
+
+    try {
+      sut.transform({ ownerId: 'não-é-uuid' }, bodyMetadata)
+      expect.unreachable('deveria ter lançado')
+    } catch (error) {
+      expect((error as ValidationError).details[0].message).toBe('UUID inválido')
     }
   })
 

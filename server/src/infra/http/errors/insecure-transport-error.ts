@@ -4,6 +4,6 @@ export class InsecureTransportError extends BaseError {
   readonly code = 'INSECURE_TRANSPORT'
 
   constructor() {
-    super('HTTPS is required')
+    super('É necessário usar HTTPS')
   }
 }
