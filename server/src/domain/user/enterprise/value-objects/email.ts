@@ -10,8 +10,12 @@ const EMAIL_FORMAT = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 export class Email extends ValueObject<EmailProps> {
   static readonly MAX_LENGTH = 254
 
+  static normalize(value: string): string {
+    return value.trim().toLowerCase()
+  }
+
   static create(value: string): Email {
-    const normalized = value.trim().toLowerCase()
+    const normalized = Email.normalize(value)
 
     if (!EMAIL_FORMAT.test(normalized)) {
       throw new InvariantError('O e-mail informado é inválido')

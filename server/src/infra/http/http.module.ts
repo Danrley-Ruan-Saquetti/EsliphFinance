@@ -4,11 +4,19 @@ import { APP_FILTER } from '@nestjs/core'
 import { NotesRepository } from '@domain/example/application/repositories/notes-repository'
 import { CreateNoteUseCase } from '@domain/example/application/use-cases/create-note'
 import { GetNoteUseCase } from '@domain/example/application/use-cases/get-note'
+import { RefreshTokensRepository } from '@domain/user/application/repositories/refresh-tokens-repository'
 import { UsersRepository } from '@domain/user/application/repositories/users-repository'
+import { AccessTokenGenerator } from '@domain/user/application/services/access-token-generator'
+import { HashComparer } from '@domain/user/application/services/hash-comparer'
 import { HashGenerator } from '@domain/user/application/services/hash-generator'
+import { RefreshTokenGenerator } from '@domain/user/application/services/refresh-token-generator'
+import { AuthenticateUserUseCase } from '@domain/user/application/use-cases/authenticate-user'
 import { CreateUserUseCase } from '@domain/user/application/use-cases/create-user'
 import { CryptographyModule } from '@infra/cryptography/cryptography.module'
 import { DatabaseModule } from '@infra/database/database.module'
+import { EnvModule } from '@infra/env/env.module'
+import { EnvService } from '@infra/env/env.service'
+import { AuthenticateUserController } from '@infra/http/controllers/authenticate-user.controller'
 import { CreateNoteController } from '@infra/http/controllers/create-note.controller'
 import { CreateUserController } from '@infra/http/controllers/create-user.controller'
 import { GetNoteController } from '@infra/http/controllers/get-note.controller'
@@ -20,8 +28,8 @@ import { RequestIdMiddleware } from '@infra/http/middlewares/request-id-middlewa
 import { SecurityHeadersMiddleware } from '@infra/http/middlewares/security-headers-middleware'
 
 @Module({
-  imports: [DatabaseModule, CryptographyModule],
-  controllers: [HealthController, CreateNoteController, GetNoteController, CreateUserController],
+  imports: [DatabaseModule, CryptographyModule, EnvModule],
+  controllers: [HealthController, CreateNoteController, GetNoteController, CreateUserController, AuthenticateUserController],
   providers: [
     {
       provide: APP_FILTER,
@@ -41,6 +49,26 @@ import { SecurityHeadersMiddleware } from '@infra/http/middlewares/security-head
       provide: CreateUserUseCase,
       useFactory: (usersRepository: UsersRepository, hashGenerator: HashGenerator) => new CreateUserUseCase(usersRepository, hashGenerator),
       inject: [UsersRepository, HashGenerator],
+    },
+    {
+      provide: AuthenticateUserUseCase,
+      useFactory: (
+        usersRepository: UsersRepository,
+        refreshTokensRepository: RefreshTokensRepository,
+        hashComparer: HashComparer,
+        accessTokenGenerator: AccessTokenGenerator,
+        refreshTokenGenerator: RefreshTokenGenerator,
+        envService: EnvService,
+      ) =>
+        new AuthenticateUserUseCase(
+          usersRepository,
+          refreshTokensRepository,
+          hashComparer,
+          accessTokenGenerator,
+          refreshTokenGenerator,
+          envService.get('REFRESH_TOKEN_EXPIRES_IN_SECONDS'),
+        ),
+      inject: [UsersRepository, RefreshTokensRepository, HashComparer, AccessTokenGenerator, RefreshTokenGenerator, EnvService],
     },
   ],
 })
