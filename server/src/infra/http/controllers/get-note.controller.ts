@@ -2,6 +2,7 @@ import { Controller, Get, Param, Query } from '@nestjs/common'
 import { z } from 'zod'
 
 import { GetNoteUseCase } from '@domain/example/application/use-cases/get-note'
+import { Public } from '@infra/auth/public-decorator'
 import { ZodValidationPipe } from '@infra/http/pipes/zod-validation-pipe'
 import { NotePresenter } from '@infra/http/presenters/note-presenter'
 
@@ -11,6 +12,7 @@ const getNoteQuerySchema = z.object({ ownerId: z.uuid() })
 type GetNoteParams = z.infer<typeof getNoteParamsSchema>
 type GetNoteQuery = z.infer<typeof getNoteQuerySchema>
 
+@Public()
 @Controller('/notes')
 export class GetNoteController {
   constructor(private readonly getNote: GetNoteUseCase) {}

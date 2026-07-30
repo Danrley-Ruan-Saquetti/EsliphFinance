@@ -3,6 +3,7 @@ import { z } from 'zod'
 
 import { AuthenticateUserUseCase } from '@domain/user/application/use-cases/authenticate-user'
 import { Email } from '@domain/user/enterprise/value-objects/email'
+import { Public } from '@infra/auth/public-decorator'
 import { ZodValidationPipe } from '@infra/http/pipes/zod-validation-pipe'
 
 const authenticateUserBodySchema = z.object({
@@ -12,6 +13,7 @@ const authenticateUserBodySchema = z.object({
 
 type AuthenticateUserBody = z.infer<typeof authenticateUserBodySchema>
 
+@Public()
 @Controller('/sessions')
 export class AuthenticateUserController {
   constructor(private readonly authenticateUser: AuthenticateUserUseCase) {}

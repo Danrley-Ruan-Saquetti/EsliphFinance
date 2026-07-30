@@ -2,6 +2,7 @@ import { Body, Controller, HttpCode, Post } from '@nestjs/common'
 import { z } from 'zod'
 
 import { CreateNoteUseCase } from '@domain/example/application/use-cases/create-note'
+import { Public } from '@infra/auth/public-decorator'
 import { ZodValidationPipe } from '@infra/http/pipes/zod-validation-pipe'
 import { NotePresenter } from '@infra/http/presenters/note-presenter'
 
@@ -13,6 +14,7 @@ const createNoteBodySchema = z.object({
 
 type CreateNoteBody = z.infer<typeof createNoteBodySchema>
 
+@Public()
 @Controller('/notes')
 export class CreateNoteController {
   constructor(private readonly createNote: CreateNoteUseCase) {}
