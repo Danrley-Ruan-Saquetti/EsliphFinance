@@ -15,7 +15,7 @@ API do EsliphFinance. Este documento cobre apenas o backend; o contexto geral do
 | Ambiente         | Docker + Docker Compose            |
 | Comandos         | Makefile                           |
 
-> Estado atual do repositório: a fundação arquitetural está implementada (camadas, `core/`, pipe global de validação, padrão `Either`, aliases), a persistência com Drizzle e o pipeline de migrations estão no ar, e há um **módulo de exemplo** em `src/domain/example` servindo de referência de estrutura — ele não faz parte do domínio real. O primeiro contexto real é `src/domain/user`, com o cadastro de usuário (`POST /users`, RF001) e o login (`POST /sessions`, RF002, RN004). O guard de autenticação, a renovação do token (RN006, RN007) e o encerramento de sessão (RN008) ainda **não** foram adicionados; o que depende deles está marcado abaixo.
+> Estado atual do repositório: a fundação arquitetural está implementada (camadas, `core/`, pipe global de validação, padrão `Either`, aliases), a persistência com Drizzle e o pipeline de migrations estão no ar, e há um **módulo de exemplo** em `src/domain/example` servindo de referência de estrutura — ele não faz parte do domínio real. O primeiro contexto real é `src/domain/user`, com o cadastro de usuário (`POST /users`, RF001), o login (`POST /sessions`, RF002, RN004) e a renovação da sessão (`POST /sessions/refresh`, RN006, RN007). O guard de autenticação e o encerramento de sessão (RN008) ainda **não** foram adicionados; o que depende deles está marcado abaixo.
 
 ## Ambiente Docker
 
@@ -288,6 +288,10 @@ O login (`POST /sessions`, RN004) troca e-mail e senha por um par de tokens. Os 
 - **Token de renovação**: valor aleatório opaco de 32 bytes em `base64url`, **não** um JWT — ele precisa ser invalidável a qualquer momento (RN007, RN008, RN009, RN013), e um JWT autocontido não permite isso. O que vai para a tabela `refresh_tokens` é o **SHA-256 do token**, nunca o valor entregue ao cliente; a busca posterior é feita pelo mesmo hash. Quem o gera e deriva o hash é a porta `RefreshTokenGenerator`, implementada pelo `CryptoRefreshTokenGenerator`.
 
 A senha é comparada contra o hash armazenado pela porta `HashComparer` (bcrypt), e o `BcryptHasher` implementa tanto ela quanto o `HashGenerator`. E-mail inexistente e senha incorreta devolvem o **mesmo** `InvalidCredentialsError` (401), com a mesma mensagem, para não revelar quais e-mails estão cadastrados.
+
+A renovação (`POST /sessions/refresh`, RN006) recebe o token de renovação em texto e o procura pelo SHA-256; o registro só serve se `isUsable` — nem revogado, nem vencido. A rotação é obrigatória (RN007): o registro encontrado é revogado e persistido **antes** da emissão do par novo, então o token consumido nunca volta a valer e o cliente precisa guardar o token devolvido a cada renovação. Token inexistente, vencido, revogado ou já consumido devolvem o mesmo `InvalidRefreshTokenError` (401). A validade do par vem de `ACCESS_TOKEN_EXPIRES_IN_SECONDS` e `REFRESH_TOKEN_EXPIRES_IN_SECONDS`, e o `envSchema` recusa o bootstrap se a segunda não for maior que a primeira (RN006).
+
+Quem calcula a expiração do token de renovação é a entidade, por `RefreshToken.issue({ userId, tokenHash, expiresInSeconds })` — o login e a renovação emitem pelo mesmo caminho. `RefreshToken.create` fica para reconstruir o registro vindo do banco.
 
 ## Testes
 

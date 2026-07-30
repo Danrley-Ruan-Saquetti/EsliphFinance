@@ -12,4 +12,18 @@ export class InMemoryRefreshTokensRepository extends RefreshTokensRepository {
 
     return Promise.resolve()
   }
+
+  save(refreshToken: RefreshToken): Promise<void> {
+    const index = this.items.findIndex(item => item.id.equals(refreshToken.id))
+
+    if (index >= 0) {
+      this.items[index] = refreshToken
+    }
+
+    return Promise.resolve()
+  }
+
+  findByTokenHash(tokenHash: string): Promise<RefreshToken | null> {
+    return Promise.resolve(this.items.find(item => item.tokenHash === tokenHash) ?? null)
+  }
 }
