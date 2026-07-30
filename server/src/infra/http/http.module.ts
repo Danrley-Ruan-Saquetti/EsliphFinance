@@ -12,6 +12,7 @@ import { HashGenerator } from '@domain/user/application/services/hash-generator'
 import { RefreshTokenGenerator } from '@domain/user/application/services/refresh-token-generator'
 import { AuthenticateUserUseCase } from '@domain/user/application/use-cases/authenticate-user'
 import { CreateUserUseCase } from '@domain/user/application/use-cases/create-user'
+import { EndSessionUseCase } from '@domain/user/application/use-cases/end-session'
 import { GetUserProfileUseCase } from '@domain/user/application/use-cases/get-user-profile'
 import { RefreshSessionUseCase } from '@domain/user/application/use-cases/refresh-session'
 import { UpdateUserProfileUseCase } from '@domain/user/application/use-cases/update-user-profile'
@@ -23,6 +24,7 @@ import { EnvService } from '@infra/env/env.service'
 import { AuthenticateUserController } from '@infra/http/controllers/authenticate-user.controller'
 import { CreateNoteController } from '@infra/http/controllers/create-note.controller'
 import { CreateUserController } from '@infra/http/controllers/create-user.controller'
+import { EndSessionController } from '@infra/http/controllers/end-session.controller'
 import { GetNoteController } from '@infra/http/controllers/get-note.controller'
 import { GetUserProfileController } from '@infra/http/controllers/get-user-profile.controller'
 import { HealthController } from '@infra/http/controllers/health.controller'
@@ -45,6 +47,7 @@ import { SecurityHeadersMiddleware } from '@infra/http/middlewares/security-head
     UpdateUserProfileController,
     AuthenticateUserController,
     RefreshSessionController,
+    EndSessionController,
   ],
   providers: [
     {
@@ -105,6 +108,12 @@ import { SecurityHeadersMiddleware } from '@infra/http/middlewares/security-head
         envService: EnvService,
       ) => new RefreshSessionUseCase(refreshTokensRepository, accessTokenGenerator, refreshTokenGenerator, envService.get('REFRESH_TOKEN_EXPIRES_IN_SECONDS')),
       inject: [RefreshTokensRepository, AccessTokenGenerator, RefreshTokenGenerator, EnvService],
+    },
+    {
+      provide: EndSessionUseCase,
+      useFactory: (refreshTokensRepository: RefreshTokensRepository, refreshTokenGenerator: RefreshTokenGenerator) =>
+        new EndSessionUseCase(refreshTokensRepository, refreshTokenGenerator),
+      inject: [RefreshTokensRepository, RefreshTokenGenerator],
     },
   ],
 })
