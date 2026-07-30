@@ -12,6 +12,7 @@ import { HashGenerator } from '@domain/user/application/services/hash-generator'
 import { RefreshTokenGenerator } from '@domain/user/application/services/refresh-token-generator'
 import { AuthenticateUserUseCase } from '@domain/user/application/use-cases/authenticate-user'
 import { CreateUserUseCase } from '@domain/user/application/use-cases/create-user'
+import { RefreshSessionUseCase } from '@domain/user/application/use-cases/refresh-session'
 import { CryptographyModule } from '@infra/cryptography/cryptography.module'
 import { DatabaseModule } from '@infra/database/database.module'
 import { EnvModule } from '@infra/env/env.module'
@@ -21,6 +22,7 @@ import { CreateNoteController } from '@infra/http/controllers/create-note.contro
 import { CreateUserController } from '@infra/http/controllers/create-user.controller'
 import { GetNoteController } from '@infra/http/controllers/get-note.controller'
 import { HealthController } from '@infra/http/controllers/health.controller'
+import { RefreshSessionController } from '@infra/http/controllers/refresh-session.controller'
 import { AllExceptionsFilter } from '@infra/http/filters/all-exceptions-filter'
 import { CorsMiddleware } from '@infra/http/middlewares/cors-middleware'
 import { HttpsRedirectMiddleware } from '@infra/http/middlewares/https-redirect-middleware'
@@ -29,7 +31,7 @@ import { SecurityHeadersMiddleware } from '@infra/http/middlewares/security-head
 
 @Module({
   imports: [DatabaseModule, CryptographyModule, EnvModule],
-  controllers: [HealthController, CreateNoteController, GetNoteController, CreateUserController, AuthenticateUserController],
+  controllers: [HealthController, CreateNoteController, GetNoteController, CreateUserController, AuthenticateUserController, RefreshSessionController],
   providers: [
     {
       provide: APP_FILTER,
@@ -69,6 +71,16 @@ import { SecurityHeadersMiddleware } from '@infra/http/middlewares/security-head
           envService.get('REFRESH_TOKEN_EXPIRES_IN_SECONDS'),
         ),
       inject: [UsersRepository, RefreshTokensRepository, HashComparer, AccessTokenGenerator, RefreshTokenGenerator, EnvService],
+    },
+    {
+      provide: RefreshSessionUseCase,
+      useFactory: (
+        refreshTokensRepository: RefreshTokensRepository,
+        accessTokenGenerator: AccessTokenGenerator,
+        refreshTokenGenerator: RefreshTokenGenerator,
+        envService: EnvService,
+      ) => new RefreshSessionUseCase(refreshTokensRepository, accessTokenGenerator, refreshTokenGenerator, envService.get('REFRESH_TOKEN_EXPIRES_IN_SECONDS')),
+      inject: [RefreshTokensRepository, AccessTokenGenerator, RefreshTokenGenerator, EnvService],
     },
   ],
 })

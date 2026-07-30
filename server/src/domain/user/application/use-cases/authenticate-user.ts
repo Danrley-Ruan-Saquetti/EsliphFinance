@@ -6,20 +6,14 @@ import { UsersRepository } from '@domain/user/application/repositories/users-rep
 import { AccessTokenGenerator } from '@domain/user/application/services/access-token-generator'
 import { HashComparer } from '@domain/user/application/services/hash-comparer'
 import { RefreshTokenGenerator } from '@domain/user/application/services/refresh-token-generator'
+import { AuthenticatedSession } from '@domain/user/application/use-cases/authenticated-session'
 import { InvalidCredentialsError } from '@domain/user/application/use-cases/errors/invalid-credentials-error'
 import { RefreshToken } from '@domain/user/enterprise/entities/refresh-token'
 import { Email } from '@domain/user/enterprise/value-objects/email'
 
-const MILLISECONDS_IN_SECOND = 1000
-
 export interface AuthenticateUserRequest {
   email: string
   password: string
-}
-
-export interface AuthenticatedSession {
-  accessToken: string
-  refreshToken: string
 }
 
 export type AuthenticateUserResponse = Either<InvalidCredentialsError, AuthenticatedSession>
@@ -55,14 +49,10 @@ export class AuthenticateUserUseCase implements UseCase<AuthenticateUserRequest,
 
   private async issueRefreshToken(userId: UniqueEntityID): Promise<string> {
     const token = this.refreshTokenGenerator.generate()
-    const refreshToken = RefreshToken.create({ userId, tokenHash: this.refreshTokenGenerator.hash(token), expiresAt: this.expirationFromNow() })
+    const refreshToken = RefreshToken.issue({ userId, tokenHash: this.refreshTokenGenerator.hash(token), expiresInSeconds: this.refreshTokenExpiresInSeconds })
 
     await this.refreshTokensRepository.create(refreshToken)
 
     return token
-  }
-
-  private expirationFromNow(): Date {
-    return new Date(Date.now() + this.refreshTokenExpiresInSeconds * MILLISECONDS_IN_SECOND)
   }
 }

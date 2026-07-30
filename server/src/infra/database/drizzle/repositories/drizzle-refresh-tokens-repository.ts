@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common'
+import { eq } from 'drizzle-orm'
 
 import { RefreshTokensRepository } from '@domain/user/application/repositories/refresh-tokens-repository'
 import { RefreshToken } from '@domain/user/enterprise/entities/refresh-token'
@@ -14,5 +15,22 @@ export class DrizzleRefreshTokensRepository extends RefreshTokensRepository {
 
   async create(refreshToken: RefreshToken): Promise<void> {
     await this.drizzle.db.insert(refreshTokens).values(DrizzleRefreshTokenMapper.toPersistence(refreshToken))
+  }
+
+  async save(refreshToken: RefreshToken): Promise<void> {
+    await this.drizzle.db
+      .update(refreshTokens)
+      .set(DrizzleRefreshTokenMapper.toPersistence(refreshToken))
+      .where(eq(refreshTokens.id, refreshToken.id.toString()))
+  }
+
+  async findByTokenHash(tokenHash: string): Promise<RefreshToken | null> {
+    const [record] = await this.drizzle.db.select().from(refreshTokens).where(eq(refreshTokens.tokenHash, tokenHash)).limit(1)
+
+    if (!record) {
+      return null
+    }
+
+    return DrizzleRefreshTokenMapper.toDomain(record)
   }
 }
