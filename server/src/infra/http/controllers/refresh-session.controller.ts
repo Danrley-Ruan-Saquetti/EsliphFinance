@@ -2,6 +2,7 @@ import { Body, Controller, HttpCode, Post } from '@nestjs/common'
 import { z } from 'zod'
 
 import { RefreshSessionUseCase } from '@domain/user/application/use-cases/refresh-session'
+import { Public } from '@infra/auth/public-decorator'
 import { ZodValidationPipe } from '@infra/http/pipes/zod-validation-pipe'
 
 const refreshSessionBodySchema = z.object({
@@ -10,6 +11,7 @@ const refreshSessionBodySchema = z.object({
 
 type RefreshSessionBody = z.infer<typeof refreshSessionBodySchema>
 
+@Public()
 @Controller('/sessions/refresh')
 export class RefreshSessionController {
   constructor(private readonly refreshSession: RefreshSessionUseCase) {}

@@ -12,7 +12,10 @@ import { HashGenerator } from '@domain/user/application/services/hash-generator'
 import { RefreshTokenGenerator } from '@domain/user/application/services/refresh-token-generator'
 import { AuthenticateUserUseCase } from '@domain/user/application/use-cases/authenticate-user'
 import { CreateUserUseCase } from '@domain/user/application/use-cases/create-user'
+import { GetUserProfileUseCase } from '@domain/user/application/use-cases/get-user-profile'
 import { RefreshSessionUseCase } from '@domain/user/application/use-cases/refresh-session'
+import { UpdateUserProfileUseCase } from '@domain/user/application/use-cases/update-user-profile'
+import { AuthModule } from '@infra/auth/auth.module'
 import { CryptographyModule } from '@infra/cryptography/cryptography.module'
 import { DatabaseModule } from '@infra/database/database.module'
 import { EnvModule } from '@infra/env/env.module'
@@ -21,8 +24,10 @@ import { AuthenticateUserController } from '@infra/http/controllers/authenticate
 import { CreateNoteController } from '@infra/http/controllers/create-note.controller'
 import { CreateUserController } from '@infra/http/controllers/create-user.controller'
 import { GetNoteController } from '@infra/http/controllers/get-note.controller'
+import { GetUserProfileController } from '@infra/http/controllers/get-user-profile.controller'
 import { HealthController } from '@infra/http/controllers/health.controller'
 import { RefreshSessionController } from '@infra/http/controllers/refresh-session.controller'
+import { UpdateUserProfileController } from '@infra/http/controllers/update-user-profile.controller'
 import { AllExceptionsFilter } from '@infra/http/filters/all-exceptions-filter'
 import { CorsMiddleware } from '@infra/http/middlewares/cors-middleware'
 import { HttpsRedirectMiddleware } from '@infra/http/middlewares/https-redirect-middleware'
@@ -30,8 +35,17 @@ import { RequestIdMiddleware } from '@infra/http/middlewares/request-id-middlewa
 import { SecurityHeadersMiddleware } from '@infra/http/middlewares/security-headers-middleware'
 
 @Module({
-  imports: [DatabaseModule, CryptographyModule, EnvModule],
-  controllers: [HealthController, CreateNoteController, GetNoteController, CreateUserController, AuthenticateUserController, RefreshSessionController],
+  imports: [DatabaseModule, CryptographyModule, EnvModule, AuthModule],
+  controllers: [
+    HealthController,
+    CreateNoteController,
+    GetNoteController,
+    CreateUserController,
+    GetUserProfileController,
+    UpdateUserProfileController,
+    AuthenticateUserController,
+    RefreshSessionController,
+  ],
   providers: [
     {
       provide: APP_FILTER,
@@ -51,6 +65,16 @@ import { SecurityHeadersMiddleware } from '@infra/http/middlewares/security-head
       provide: CreateUserUseCase,
       useFactory: (usersRepository: UsersRepository, hashGenerator: HashGenerator) => new CreateUserUseCase(usersRepository, hashGenerator),
       inject: [UsersRepository, HashGenerator],
+    },
+    {
+      provide: GetUserProfileUseCase,
+      useFactory: (usersRepository: UsersRepository) => new GetUserProfileUseCase(usersRepository),
+      inject: [UsersRepository],
+    },
+    {
+      provide: UpdateUserProfileUseCase,
+      useFactory: (usersRepository: UsersRepository) => new UpdateUserProfileUseCase(usersRepository),
+      inject: [UsersRepository],
     },
     {
       provide: AuthenticateUserUseCase,

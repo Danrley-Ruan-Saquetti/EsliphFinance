@@ -68,4 +68,45 @@ describe('User', () => {
     expect(user.isDeleted).toBe(true)
     expect(user.deletedAt).toBe(deletedAt)
   })
+
+  it('deve alterar o nome e registrar a data de atualização', () => {
+    const user = User.create({ name: 'Fulano de Tal', email, passwordHash: 'hash-da-senha' })
+
+    user.changeName('  Fulano Atualizado  ')
+
+    expect(user.name).toBe('Fulano Atualizado')
+    expect(user.updatedAt).toBeInstanceOf(Date)
+  })
+
+  it('deve lançar InvariantError quando o nome alterado é vazio (RN001)', () => {
+    const user = User.create({ name: 'Fulano de Tal', email, passwordHash: 'hash-da-senha' })
+
+    expect(() => user.changeName('   ')).toThrow(InvariantError)
+    expect(user.name).toBe('Fulano de Tal')
+  })
+
+  it('deve lançar InvariantError quando o nome alterado ultrapassa o tamanho máximo', () => {
+    const user = User.create({ name: 'Fulano de Tal', email, passwordHash: 'hash-da-senha' })
+
+    expect(() => user.changeName('a'.repeat(User.NAME_MAX_LENGTH + 1))).toThrow(InvariantError)
+  })
+
+  it('deve alterar o e-mail e registrar a data de atualização (RN002)', () => {
+    const user = User.create({ name: 'Fulano de Tal', email, passwordHash: 'hash-da-senha' })
+    const updatedEmail = Email.create('atualizado@exemplo.com')
+
+    user.changeEmail(updatedEmail)
+
+    expect(user.email).toBe(updatedEmail)
+    expect(user.updatedAt).toBeInstanceOf(Date)
+  })
+
+  it('deve preservar o hash da senha ao alterar nome e e-mail', () => {
+    const user = User.create({ name: 'Fulano de Tal', email, passwordHash: 'hash-da-senha' })
+
+    user.changeName('Fulano Atualizado')
+    user.changeEmail(Email.create('atualizado@exemplo.com'))
+
+    expect(user.passwordHash).toBe('hash-da-senha')
+  })
 })

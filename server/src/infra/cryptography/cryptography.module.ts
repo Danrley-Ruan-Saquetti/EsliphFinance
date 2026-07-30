@@ -2,12 +2,14 @@ import { Module } from '@nestjs/common'
 import { JwtModule } from '@nestjs/jwt'
 
 import { AccessTokenGenerator } from '@domain/user/application/services/access-token-generator'
+import { AccessTokenVerifier } from '@domain/user/application/services/access-token-verifier'
 import { HashComparer } from '@domain/user/application/services/hash-comparer'
 import { HashGenerator } from '@domain/user/application/services/hash-generator'
 import { RefreshTokenGenerator } from '@domain/user/application/services/refresh-token-generator'
 import { BcryptHasher } from '@infra/cryptography/bcrypt-hasher'
 import { CryptoRefreshTokenGenerator } from '@infra/cryptography/crypto-refresh-token-generator'
 import { JwtAccessTokenGenerator } from '@infra/cryptography/jwt-access-token-generator'
+import { JwtAccessTokenVerifier } from '@infra/cryptography/jwt-access-token-verifier'
 import { EnvModule } from '@infra/env/env.module'
 import { EnvService } from '@infra/env/env.service'
 
@@ -25,8 +27,9 @@ import { EnvService } from '@infra/env/env.service'
     { provide: HashGenerator, useExisting: BcryptHasher },
     { provide: HashComparer, useExisting: BcryptHasher },
     { provide: AccessTokenGenerator, useClass: JwtAccessTokenGenerator },
+    { provide: AccessTokenVerifier, useClass: JwtAccessTokenVerifier },
     { provide: RefreshTokenGenerator, useClass: CryptoRefreshTokenGenerator },
   ],
-  exports: [HashGenerator, HashComparer, AccessTokenGenerator, RefreshTokenGenerator],
+  exports: [HashGenerator, HashComparer, AccessTokenGenerator, AccessTokenVerifier, RefreshTokenGenerator],
 })
 export class CryptographyModule {}

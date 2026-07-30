@@ -62,4 +62,18 @@ export class User extends AggregateRoot<UserProps> {
   get isDeleted(): boolean {
     return Boolean(this.props.deletedAt)
   }
+
+  changeName(name: string): void {
+    this.props.name = User.validateName(name)
+    this.touch()
+  }
+
+  changeEmail(email: Email): void {
+    this.props.email = email
+    this.touch()
+  }
+
+  private touch(): void {
+    this.props.updatedAt = new Date()
+  }
 }

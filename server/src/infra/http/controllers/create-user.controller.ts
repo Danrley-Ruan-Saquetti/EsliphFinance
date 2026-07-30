@@ -5,6 +5,7 @@ import { CreateUserUseCase } from '@domain/user/application/use-cases/create-use
 import { User } from '@domain/user/enterprise/entities/user'
 import { Email } from '@domain/user/enterprise/value-objects/email'
 import { Password } from '@domain/user/enterprise/value-objects/password'
+import { Public } from '@infra/auth/public-decorator'
 import { ZodValidationPipe } from '@infra/http/pipes/zod-validation-pipe'
 import { UserPresenter } from '@infra/http/presenters/user-presenter'
 
@@ -16,6 +17,7 @@ const createUserBodySchema = z.object({
 
 type CreateUserBody = z.infer<typeof createUserBodySchema>
 
+@Public()
 @Controller('/users')
 export class CreateUserController {
   constructor(private readonly createUser: CreateUserUseCase) {}

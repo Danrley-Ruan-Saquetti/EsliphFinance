@@ -17,6 +17,20 @@ export class DrizzleUsersRepository extends UsersRepository {
     await this.drizzle.db.insert(users).values(DrizzleUserMapper.toPersistence(user))
   }
 
+  async save(user: User): Promise<void> {
+    await this.drizzle.db.update(users).set(DrizzleUserMapper.toPersistence(user)).where(eq(users.id, user.id.toString()))
+  }
+
+  async findById(id: string): Promise<User | null> {
+    const [record] = await this.drizzle.db.select().from(users).where(eq(users.id, id)).limit(1)
+
+    if (!record) {
+      return null
+    }
+
+    return DrizzleUserMapper.toDomain(record)
+  }
+
   async findByEmail(email: string): Promise<User | null> {
     const [record] = await this.drizzle.db.select().from(users).where(eq(users.email, email)).limit(1)
 

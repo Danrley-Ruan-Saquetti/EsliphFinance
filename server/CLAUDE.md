@@ -15,7 +15,7 @@ API do EsliphFinance. Este documento cobre apenas o backend; o contexto geral do
 | Ambiente         | Docker + Docker Compose            |
 | Comandos         | Makefile                           |
 
-> Estado atual do repositório: a fundação arquitetural está implementada (camadas, `core/`, pipe global de validação, padrão `Either`, aliases), a persistência com Drizzle e o pipeline de migrations estão no ar, e há um **módulo de exemplo** em `src/domain/example` servindo de referência de estrutura — ele não faz parte do domínio real. O primeiro contexto real é `src/domain/user`, com o cadastro de usuário (`POST /users`, RF001), o login (`POST /sessions`, RF002, RN004) e a renovação da sessão (`POST /sessions/refresh`, RN006, RN007). O guard de autenticação e o encerramento de sessão (RN008) ainda **não** foram adicionados; o que depende deles está marcado abaixo.
+> Estado atual do repositório: a fundação arquitetural está implementada (camadas, `core/`, pipe global de validação, padrão `Either`, aliases), a persistência com Drizzle e o pipeline de migrations estão no ar, e há um **módulo de exemplo** em `src/domain/example` servindo de referência de estrutura — ele não faz parte do domínio real. O primeiro contexto real é `src/domain/user`, com o cadastro de usuário (`POST /users`, RF001), o login (`POST /sessions`, RF002, RN004), a renovação da sessão (`POST /sessions/refresh`, RN006, RN007), o guard global de autenticação (RNF005) e a consulta e atualização do perfil (`GET /users/me` e `PUT /users/me`, RN002, RN011). O encerramento de sessão (RN008), a alteração de senha (RN009) e a exclusão lógica do usuário (RN012) ainda **não** foram adicionados.
 
 ## Ambiente Docker
 
@@ -213,6 +213,7 @@ Toda resposta de erro — validação, regra de negócio ou falha inesperada —
 | Invariante de domínio     | `InvariantError`, lançado pela entidade             | 422                  |
 | Registro inexistente      | `ResourceNotFoundError`                             | 404                  |
 | Registro de outro usuário | `NotAllowedError`                                   | 403                  |
+| Requisição sem autenticação válida | `UnauthenticatedError` (RNF005)            | 401                  |
 | Credenciais de login inválidas | `InvalidCredentialsError` (RN004)              | 401                  |
 | Conflito com registro existente | `EmailAlreadyInUseError` (RN002, RN014)       | 409                  |
 | Demais erros de negócio   | qualquer `BaseError` sem mapeamento                 | 400                  |
@@ -292,6 +293,20 @@ A senha é comparada contra o hash armazenado pela porta `HashComparer` (bcrypt)
 A renovação (`POST /sessions/refresh`, RN006) recebe o token de renovação em texto e o procura pelo SHA-256; o registro só serve se `isUsable` — nem revogado, nem vencido. A rotação é obrigatória (RN007): o registro encontrado é revogado e persistido **antes** da emissão do par novo, então o token consumido nunca volta a valer e o cliente precisa guardar o token devolvido a cada renovação. Token inexistente, vencido, revogado ou já consumido devolvem o mesmo `InvalidRefreshTokenError` (401). A validade do par vem de `ACCESS_TOKEN_EXPIRES_IN_SECONDS` e `REFRESH_TOKEN_EXPIRES_IN_SECONDS`, e o `envSchema` recusa o bootstrap se a segunda não for maior que a primeira (RN006).
 
 Quem calcula a expiração do token de renovação é a entidade, por `RefreshToken.issue({ userId, tokenHash, expiresInSeconds })` — o login e a renovação emitem pelo mesmo caminho. `RefreshToken.create` fica para reconstruir o registro vindo do banco.
+
+### Rota protegida por padrão
+
+O `JwtAuthGuard` (`@infra/auth/jwt-auth-guard`) é registrado como `APP_GUARD` pelo `AuthModule`, então **toda rota nasce autenticada** — RN010 e RN011 dizem que todo registro pertence a um usuário, e uma rota aberta por esquecimento é o erro caro. Abrir uma rota é um ato explícito: `@Public()` (`@infra/auth/public-decorator`) no controller ou no handler. Hoje são públicos apenas `/status`, `POST /users`, `POST /sessions`, `POST /sessions/refresh` e as rotas do módulo de exemplo.
+
+O guard exige o header `Authorization: Bearer <token de acesso>`, valida a assinatura pela porta `AccessTokenVerifier` — implementada pelo `JwtAccessTokenVerifier`, que confere assinatura, expiração e o formato do `sub` — e anexa `{ id }` à requisição. Header ausente, esquema diferente de `Bearer`, assinatura inválida, token vencido e payload sem identificador de usuário devolvem todos o mesmo `UnauthenticatedError` (401).
+
+O controller lê o usuário autenticado por `@CurrentUser()` (`@infra/auth/current-user-decorator`), que devolve o `AuthenticatedUser` anexado pelo guard e lança `UnauthenticatedError` se ele não estiver lá. O identificador entra no caso de uso como qualquer outro dado de entrada — quem confere a propriedade do registro continua sendo o caso de uso, nunca o guard.
+
+## Perfil do usuário
+
+`GET /users/me` e `PUT /users/me` (RN002, RN011) trabalham sempre sobre o usuário do token, nunca sobre um id vindo da URL — não existe rota de perfil por identificador. Os dois passam pelo `UserPresenter`, que não expõe o hash da senha.
+
+A atualização é uma substituição do perfil editável: `name` e `email` são obrigatórios, e a senha **não** é alterada por aqui (RN009 tem fluxo próprio, com senha atual e invalidação dos tokens de renovação). O e-mail novo é rejeitado com `EmailAlreadyInUseError` quando pertence a outro usuário, inclusive um excluído logicamente (RN014); manter o próprio e-mail é aceito. Usuário inexistente ou excluído logicamente devolve `ResourceNotFoundError` (RN012, RN013), o que também vale para um token de acesso ainda válido de uma conta encerrada.
 
 ## Testes
 
