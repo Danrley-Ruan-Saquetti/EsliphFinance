@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { UniqueEntityID } from '@core/entities/unique-entity-id'
-import { NotAllowedError } from '@core/errors/not-allowed-error'
 import { EndSessionUseCase } from '@domain/user/application/use-cases/end-session'
 import { RefreshTokenProps } from '@domain/user/enterprise/entities/refresh-token'
 import { InMemoryRefreshTokensRepository } from '@infra/database/in-memory/in-memory-refresh-tokens-repository'
@@ -98,15 +97,13 @@ describe('Encerrar sessão', () => {
     expect(refreshTokensRepository.items[0].isRevoked).toBe(true)
   })
 
-  it('deve retornar NotAllowedError quando o token de renovação é de outro usuário (RN011)', async () => {
+  it('deve manter válido o token de renovação de outro usuário, tratando-o como inexistente (RN010, RN011)', async () => {
     await storeRefreshToken({ userId: new UniqueEntityID() })
 
     const result = await sut.execute({ userId: new UniqueEntityID().toString(), refreshToken: ISSUED_TOKEN })
 
-    expect(result.isLeft()).toBe(true)
-    if (result.isLeft()) {
-      expect(result.value).toBeInstanceOf(NotAllowedError)
-    }
+    expect(result.isRight()).toBe(true)
     expect(refreshTokensRepository.items[0].isRevoked).toBe(false)
+    expect(refreshTokensRepository.items[0].isUsable).toBe(true)
   })
 })

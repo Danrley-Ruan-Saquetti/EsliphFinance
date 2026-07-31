@@ -23,7 +23,7 @@ export class UpdateUserProfileController {
   @Put()
   @HttpCode(200)
   async handle(@CurrentUser() currentUser: AuthenticatedUser, @Body(new ZodValidationPipe(updateUserProfileBodySchema)) body: UpdateUserProfileBody) {
-    const result = await this.updateUserProfile.execute({ userId: currentUser.id, ...body })
+    const result = await this.updateUserProfile.execute({ ...body, userId: currentUser.id })
 
     if (result.isLeft()) {
       throw result.value

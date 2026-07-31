@@ -1,5 +1,4 @@
 import { Either, left, right } from '@core/either'
-import { NotAllowedError } from '@core/errors/not-allowed-error'
 import { ResourceNotFoundError } from '@core/errors/resource-not-found-error'
 import { UseCase } from '@core/use-case'
 import { NotesRepository } from '@domain/example/application/repositories/notes-repository'
@@ -10,7 +9,7 @@ export interface GetNoteRequest {
   ownerId: string
 }
 
-export type GetNoteResponse = Either<ResourceNotFoundError | NotAllowedError, { note: Note }>
+export type GetNoteResponse = Either<ResourceNotFoundError, { note: Note }>
 
 export class GetNoteUseCase implements UseCase<GetNoteRequest, GetNoteResponse> {
   constructor(private readonly notesRepository: NotesRepository) {}
@@ -18,12 +17,8 @@ export class GetNoteUseCase implements UseCase<GetNoteRequest, GetNoteResponse> 
   async execute({ noteId, ownerId }: GetNoteRequest): Promise<GetNoteResponse> {
     const note = await this.notesRepository.findById(noteId)
 
-    if (!note) {
+    if (!note || !this.isOwnedBy(note, ownerId)) {
       return left(new ResourceNotFoundError('Nota não encontrada'))
-    }
-
-    if (!this.isOwnedBy(note, ownerId)) {
-      return left(new NotAllowedError())
     }
 
     return right({ note })

@@ -132,6 +132,16 @@ Coesão e coerência valem mais que qualquer regra de formatação — formataç
 
 **Imutabilidade onde couber.** `readonly` em campo que não muda depois do construtor, como em `Left`/`Right` e nas dependências injetadas.
 
+**Spread antes do valor confiável.** Ao montar um objeto que mistura dado vindo de fora (corpo, query, params) com valor que o servidor decidiu — o dono do registro, o usuário do token —, o spread vem **primeiro** e o valor confiável **por último**. Quem está por último vence a chave repetida:
+
+```ts
+await this.endSession.execute({ ...body, userId: currentUser.id })
+```
+
+Na outra ordem, `{ userId: currentUser.id, ...body }`, um `userId` presente no corpo sobrescreveria o do token e o cliente escolheria em nome de quem a operação roda. Hoje o `ZodValidationPipe` remove a chave não declarada e o objeto nunca chega com ela — a ordem certa é o que garante que continue assim se o schema ganhar um campo, o pipe mudar de modo ou a rota passar a receber o objeto por outro caminho. Não é redundância: é a diferença entre depender de uma camada e depender de duas.
+
+Vale para todo dado sensível — identidade, dono, papel, permissão, valor calculado pelo servidor —, não só `userId`. Onde o de fora é que **deve** vencer, a ordem se inverte naturalmente e continua correta: `Note.create({ ...props, title })` põe o `title` já validado depois do spread justamente porque é ele que precisa prevalecer.
+
 **Não invente abstração para um caso só.** Camada a mais "para o futuro" é custo hoje e adivinhação sobre amanhã. O projeto já tem estrutura suficiente; siga a que existe.
 
 ## Checklist
@@ -146,6 +156,7 @@ Antes de dar a tarefa por concluída:
 - [ ] Use-case retorna `Either`; erro de negócio não é `throw`.
 - [ ] Guard clauses no lugar de aninhamento.
 - [ ] Nenhum valor monetário como `number` cru.
+- [ ] Em objeto que mistura entrada do cliente com dado sensível do servidor, o spread vem antes e o valor confiável por último.
 - [ ] Caso de uso novo entrou com teste unitário citando a RN no nome.
 
 ## Verificação

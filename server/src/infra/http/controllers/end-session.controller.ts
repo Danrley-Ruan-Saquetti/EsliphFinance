@@ -19,10 +19,6 @@ export class EndSessionController {
   @Post()
   @HttpCode(204)
   async handle(@CurrentUser() currentUser: AuthenticatedUser, @Body(new ZodValidationPipe(endSessionBodySchema)) body: EndSessionBody): Promise<void> {
-    const result = await this.endSession.execute({ userId: currentUser.id, ...body })
-
-    if (result.isLeft()) {
-      throw result.value
-    }
+    await this.endSession.execute({ ...body, userId: currentUser.id })
   }
 }

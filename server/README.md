@@ -100,7 +100,7 @@ test/
 Todo caso de uso implementa `UseCase<Request, Response>` — um único método `execute` — e retorna `Either<Erro, Sucesso>`:
 
 ```ts
-export type GetNoteResponse = Either<ResourceNotFoundError | NotAllowedError, { note: Note }>
+export type GetNoteResponse = Either<ResourceNotFoundError, { note: Note }>
 
 export class GetNoteUseCase implements UseCase<GetNoteRequest, GetNoteResponse> {
   constructor(private readonly notesRepository: NotesRepository) {}
@@ -108,8 +108,7 @@ export class GetNoteUseCase implements UseCase<GetNoteRequest, GetNoteResponse> 
   async execute({ noteId, ownerId }: GetNoteRequest): Promise<GetNoteResponse> {
     const note = await this.notesRepository.findById(noteId)
 
-    if (!note) return left(new ResourceNotFoundError('Nota não encontrada'))
-    if (note.ownerId.toString() !== ownerId) return left(new NotAllowedError())
+    if (!note || note.ownerId.toString() !== ownerId) return left(new ResourceNotFoundError('Nota não encontrada'))
 
     return right({ note })
   }

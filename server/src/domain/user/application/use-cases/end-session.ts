@@ -1,5 +1,4 @@
-import { Either, left, right } from '@core/either'
-import { NotAllowedError } from '@core/errors/not-allowed-error'
+import { Either, right } from '@core/either'
 import { UseCase } from '@core/use-case'
 import { RefreshTokensRepository } from '@domain/user/application/repositories/refresh-tokens-repository'
 import { RefreshTokenGenerator } from '@domain/user/application/services/refresh-token-generator'
@@ -10,7 +9,7 @@ export interface EndSessionRequest {
   refreshToken: string
 }
 
-export type EndSessionResponse = Either<NotAllowedError, null>
+export type EndSessionResponse = Either<never, null>
 
 export class EndSessionUseCase implements UseCase<EndSessionRequest, EndSessionResponse> {
   constructor(
@@ -21,15 +20,7 @@ export class EndSessionUseCase implements UseCase<EndSessionRequest, EndSessionR
   async execute({ userId, refreshToken }: EndSessionRequest): Promise<EndSessionResponse> {
     const storedRefreshToken = await this.refreshTokensRepository.findByTokenHash(this.refreshTokenGenerator.hash(refreshToken))
 
-    if (!storedRefreshToken) {
-      return right(null)
-    }
-
-    if (!this.isOwnedBy(storedRefreshToken, userId)) {
-      return left(new NotAllowedError('Este token de renovação pertence a outro usuário'))
-    }
-
-    if (storedRefreshToken.isRevoked) {
+    if (!storedRefreshToken || !this.isOwnedBy(storedRefreshToken, userId) || storedRefreshToken.isRevoked) {
       return right(null)
     }
 

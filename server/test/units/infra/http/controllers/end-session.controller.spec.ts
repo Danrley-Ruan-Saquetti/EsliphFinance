@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { UniqueEntityID } from '@core/entities/unique-entity-id'
-import { NotAllowedError } from '@core/errors/not-allowed-error'
 import { EndSessionUseCase } from '@domain/user/application/use-cases/end-session'
 import { InMemoryRefreshTokensRepository } from '@infra/database/in-memory/in-memory-refresh-tokens-repository'
 import { EndSessionController } from '@infra/http/controllers/end-session.controller'
@@ -42,9 +41,22 @@ describe('EndSessionController', () => {
     await expect(sut.handle({ id: userId.toString() }, { refreshToken: ISSUED_TOKEN })).resolves.toBeUndefined()
   })
 
-  it('deve lançar NotAllowedError quando o token de renovação é de outro usuário (RN011)', async () => {
+  it('deve responder sem erro e sem revogar quando o token de renovação é de outro usuário (RN010, RN011)', async () => {
     await refreshTokensRepository.create(makeRefreshToken({ tokenHash: refreshTokenGenerator.hash(ISSUED_TOKEN) }))
 
-    await expect(sut.handle({ id: new UniqueEntityID().toString() }, { refreshToken: ISSUED_TOKEN })).rejects.toBeInstanceOf(NotAllowedError)
+    await expect(sut.handle({ id: new UniqueEntityID().toString() }, { refreshToken: ISSUED_TOKEN })).resolves.toBeUndefined()
+    expect(refreshTokensRepository.items[0].isUsable).toBe(true)
+  })
+
+  it('deve ignorar o usuário informado no corpo e encerrar a sessão do token (RN010, RN011)', async () => {
+    const otherUserId = new UniqueEntityID()
+
+    await refreshTokensRepository.create(makeRefreshToken({ userId: otherUserId, tokenHash: refreshTokenGenerator.hash(ISSUED_TOKEN) }))
+
+    const forgedBody = Object.assign({ refreshToken: ISSUED_TOKEN }, { userId: otherUserId.toString() })
+
+    await sut.handle({ id: new UniqueEntityID().toString() }, forgedBody)
+
+    expect(refreshTokensRepository.items[0].isUsable).toBe(true)
   })
 })

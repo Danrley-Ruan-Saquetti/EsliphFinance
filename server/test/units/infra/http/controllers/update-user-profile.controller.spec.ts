@@ -51,4 +51,20 @@ describe('UpdateUserProfileController', () => {
 
     await expect(sut.handle({ id: new UniqueEntityID().toString() }, request)).rejects.toBeInstanceOf(ResourceNotFoundError)
   })
+
+  it('deve ignorar o usuário informado no corpo e atualizar o do token (RN010, RN011)', async () => {
+    const user = makeUser({ email: Email.create('fulano@exemplo.com') })
+    const otherUser = makeUser({ email: Email.create('beltrano@exemplo.com') })
+
+    await usersRepository.create(user)
+    await usersRepository.create(otherUser)
+
+    const forgedBody = Object.assign({ name: 'Fulano Atualizado', email: 'atualizado@exemplo.com' }, { userId: otherUser.id.toString() })
+
+    const response = await sut.handle({ id: user.id.toString() }, forgedBody)
+
+    expect(response.user.id).toBe(user.id.toString())
+    expect(otherUser.name).toBe('Fulano de Tal')
+    expect(otherUser.email.toString()).toBe('beltrano@exemplo.com')
+  })
 })

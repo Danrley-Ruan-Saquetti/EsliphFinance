@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { UniqueEntityID } from '@core/entities/unique-entity-id'
-import { NotAllowedError } from '@core/errors/not-allowed-error'
 import { ResourceNotFoundError } from '@core/errors/resource-not-found-error'
 import { GetNoteUseCase } from '@domain/example/application/use-cases/get-note'
 import { InMemoryNotesRepository } from '@infra/database/in-memory/in-memory-notes-repository'
@@ -17,13 +16,16 @@ describe('GetNoteController', () => {
     sut = new GetNoteController(new GetNoteUseCase(notesRepository))
   })
 
-  it('deve devolver a nota do próprio dono no formato de resposta', async () => {
+  it('deve devolver a nota do usuário autenticado no formato de resposta', async () => {
     const ownerId = new UniqueEntityID()
     const note = makeNote({ ownerId })
 
     await notesRepository.create(note)
 
-    const response = await sut.handle({ id: note.id.toString() }, { ownerId: ownerId.toString() })
+    const currentUser = { id: ownerId.toString() }
+    const params = { id: note.id.toString() }
+
+    const response = await sut.handle(currentUser, params)
 
     expect(response.note).toEqual({
       id: note.id.toString(),
@@ -35,20 +37,20 @@ describe('GetNoteController', () => {
   })
 
   it('deve propagar ResourceNotFoundError quando a nota não existe', async () => {
+    const currentUser = { id: new UniqueEntityID().toString() }
     const params = { id: new UniqueEntityID().toString() }
-    const query = { ownerId: new UniqueEntityID().toString() }
 
-    await expect(sut.handle(params, query)).rejects.toBeInstanceOf(ResourceNotFoundError)
+    await expect(sut.handle(currentUser, params)).rejects.toBeInstanceOf(ResourceNotFoundError)
   })
 
-  it('deve propagar NotAllowedError quando a nota é de outro usuário (RN010, RN011)', async () => {
+  it('deve propagar ResourceNotFoundError quando a nota é de outro usuário (RN010, RN011)', async () => {
     const note = makeNote()
 
     await notesRepository.create(note)
 
+    const currentUser = { id: new UniqueEntityID().toString() }
     const params = { id: note.id.toString() }
-    const query = { ownerId: new UniqueEntityID().toString() }
 
-    await expect(sut.handle(params, query)).rejects.toBeInstanceOf(NotAllowedError)
+    await expect(sut.handle(currentUser, params)).rejects.toBeInstanceOf(ResourceNotFoundError)
   })
 })

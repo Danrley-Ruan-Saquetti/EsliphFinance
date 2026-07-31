@@ -101,7 +101,7 @@ describe('Encerrar sessão (e2e)', () => {
     expect(response.statusCode).toBe(204)
   })
 
-  it('POST /sessions/logout rejeita o token de renovação de outro usuário com 403', async () => {
+  it('POST /sessions/logout ignora o token de renovação de outro usuário, mantendo-o válido (RN010, RN011)', async () => {
     const session = await authenticate()
     const otherUserSession = await authenticate('beltrano@exemplo.com')
 
@@ -110,8 +110,11 @@ describe('Encerrar sessão (e2e)', () => {
       .set('Authorization', `Bearer ${session.accessToken}`)
       .send({ refreshToken: otherUserSession.refreshToken })
 
-    expect(response.statusCode).toBe(403)
-    expect(response.body.code).toBe('NOT_ALLOWED')
+    expect(response.statusCode).toBe(204)
+
+    const refreshResponse = await request(app.getHttpServer()).post('/sessions/refresh').send({ refreshToken: otherUserSession.refreshToken })
+
+    expect(refreshResponse.statusCode).toBe(200)
   })
 
   it('POST /sessions/logout rejeita corpo inválido com 422', async () => {
