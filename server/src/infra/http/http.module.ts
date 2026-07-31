@@ -1,6 +1,8 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common'
 import { APP_FILTER } from '@nestjs/core'
 
+import { AssetGroupsRepository } from '@domain/asset-group/application/repositories/asset-groups-repository'
+import { CreateAssetGroupUseCase } from '@domain/asset-group/application/use-cases/create-asset-group'
 import { NotesRepository } from '@domain/example/application/repositories/notes-repository'
 import { CreateNoteUseCase } from '@domain/example/application/use-cases/create-note'
 import { GetNoteUseCase } from '@domain/example/application/use-cases/get-note'
@@ -22,6 +24,7 @@ import { DatabaseModule } from '@infra/database/database.module'
 import { EnvModule } from '@infra/env/env.module'
 import { EnvService } from '@infra/env/env.service'
 import { AuthenticateUserController } from '@infra/http/controllers/authenticate-user.controller'
+import { CreateAssetGroupController } from '@infra/http/controllers/create-asset-group.controller'
 import { CreateNoteController } from '@infra/http/controllers/create-note.controller'
 import { CreateUserController } from '@infra/http/controllers/create-user.controller'
 import { EndSessionController } from '@infra/http/controllers/end-session.controller'
@@ -48,6 +51,7 @@ import { SecurityHeadersMiddleware } from '@infra/http/middlewares/security-head
     AuthenticateUserController,
     RefreshSessionController,
     EndSessionController,
+    CreateAssetGroupController,
   ],
   providers: [
     {
@@ -114,6 +118,11 @@ import { SecurityHeadersMiddleware } from '@infra/http/middlewares/security-head
       useFactory: (refreshTokensRepository: RefreshTokensRepository, refreshTokenGenerator: RefreshTokenGenerator) =>
         new EndSessionUseCase(refreshTokensRepository, refreshTokenGenerator),
       inject: [RefreshTokensRepository, RefreshTokenGenerator],
+    },
+    {
+      provide: CreateAssetGroupUseCase,
+      useFactory: (assetGroupsRepository: AssetGroupsRepository) => new CreateAssetGroupUseCase(assetGroupsRepository),
+      inject: [AssetGroupsRepository],
     },
   ],
 })
