@@ -182,9 +182,9 @@ Cobrir 100% das linhas com um caso feliz por método é fácil e quase inútil. 
 - **Datas que não existem**: dia 31 em fevereiro, fechamento e vencimento ajustados para o último dia do mês (RN020). Data passada, hoje e futura mudam a situação da transação (RN049) — congele o relógio com `vi.useFakeTimers()` e `vi.setSystemTime(...)` em vez de calcular a partir de `new Date()`, senão o teste falha em um dia específico do mês.
 - **Dinheiro que não divide**: parcelar 100 em 3 (RN065 manda a sobra na primeira parcela). Some as parcelas e compare com o total — é a asserção que pega o centavo perdido. Sempre inteiro em centavos (RNF004), nunca `float`.
 - **Propriedade do registro**: para todo use-case que lê ou altera algo, existe o caso "o registro é de outro usuário" → `NotAllowedError` (RN010, RN011). Este é o teste mais esquecido do projeto e o de maior impacto.
-- **Vínculos que bloqueiam exclusão**: grupo com ativos (RN017), ativo com transações (RN024), categoria com transações ou subcategorias (RN034) — e a alternativa de arquivar. Exclusão de usuário é lógica (RN012), e o e-mail continua indisponível depois (RN014).
+- **Vínculos que bloqueiam exclusão**: grupo com contas (RN017), conta com transações (RN024), categoria com transações ou subcategorias (RN034) — e a alternativa de arquivar. Exclusão de usuário é lógica (RN012), e o e-mail continua indisponível depois (RN014).
 - **Compatibilidade**: natureza da categoria × tipo da transação (RN042), subcategoria × categoria pai (RN033), profundidade de dois níveis (RN032), grupo "Padrão" nas pontas da transferência (RN045) e contas iguais (RN046).
-- **Exclusões de agregação**: transferência não entra em receita/despesa (RN047) nem consome orçamento (RN071); só transação efetivada compõe saldo (RN050); só ativo não arquivado entra no saldo consolidado (RN077).
+- **Exclusões de agregação**: transferência não entra em receita/despesa (RN047) nem consome orçamento (RN071); só transação efetivada compõe saldo (RN050); só conta não arquivada entra no saldo consolidado (RN077).
 - **Coleção vazia e ausência**: listar sem nenhum registro, buscar id inexistente, campo opcional ausente e `null` — não são a mesma coisa no mapper.
 - **Idempotência e estado repetido**: pagar fatura já paga, arquivar o que já está arquivado, usar duas vezes o token de renovação (RN007).
 

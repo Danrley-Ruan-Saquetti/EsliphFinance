@@ -42,7 +42,7 @@ src/
     use-case.ts                    #   contrato de caso de uso
 
   domain/
-    <contexto>/                    # user, asset, transaction, invoice, budget, goal, ...
+    <contexto>/                    # user, account, transaction, invoice, budget, goal, ...
       enterprise/
         entities/                  #   entidades e agregados — invariantes do negócio
         value-objects/

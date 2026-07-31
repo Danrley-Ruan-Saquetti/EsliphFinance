@@ -29,6 +29,13 @@
       "when": 1785525490173,
       "tag": "0003_create_asset_groups_table",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1785535722537,
+      "tag": "0004_rename_asset_groups_to_account_groups",
+      "breakpoints": true
     }
   ]
 }
