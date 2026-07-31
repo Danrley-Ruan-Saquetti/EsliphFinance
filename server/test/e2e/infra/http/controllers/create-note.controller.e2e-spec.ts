@@ -7,6 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { AppModule } from '@app.module'
 import { DrizzleService } from '@infra/database/drizzle/drizzle.service'
+import { assetGroups } from '@infra/database/drizzle/schemas/asset-groups'
 import { notes } from '@infra/database/drizzle/schemas/notes'
 import { refreshTokens } from '@infra/database/drizzle/schemas/refresh-tokens'
 import { users } from '@infra/database/drizzle/schemas/users'
@@ -33,6 +34,7 @@ describe('Criar nota (e2e)', () => {
 
     const drizzle = app.get(DrizzleService)
 
+    await drizzle.db.delete(assetGroups)
     await drizzle.db.delete(notes)
     await drizzle.db.delete(refreshTokens)
     await drizzle.db.delete(users)
