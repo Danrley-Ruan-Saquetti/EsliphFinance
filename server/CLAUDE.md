@@ -15,7 +15,7 @@ API do EsliphFinance. Este documento cobre apenas o backend; o contexto geral do
 | Ambiente         | Docker + Docker Compose            |
 | Comandos         | Makefile                           |
 
-> Estado atual do repositório: a fundação arquitetural está implementada (camadas, `core/`, pipe global de validação, padrão `Either`, aliases), a persistência com Drizzle e o pipeline de migrations estão no ar, e há um **módulo de exemplo** em `src/domain/example` servindo de referência de estrutura — ele não faz parte do domínio real. O primeiro contexto real é `src/domain/user`, com o cadastro de usuário (`POST /users`, RF001), o login (`POST /sessions`, RF002, RN004), a renovação da sessão (`POST /sessions/refresh`, RN006, RN007), o encerramento da sessão (`POST /sessions/logout`, RN008), o guard global de autenticação (RNF005) e a consulta e atualização do perfil (`GET /users/me` e `PUT /users/me`, RN002, RN011). A alteração de senha (RN009) e a exclusão lógica do usuário (RN012) ainda **não** foram adicionadas.
+> Estado atual do repositório: a fundação arquitetural está implementada (camadas, `core/`, pipe global de validação, padrão `Either`, aliases), a persistência com Drizzle e o pipeline de migrations estão no ar, e há um **módulo de exemplo** em `src/domain/example` servindo de referência de estrutura — ele não faz parte do domínio real. O primeiro contexto real é `src/domain/user`, com o cadastro de usuário (`POST /users`, RF001), o login (`POST /sessions`, RF002, RN004), a renovação da sessão (`POST /sessions/refresh`, RN006, RN007), o encerramento da sessão (`POST /sessions/logout`, RN008), o guard global de autenticação (RNF005) e a consulta e atualização do perfil (`GET /users/me` e `PUT /users/me`, RN002, RN011). O isolamento dos registros por usuário (RN010, RN011) já é o padrão: fora `/status`, cadastro, login e renovação, toda rota exige token, o dono vem sempre do token e registro alheio responde 404. A alteração de senha (RN009) e a exclusão lógica do usuário (RN012) ainda **não** foram adicionadas.
 
 ## Ambiente Docker
 
@@ -181,7 +181,7 @@ test/
 - **Configuração** vive inteira em `infra/env`: `envSchema` (Zod) declara toda variável, `validateEnv` roda no bootstrap pelo `ConfigModule` e derruba a aplicação com a lista de variáveis ausentes ou inválidas, e o `EnvService` é a única forma de ler uma variável — nada de `process.env` espalhado. Variável nova entra no schema, no `.env.example` e no `docker-compose.yml`, junto (ver [Configuração e segurança de transporte](#configuração-e-segurança-de-transporte)).
 - **Zod** valida nas bordas: corpo/query/params HTTP e variáveis de ambiente. O `ZodValidationPipe` (`@infra/http/pipes/zod-validation-pipe`) recebe o schema no construtor, valida com o locale português do Zod e é aplicado por rota, no parâmetro — `@Body(new ZodValidationPipe(schema)) body: z.infer<typeof schema>` —, então um controller pode ter quantos schemas precisar. A validação de entrada não substitui as invariantes do domínio, que ficam nas entidades.
 - **Dinheiro** é encapsulado no Value Object `Money` sobre inteiro em centavos; nunca `float`, nem em coluna do banco (ver [Valores monetários](#valores-monetários)).
-- **Propriedade do registro** é verificada dentro do caso de uso, não por filtro implícito no repositório: buscar o registro e comparar o dono antes de ler ou alterar.
+- **Propriedade do registro** é verificada dentro do caso de uso, não por filtro implícito no repositório: buscar o registro e comparar o dono antes de ler ou alterar. Registro de outro usuário é tratado como **inexistente** (ver [Isolamento dos registros por usuário](#isolamento-dos-registros-por-usuário)).
 - **Exclusões** são majoritariamente lógicas ou bloqueadas por vínculos — conferir a RN correspondente antes de implementar um delete.
 - **Nomenclatura**: arquivos em kebab-case com sufixo de papel (`create-note.ts`, `notes-repository.ts`, `create-note.controller.ts`, `note-presenter.ts`, `http.module.ts`); um artefato por arquivo, com o nome do arquivo espelhando o do artefato; contextos no singular, repositórios no plural do agregado.
 - **Path aliases**: `@*` → `src/*`, `@tests/*` → `test/*`. Import relativo só entre arquivos irmãos da mesma pasta.
@@ -211,8 +211,8 @@ Toda resposta de erro — validação, regra de negócio ou falha inesperada —
 | ------------------------- | --------------------------------------------------- | -------------------- |
 | Validação de entrada      | `ValidationError`, lançado pelo `ZodValidationPipe` | 422                  |
 | Invariante de domínio     | `InvariantError`, lançado pela entidade             | 422                  |
-| Registro inexistente      | `ResourceNotFoundError`                             | 404                  |
-| Registro de outro usuário | `NotAllowedError`                                   | 403                  |
+| Registro inexistente **ou de outro usuário** | `ResourceNotFoundError` (RN011)  | 404                  |
+| Operação não permitida sobre registro próprio | `NotAllowedError`               | 403                  |
 | Requisição sem autenticação válida | `UnauthenticatedError` (RNF005)            | 401                  |
 | Credenciais de login inválidas | `InvalidCredentialsError` (RN004)              | 401                  |
 | Conflito com registro existente | `EmailAlreadyInUseError` (RN002, RN014)       | 409                  |
@@ -294,15 +294,35 @@ A renovação (`POST /sessions/refresh`, RN006) recebe o token de renovação em
 
 Quem calcula a expiração do token de renovação é a entidade, por `RefreshToken.issue({ userId, tokenHash, expiresInSeconds })` — o login e a renovação emitem pelo mesmo caminho. `RefreshToken.create` fica para reconstruir o registro vindo do banco.
 
-O encerramento (`POST /sessions/logout`, RN008) revoga o token de renovação da sessão informada e só dela — as demais sessões do usuário continuam valendo, porque cada login tem o seu próprio registro em `refresh_tokens`. Diferente do login e da renovação, a rota **não** é pública: quem encerra a sessão está autenticado, e o caso de uso confere que o token de renovação pertence ao usuário do token de acesso (RN011), devolvendo `NotAllowedError` (403) quando não pertence. A resposta é `204` sem corpo e é **idempotente** — token inexistente, já revogado ou vencido encerram sem erro, para que o cliente possa limpar a sessão local sem tratar caso de borda.
+O encerramento (`POST /sessions/logout`, RN008) revoga o token de renovação da sessão informada e só dela — as demais sessões do usuário continuam valendo, porque cada login tem o seu próprio registro em `refresh_tokens`. Diferente do login e da renovação, a rota **não** é pública: quem encerra a sessão está autenticado, e o caso de uso confere que o token de renovação pertence ao usuário do token de acesso (RN011). A resposta é `204` sem corpo e é **idempotente** — token inexistente, já revogado, vencido **ou de outro usuário** encerram sem erro, para que o cliente possa limpar a sessão local sem tratar caso de borda. O token de outro usuário é indistinguível de um inexistente e continua valendo: nenhuma sessão alheia é derrubada, e a resposta não revela que aquele token existe.
 
 ### Rota protegida por padrão
 
-O `JwtAuthGuard` (`@infra/auth/jwt-auth-guard`) é registrado como `APP_GUARD` pelo `AuthModule`, então **toda rota nasce autenticada** — RN010 e RN011 dizem que todo registro pertence a um usuário, e uma rota aberta por esquecimento é o erro caro. Abrir uma rota é um ato explícito: `@Public()` (`@infra/auth/public-decorator`) no controller ou no handler. Hoje são públicos apenas `/status`, `POST /users`, `POST /sessions`, `POST /sessions/refresh` e as rotas do módulo de exemplo.
+O `JwtAuthGuard` (`@infra/auth/jwt-auth-guard`) é registrado como `APP_GUARD` pelo `AuthModule`, então **toda rota nasce autenticada** — RN010 e RN011 dizem que todo registro pertence a um usuário, e uma rota aberta por esquecimento é o erro caro. Abrir uma rota é um ato explícito: `@Public()` (`@infra/auth/public-decorator`) no controller ou no handler. Os únicos públicos são `/status` e as três rotas que existem justamente para obter credencial — `POST /users` (cadastro), `POST /sessions` (login) e `POST /sessions/refresh` (renovação). Rota nova entra protegida; `@Public()` só com uma justificativa dessa ordem.
 
 O guard exige o header `Authorization: Bearer <token de acesso>`, valida a assinatura pela porta `AccessTokenVerifier` — implementada pelo `JwtAccessTokenVerifier`, que confere assinatura, expiração e o formato do `sub` — e anexa `{ id }` à requisição. Header ausente, esquema diferente de `Bearer`, assinatura inválida, token vencido e payload sem identificador de usuário devolvem todos o mesmo `UnauthenticatedError` (401).
 
 O controller lê o usuário autenticado por `@CurrentUser()` (`@infra/auth/current-user-decorator`), que devolve o `AuthenticatedUser` anexado pelo guard e lança `UnauthenticatedError` se ele não estiver lá. O identificador entra no caso de uso como qualquer outro dado de entrada — quem confere a propriedade do registro continua sendo o caso de uso, nunca o guard.
+
+### Isolamento dos registros por usuário
+
+O dono de um registro **nunca** vem do cliente. Não existe `ownerId` em corpo, query ou path: o identificador chega ao caso de uso pelo `@CurrentUser()`. Aceitá-lo do cliente seria deixar qualquer usuário autenticado escrever no acervo alheio.
+
+Duas camadas garantem isso, e as duas são obrigatórias. O schema Zod não declara o campo, então o pipe descarta um `ownerId` que venha no corpo; e o controller monta o objeto com **o spread antes do valor do token** — `{ ...body, ownerId: currentUser.id }`, nunca o inverso —, de modo que o dono do token vença a chave repetida mesmo que ela chegue lá. A ordem importa porque a primeira camada pode mudar sem que ninguém se lembre da segunda.
+
+Acesso a registro de outro usuário responde **`ResourceNotFoundError` (404)**, com a mesma mensagem do registro que não existe — nunca 403. Um 403 confirmaria que aquele identificador existe e pertence a alguém, e essa diferença é enumerável: o cliente legítimo não ganha nada com ela, e quem sonda o acervo alheio ganha um oráculo. Na prática o caso de uso reúne as duas condições em uma guard clause só:
+
+```ts
+const note = await this.notesRepository.findById(noteId)
+
+if (!note || !this.isOwnedBy(note, ownerId)) {
+  return left(new ResourceNotFoundError('Nota não encontrada'))
+}
+```
+
+`NotAllowedError` (403) fica reservado para a operação que o dono do registro não pode executar sobre o que é dele — não para propriedade, que é sempre 404.
+
+Todo caso de uso que lê ou altera um registro entra com teste de acesso cruzado entre dois usuários, citando RN010 e RN011 no nome, tanto no unitário quanto no e2e.
 
 ## Perfil do usuário
 

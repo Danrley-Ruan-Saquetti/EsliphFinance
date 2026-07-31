@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { UniqueEntityID } from '@core/entities/unique-entity-id'
-import { NotAllowedError } from '@core/errors/not-allowed-error'
 import { ResourceNotFoundError } from '@core/errors/resource-not-found-error'
 import { GetNoteUseCase } from '@domain/example/application/use-cases/get-note'
 import { InMemoryNotesRepository } from '@infra/database/in-memory/in-memory-notes-repository'
@@ -39,7 +38,7 @@ describe('Consultar nota (caso de uso de exemplo)', () => {
     }
   })
 
-  it('deve retornar NotAllowedError quando a nota é de outro usuário (RN010, RN011)', async () => {
+  it('deve retornar ResourceNotFoundError quando a nota é de outro usuário (RN010, RN011)', async () => {
     const note = makeNote()
 
     await notesRepository.create(note)
@@ -48,7 +47,24 @@ describe('Consultar nota (caso de uso de exemplo)', () => {
 
     expect(result.isLeft()).toBe(true)
     if (result.isLeft()) {
-      expect(result.value).toBeInstanceOf(NotAllowedError)
+      expect(result.value).toBeInstanceOf(ResourceNotFoundError)
+    }
+  })
+
+  it('deve devolver a mesma resposta para nota inexistente e para nota de outro usuário (RN011)', async () => {
+    const note = makeNote()
+
+    await notesRepository.create(note)
+
+    const otherOwnerId = new UniqueEntityID().toString()
+    const crossAccess = await sut.execute({ noteId: note.id.toString(), ownerId: otherOwnerId })
+    const missingNote = await sut.execute({ noteId: new UniqueEntityID().toString(), ownerId: otherOwnerId })
+
+    expect(crossAccess.isLeft()).toBe(true)
+    expect(missingNote.isLeft()).toBe(true)
+    if (crossAccess.isLeft() && missingNote.isLeft()) {
+      expect(crossAccess.value.code).toBe(missingNote.value.code)
+      expect(crossAccess.value.message).toBe(missingNote.value.message)
     }
   })
 })
