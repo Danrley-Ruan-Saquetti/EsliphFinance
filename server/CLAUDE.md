@@ -15,7 +15,7 @@ API do EsliphFinance. Este documento cobre apenas o backend; o contexto geral do
 | Ambiente         | Docker + Docker Compose            |
 | Comandos         | Makefile                           |
 
-> Estado atual do repositório: a fundação arquitetural está implementada (camadas, `core/`, pipe global de validação, padrão `Either`, aliases), a persistência com Drizzle e o pipeline de migrations estão no ar, e há um **módulo de exemplo** em `src/domain/example` servindo de referência de estrutura — ele não faz parte do domínio real. O primeiro contexto real é `src/domain/user`, com o cadastro de usuário (`POST /users`, RF001), o login (`POST /sessions`, RF002, RN004), a renovação da sessão (`POST /sessions/refresh`, RN006, RN007), o encerramento da sessão (`POST /sessions/logout`, RN008), o guard global de autenticação (RNF005) e a consulta e atualização do perfil (`GET /users/me` e `PUT /users/me`, RN002, RN011). O isolamento dos registros por usuário (RN010, RN011) já é o padrão: fora `/status`, cadastro, login e renovação, toda rota exige token, o dono vem sempre do token e registro alheio responde 404. A alteração de senha (RN009) e a exclusão lógica do usuário (RN012) ainda **não** foram adicionadas. O segundo contexto real é `src/domain/asset-group`, com o cadastro do grupo de ativo (`POST /asset-groups`, RF003, RN015, RN016), a listagem com filtro por tipo (`GET /asset-groups`, RN015) e a consulta individual (`GET /asset-groups/:id`, RN011); a edição e a exclusão bloqueada por ativos vinculados (RN017) ainda **não** foram adicionadas.
+> Estado atual do repositório: a fundação arquitetural está implementada (camadas, `core/`, pipe global de validação, padrão `Either`, aliases), a persistência com Drizzle e o pipeline de migrations estão no ar, e há um **módulo de exemplo** em `src/domain/example` servindo de referência de estrutura — ele não faz parte do domínio real. O primeiro contexto real é `src/domain/user`, com o cadastro de usuário (`POST /users`, RF001), o login (`POST /sessions`, RF002, RN004), a renovação da sessão (`POST /sessions/refresh`, RN006, RN007), o encerramento da sessão (`POST /sessions/logout`, RN008), o guard global de autenticação (RNF005) e a consulta e atualização do perfil (`GET /users/me` e `PUT /users/me`, RN002, RN011). O isolamento dos registros por usuário (RN010, RN011) já é o padrão: fora `/status`, cadastro, login e renovação, toda rota exige token, o dono vem sempre do token e registro alheio responde 404. A alteração de senha (RN009) e a exclusão lógica do usuário (RN012) ainda **não** foram adicionadas. O segundo contexto real é `src/domain/account-group`, com o cadastro do grupo de contas (`POST /account-groups`, RF003, RN015, RN016), a listagem com filtro por tipo (`GET /account-groups`, RN015) e a consulta individual (`GET /account-groups/:id`, RN011); a edição e a exclusão bloqueada por contas vinculadas (RN017) ainda **não** foram adicionadas.
 
 ## Ambiente Docker
 
@@ -124,7 +124,7 @@ src/
     use-case.ts                  #   contrato dos use-cases
 
   domain/
-    <contexto>/                  # user, asset, transaction, invoice, budget, goal, ...
+    <contexto>/                  # user, account, transaction, invoice, budget, goal, ...
       enterprise/
         entities/                #   entidades e agregados — regras invariantes do negócio
         value-objects/
@@ -170,7 +170,7 @@ test/
 
 ### Convenções
 
-- **Contextos** derivam dos requisitos: usuários/autenticação, grupos de ativos, ativos, cartões de débito, categorias, tags, transações, faturas, orçamentos, metas, lançamentos favoritos, anexos, relatórios e notificações.
+- **Contextos** derivam dos requisitos: usuários/autenticação, grupos de contas, contas, cartões de débito, categorias, tags, transações, faturas, orçamentos, metas, lançamentos favoritos, anexos, relatórios e notificações.
 - **Casos de uso** implementam `UseCase<Request, Response>` (`@core/use-case`): um único método `execute(request)` que retorna `Either<Erro, Sucesso>` — erros esperados de negócio são valor de retorno, não exceção. Exceção fica para falha inesperada e para invariante de domínio violada (`InvariantError`, lançado pela entidade).
 - **Erros** herdam de `BaseError` (`@core/errors/base-error`), expõem um `code` estável em inglês e carregam a mensagem em português (ver [Idioma das mensagens](#idioma-das-mensagens)); a tradução para status HTTP acontece na infraestrutura, nunca dentro do caso de uso — nem no controller, que apenas lança o erro do `Either` e deixa o filtro global responder (ver [Contrato de erro da API](#contrato-de-erro-da-api)).
 - **Casos de uso não recebem `@Injectable()`**: são registrados nos módulos Nest com `useFactory` + `inject`, o que mantém a aplicação livre do framework.
@@ -330,13 +330,15 @@ Todo caso de uso que lê ou altera um registro entra com teste de acesso cruzado
 
 A atualização é uma substituição do perfil editável: `name` e `email` são obrigatórios, e a senha **não** é alterada por aqui (RN009 tem fluxo próprio, com senha atual e invalidação dos tokens de renovação). O e-mail novo é rejeitado com `EmailAlreadyInUseError` quando pertence a outro usuário, inclusive um excluído logicamente (RN014); manter o próprio e-mail é aceito. Usuário inexistente ou excluído logicamente devolve `ResourceNotFoundError` (RN012, RN013), o que também vale para um token de acesso ainda válido de uma conta encerrada.
 
-## Grupos de ativos
+## Grupos de contas
 
-`GET /asset-groups` lista os grupos do usuário do token, em ordem alfabética de nome, e aceita o filtro opcional `?type=DEFAULT|CREDIT_CARD` (RN015) — tipo fora do domínio é 422 pelo `ZodValidationPipe`. `GET /asset-groups/:id` devolve um grupo só, e grupo de outro usuário responde 404 como qualquer outro registro alheio (RN010, RN011).
+`GET /account-groups` lista os grupos do usuário do token, em ordem alfabética de nome, e aceita o filtro opcional `?type=DEFAULT|CREDIT_CARD` (RN015) — tipo fora do domínio é 422 pelo `ZodValidationPipe`. `GET /account-groups/:id` devolve um grupo só, e grupo de outro usuário responde 404 como qualquer outro registro alheio (RN010, RN011).
 
-As três rotas do contexto respondem pela mesma representação, produzida pelo `AssetGroupPresenter`, que inclui o campo **`assetsCount`** — a quantidade de ativos vinculados ao grupo, que existe para o cliente antecipar a RN017 (grupo com ativos não pode ser excluído) sem uma segunda requisição.
+As três rotas do contexto respondem pela mesma representação, produzida pelo `AccountGroupPresenter`, que inclui o campo **`accountsCount`** — a quantidade de contas vinculadas ao grupo, que existe para o cliente antecipar a RN017 (grupo com contas não pode ser excluído) sem uma segunda requisição.
 
-O contexto de _Ativos_ (RN018 em diante) ainda não foi implementado: não há entidade, tabela nem repositório de `assets`. Enquanto for assim, o `DrizzleAssetGroupsRepository` devolve `assetsCount: 0`, o que hoje é o número correto — nenhum ativo existe para vincular. Quando a tabela `assets` entrar, o único ponto a mudar é o `withAssetsCount` do repositório Drizzle, que passa a contar de verdade; o contrato HTTP e os casos de uso não mudam. O `InMemoryAssetGroupsRepository` já expõe `assetsCountByAssetGroupId` para que os testes fixem a contagem sem depender de ativos reais.
+O contexto de _Contas_ (RN018 em diante) ainda não foi implementado: não há entidade, tabela nem repositório de `accounts`. Enquanto for assim, o `DrizzleAccountGroupsRepository` devolve `accountsCount: 0`, o que hoje é o número correto — nenhuma conta existe para vincular. Quando a tabela `accounts` entrar, o único ponto a mudar é o `withAccountsCount` do repositório Drizzle, que passa a contar de verdade; o contrato HTTP e os casos de uso não mudam. O `InMemoryAccountGroupsRepository` já expõe `accountsCountByAccountGroupId` para que os testes fixem a contagem sem depender de contas reais.
+
+O termo _Conta_ substituiu _Ativo_ na SCRUM-88: o agregado é o contêiner de dinheiro (RN018, RN021), e `Asset` fica reservado ao instrumento negociável de uma eventual carteira de investimentos. A migration `0004_rename_asset_groups_to_account_groups` renomeia a tabela, o enum, o índice e as constraints, sem tocar no SQL já aplicado.
 
 ## Testes
 

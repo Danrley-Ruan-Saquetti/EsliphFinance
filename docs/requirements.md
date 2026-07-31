@@ -2,8 +2,8 @@
 
 -   RF001 - O sistema deve permitir dar manutenção em Usuários.
 -   RF002 - O sistema deve permitir a autenticação do Usuário.
--   RF003 - O sistema deve permitir dar manutenção em Grupos de Ativos.
--   RF004 - O sistema deve permitir dar manutenção em Ativos.
+-   RF003 - O sistema deve permitir dar manutenção em Grupos de Contas.
+-   RF004 - O sistema deve permitir dar manutenção em Contas.
 -   RF005 - O sistema deve permitir dar manutenção em Cartões de Débito.
 -   RF006 - O sistema deve permitir dar manutenção em Categorias.
 -   RF007 - O sistema deve permitir dar manutenção em Tags.
@@ -45,28 +45,28 @@
 -   RN013 - O _Usuário_ excluído não pode se autenticar e deve ter os seus **tokens de renovação** invalidados.
 -   RN014 - O **e-mail** de um _Usuário_ excluído permanece indisponível para novos cadastros.
 
-## Grupos de Ativos
+## Grupos de Contas
 
--   RN015 - Os _Grupos de Ativos_ podem ser do **tipo** "Padrão" ou "Cartão de Crédito".
--   RN016 - O cadastro do _Grupo de Ativo_ deve conter o **nome** e o **tipo** (Default: Padrão).
--   RN017 - O _Grupo de Ativo_ não pode ser excluído quando possuir _Ativos_ vinculados.
+-   RN015 - Os _Grupos de Contas_ podem ser do **tipo** "Padrão" ou "Cartão de Crédito".
+-   RN016 - O cadastro do _Grupo de Contas_ deve conter o **nome** e o **tipo** (Default: Padrão).
+-   RN017 - O _Grupo de Contas_ não pode ser excluído quando possuir _Contas_ vinculadas.
 
-## Ativos
+## Contas
 
--   RN018 - O cadastro do _Ativo_ deve conter o **nome**, o **grupo** (referente à _Grupo de Ativo_), o **saldo inicial** (Default: 0), o **ícone** e a **cor**.
--   RN019 - Quando o _Ativo_ for de um **grupo** do **tipo** "Cartão de Crédito", deve-se informar o **limite**, o **dia de fechamento** e o **dia de vencimento**.
+-   RN018 - O cadastro da _Conta_ deve conter o **nome**, o **grupo** (referente à _Grupo de Contas_), o **saldo inicial** (Default: 0), o **ícone** e a **cor**.
+-   RN019 - Quando a _Conta_ for de um **grupo** do **tipo** "Cartão de Crédito", deve-se informar o **limite**, o **dia de fechamento** e o **dia de vencimento**.
 -   RN020 - O **dia de fechamento** e o **dia de vencimento** devem estar entre 1 e 31, sendo ajustados para o último dia do mês quando o mês não possuir o dia informado.
--   RN021 - O **saldo** de um _Ativo_ é o **saldo inicial** acrescido das _Transações_ efetivadas vinculadas a ele.
--   RN022 - _Ativos_ de um **grupo** do **tipo** "Cartão de Crédito" não possuem **saldo**, sendo controlados por **limite** e _Faturas_.
--   RN023 - O **limite disponível** de um _Ativo_ do **tipo** "Cartão de Crédito" é o **limite** subtraído das _Faturas_ em aberto e dos lançamentos ainda não faturados.
--   RN024 - O _Ativo_ não pode ser excluído quando possuir _Transações_ vinculadas, podendo ser arquivado.
--   RN025 - O _Ativo_ arquivado não deve ser exibido para seleção em novos lançamentos, preservando o histórico existente.
+-   RN021 - O **saldo** de uma _Conta_ é o **saldo inicial** acrescido das _Transações_ efetivadas vinculadas a ela.
+-   RN022 - _Contas_ de um **grupo** do **tipo** "Cartão de Crédito" não possuem **saldo**, sendo controladas por **limite** e _Faturas_.
+-   RN023 - O **limite disponível** de uma _Conta_ do **tipo** "Cartão de Crédito" é o **limite** subtraído das _Faturas_ em aberto e dos lançamentos ainda não faturados.
+-   RN024 - A _Conta_ não pode ser excluída quando possuir _Transações_ vinculadas, podendo ser arquivada.
+-   RN025 - A _Conta_ arquivada não deve ser exibida para seleção em novos lançamentos, preservando o histórico existente.
 
 ## Cartões de Débito
 
--   RN026 - O _Cartão de Débito_ é um meio de pagamento vinculado a um _Ativo_ de um **grupo** do **tipo** "Padrão", não constituindo um _Ativo_.
--   RN027 - O cadastro do _Cartão de Débito_ deve conter o **nome** e o **ativo vinculado**.
--   RN028 - A _Transação_ realizada por meio de um _Cartão de Débito_ afeta diretamente o **saldo** do **ativo vinculado**.
+-   RN026 - O _Cartão de Débito_ é um meio de pagamento vinculado a uma _Conta_ de um **grupo** do **tipo** "Padrão", não constituindo uma _Conta_.
+-   RN027 - O cadastro do _Cartão de Débito_ deve conter o **nome** e a **conta vinculada**.
+-   RN028 - A _Transação_ realizada por meio de um _Cartão de Débito_ afeta diretamente o **saldo** da **conta vinculada**.
 
 ## Categorias
 
@@ -87,28 +87,28 @@
 ## Transações
 
 -   RN039 - As _Transações_ podem ser do **tipo** "Receita", "Despesa" ou "Transferência".
--   RN040 - Uma _Transação_ deve conter a **data**, o **valor**, **descrição** (opcional), **conta** (referente à _Ativo_), o **tipo** e a **situação**.
+-   RN040 - Uma _Transação_ deve conter a **data**, o **valor**, **descrição** (opcional), **conta** (referente à _Conta_), o **tipo** e a **situação**.
 -   RN041 - O **valor** da _Transação_ deve ser maior que zero, sendo o sinal derivado do **tipo**.
 -   RN042 - As _Transações_ do **tipo** "Receita" e "Despesa" devem conter a **categoria** (referente à _Categoria_), cuja **natureza** deve ser compatível com o **tipo** da _Transação_.
 -   RN043 - A _Transação_ do **tipo** "Transferência" não possui **categoria**.
--   RN044 - Quando a _Transação_ for do **tipo** "Transferência", deve-se informar a **conta de origem** (referente à _Ativo_) e **conta de destino** (referente à _Ativo_).
+-   RN044 - Quando a _Transação_ for do **tipo** "Transferência", deve-se informar a **conta de origem** (referente à _Conta_) e **conta de destino** (referente à _Conta_).
 -   RN045 - A **conta de origem** e **conta de destino** de uma _Transação_ do **tipo** "Transferência" devem pertencer a um **grupo** do **tipo** "Padrão".
 -   RN046 - A **conta de origem** e a **conta de destino** de uma _Transação_ do **tipo** "Transferência" não podem ser a mesma.
 -   RN047 - As _Transações_ do **tipo** "Transferência" não compõem os totais de receita e despesa nos relatórios.
 -   RN048 - A **situação** da _Transação_ pode ser "Prevista" ou "Efetivada".
 -   RN049 - A _Transação_ com **data** futura é criada como "Prevista" e a _Transação_ com **data** igual ou anterior à atual é criada como "Efetivada", podendo o padrão ser configurado pelo usuário.
--   RN050 - Apenas as _Transações_ "Efetivadas" compõem o **saldo** do _Ativo_; as _Transações_ "Previstas" compõem o **saldo projetado**.
+-   RN050 - Apenas as _Transações_ "Efetivadas" compõem o **saldo** da _Conta_; as _Transações_ "Previstas" compõem o **saldo projetado**.
 -   RN051 - A _Transação_ pode conter **anexos**.
 
 ## Faturas de Cartão de Crédito
 
--   RN052 - A _Transação_ lançada em um _Ativo_ do **tipo** "Cartão de Crédito" não afeta **saldo**, sendo atribuída a uma _Fatura_.
+-   RN052 - A _Transação_ lançada em uma _Conta_ do **tipo** "Cartão de Crédito" não afeta **saldo**, sendo atribuída a uma _Fatura_.
 -   RN053 - A _Transação_ é atribuída à _Fatura_ cujo período de fechamento contém a sua **data**; lançamentos com **data** posterior ao **dia de fechamento** são atribuídos à _Fatura_ seguinte.
 -   RN054 - A _Fatura_ deve conter o **período**, o **valor total** e a **data de vencimento**.
 -   RN055 - A **situação** da _Fatura_ pode ser "Aberta", "Fechada", "Parcialmente Paga" ou "Paga".
--   RN056 - O **pagamento** da _Fatura_ é uma operação própria que debita um _Ativo_ de um **grupo** do **tipo** "Padrão" e abate o saldo devedor da _Fatura_, não constituindo uma _Transação_ do **tipo** "Transferência".
+-   RN056 - O **pagamento** da _Fatura_ é uma operação própria que debita uma _Conta_ de um **grupo** do **tipo** "Padrão" e abate o saldo devedor da _Fatura_, não constituindo uma _Transação_ do **tipo** "Transferência".
 -   RN057 - A _Fatura_ admite **pagamento** parcial e **pagamento** antecipado.
--   RN058 - O estorno lançado em um _Ativo_ do **tipo** "Cartão de Crédito" abate o **valor total** da _Fatura_ correspondente.
+-   RN058 - O estorno lançado em uma _Conta_ do **tipo** "Cartão de Crédito" abate o **valor total** da _Fatura_ correspondente.
 
 ## Repetição de Transações
 
@@ -132,8 +132,8 @@
 
 ## Metas
 
--   RN073 - O cadastro da _Meta_ deve conter o **nome**, o **valor alvo**, a **data alvo** (opcional) e o **ativo vinculado** (referente à _Ativo_).
--   RN074 - O progresso da _Meta_ corresponde ao **saldo** do **ativo vinculado** em relação ao **valor alvo**.
+-   RN073 - O cadastro da _Meta_ deve conter o **nome**, o **valor alvo**, a **data alvo** (opcional) e a **conta vinculada** (referente à _Conta_).
+-   RN074 - O progresso da _Meta_ corresponde ao **saldo** da **conta vinculada** em relação ao **valor alvo**.
 
 ## Lançamentos Favoritos
 
@@ -142,7 +142,7 @@
 
 ## Painel e Relatórios
 
--   RN077 - O **saldo consolidado** corresponde à soma dos **saldos** dos _Ativos_ não arquivados pertencentes a **grupos** do **tipo** "Padrão".
+-   RN077 - O **saldo consolidado** corresponde à soma dos **saldos** das _Contas_ não arquivadas pertencentes a **grupos** do **tipo** "Padrão".
 -   RN078 - O painel deve apresentar o **saldo consolidado**, o total de receitas e despesas do período, os gastos por _Categoria_ e a evolução mensal.
 -   RN079 - A projeção de fluxo de caixa deve considerar as _Transações_ "Previstas" e as ocorrências futuras das repetições.
 

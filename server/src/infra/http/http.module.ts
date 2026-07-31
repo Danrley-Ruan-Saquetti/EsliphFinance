@@ -1,10 +1,10 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common'
 import { APP_FILTER } from '@nestjs/core'
 
-import { AssetGroupsRepository } from '@domain/asset-group/application/repositories/asset-groups-repository'
-import { CreateAssetGroupUseCase } from '@domain/asset-group/application/use-cases/create-asset-group'
-import { GetAssetGroupUseCase } from '@domain/asset-group/application/use-cases/get-asset-group'
-import { ListAssetGroupsUseCase } from '@domain/asset-group/application/use-cases/list-asset-groups'
+import { AccountGroupsRepository } from '@domain/account-group/application/repositories/account-groups-repository'
+import { CreateAccountGroupUseCase } from '@domain/account-group/application/use-cases/create-account-group'
+import { GetAccountGroupUseCase } from '@domain/account-group/application/use-cases/get-account-group'
+import { ListAccountGroupsUseCase } from '@domain/account-group/application/use-cases/list-account-groups'
 import { NotesRepository } from '@domain/example/application/repositories/notes-repository'
 import { CreateNoteUseCase } from '@domain/example/application/use-cases/create-note'
 import { GetNoteUseCase } from '@domain/example/application/use-cases/get-note'
@@ -26,15 +26,15 @@ import { DatabaseModule } from '@infra/database/database.module'
 import { EnvModule } from '@infra/env/env.module'
 import { EnvService } from '@infra/env/env.service'
 import { AuthenticateUserController } from '@infra/http/controllers/authenticate-user.controller'
-import { CreateAssetGroupController } from '@infra/http/controllers/create-asset-group.controller'
+import { CreateAccountGroupController } from '@infra/http/controllers/create-account-group.controller'
 import { CreateNoteController } from '@infra/http/controllers/create-note.controller'
 import { CreateUserController } from '@infra/http/controllers/create-user.controller'
 import { EndSessionController } from '@infra/http/controllers/end-session.controller'
-import { GetAssetGroupController } from '@infra/http/controllers/get-asset-group.controller'
+import { GetAccountGroupController } from '@infra/http/controllers/get-account-group.controller'
 import { GetNoteController } from '@infra/http/controllers/get-note.controller'
 import { GetUserProfileController } from '@infra/http/controllers/get-user-profile.controller'
 import { HealthController } from '@infra/http/controllers/health.controller'
-import { ListAssetGroupsController } from '@infra/http/controllers/list-asset-groups.controller'
+import { ListAccountGroupsController } from '@infra/http/controllers/list-account-groups.controller'
 import { RefreshSessionController } from '@infra/http/controllers/refresh-session.controller'
 import { UpdateUserProfileController } from '@infra/http/controllers/update-user-profile.controller'
 import { AllExceptionsFilter } from '@infra/http/filters/all-exceptions-filter'
@@ -55,9 +55,9 @@ import { SecurityHeadersMiddleware } from '@infra/http/middlewares/security-head
     AuthenticateUserController,
     RefreshSessionController,
     EndSessionController,
-    CreateAssetGroupController,
-    ListAssetGroupsController,
-    GetAssetGroupController,
+    CreateAccountGroupController,
+    ListAccountGroupsController,
+    GetAccountGroupController,
   ],
   providers: [
     {
@@ -126,19 +126,19 @@ import { SecurityHeadersMiddleware } from '@infra/http/middlewares/security-head
       inject: [RefreshTokensRepository, RefreshTokenGenerator],
     },
     {
-      provide: CreateAssetGroupUseCase,
-      useFactory: (assetGroupsRepository: AssetGroupsRepository) => new CreateAssetGroupUseCase(assetGroupsRepository),
-      inject: [AssetGroupsRepository],
+      provide: CreateAccountGroupUseCase,
+      useFactory: (accountGroupsRepository: AccountGroupsRepository) => new CreateAccountGroupUseCase(accountGroupsRepository),
+      inject: [AccountGroupsRepository],
     },
     {
-      provide: ListAssetGroupsUseCase,
-      useFactory: (assetGroupsRepository: AssetGroupsRepository) => new ListAssetGroupsUseCase(assetGroupsRepository),
-      inject: [AssetGroupsRepository],
+      provide: ListAccountGroupsUseCase,
+      useFactory: (accountGroupsRepository: AccountGroupsRepository) => new ListAccountGroupsUseCase(accountGroupsRepository),
+      inject: [AccountGroupsRepository],
     },
     {
-      provide: GetAssetGroupUseCase,
-      useFactory: (assetGroupsRepository: AssetGroupsRepository) => new GetAssetGroupUseCase(assetGroupsRepository),
-      inject: [AssetGroupsRepository],
+      provide: GetAccountGroupUseCase,
+      useFactory: (accountGroupsRepository: AccountGroupsRepository) => new GetAccountGroupUseCase(accountGroupsRepository),
+      inject: [AccountGroupsRepository],
     },
   ],
 })

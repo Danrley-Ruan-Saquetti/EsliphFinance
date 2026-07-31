@@ -19,7 +19,7 @@ Todo o domínio está especificado em `docs/requirements.md`, em português, com
 
 - **RF001…** requisitos funcionais
 - **RNF001…** requisitos não funcionais
-- **RN001…** regras de negócio (a maior parte do documento, agrupada por contexto: usuários, ativos, categorias, transações, faturas, repetições, orçamentos, metas, relatórios, notificações)
+- **RN001…** regras de negócio (a maior parte do documento, agrupada por contexto: usuários, contas, categorias, transações, faturas, repetições, orçamentos, metas, relatórios, notificações)
 
 Antes de implementar qualquer comportamento, localize a RN correspondente — ela costuma conter restrições que não são óbvias pelo nome da feature (exclusão lógica vs. arquivamento, compatibilidade de natureza entre categoria e transação, atribuição de lançamentos a faturas, escopo de edição de séries repetidas). Ao escrever código ou testes, referencie a RN. Se o requisito não cobrir o caso, pergunte em vez de inventar a regra; o documento termina com uma seção **Decisões em Aberto** para pontos ainda indefinidos.
 
