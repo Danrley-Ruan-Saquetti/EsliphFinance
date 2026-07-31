@@ -15,7 +15,7 @@ API do EsliphFinance. Este documento cobre apenas o backend; o contexto geral do
 | Ambiente         | Docker + Docker Compose            |
 | Comandos         | Makefile                           |
 
-> Estado atual do repositório: a fundação arquitetural está implementada (camadas, `core/`, pipe global de validação, padrão `Either`, aliases), a persistência com Drizzle e o pipeline de migrations estão no ar, e há um **módulo de exemplo** em `src/domain/example` servindo de referência de estrutura — ele não faz parte do domínio real. O primeiro contexto real é `src/domain/user`, com o cadastro de usuário (`POST /users`, RF001), o login (`POST /sessions`, RF002, RN004), a renovação da sessão (`POST /sessions/refresh`, RN006, RN007), o encerramento da sessão (`POST /sessions/logout`, RN008), o guard global de autenticação (RNF005) e a consulta e atualização do perfil (`GET /users/me` e `PUT /users/me`, RN002, RN011). O isolamento dos registros por usuário (RN010, RN011) já é o padrão: fora `/status`, cadastro, login e renovação, toda rota exige token, o dono vem sempre do token e registro alheio responde 404. A alteração de senha (RN009) e a exclusão lógica do usuário (RN012) ainda **não** foram adicionadas. O segundo contexto real é `src/domain/account-group`, com o cadastro do grupo de contas (`POST /account-groups`, RF003, RN015, RN016), a listagem com filtro por tipo (`GET /account-groups`, RN015) e a consulta individual (`GET /account-groups/:id`, RN011); a edição e a exclusão bloqueada por contas vinculadas (RN017) ainda **não** foram adicionadas.
+> Estado atual do repositório: a fundação arquitetural está implementada (camadas, `core/`, pipe global de validação, padrão `Either`, aliases), a persistência com Drizzle e o pipeline de migrations estão no ar, e há um **módulo de exemplo** em `src/domain/example` servindo de referência de estrutura — ele não faz parte do domínio real. O primeiro contexto real é `src/domain/user`, com o cadastro de usuário (`POST /users`, RF001), o login (`POST /sessions`, RF002, RN004), a renovação da sessão (`POST /sessions/refresh`, RN006, RN007), o encerramento da sessão (`POST /sessions/logout`, RN008), o guard global de autenticação (RNF005) e a consulta e atualização do perfil (`GET /users/me` e `PUT /users/me`, RN002, RN011). O isolamento dos registros por usuário (RN010, RN011) já é o padrão: fora `/status`, cadastro, login e renovação, toda rota exige token, o dono vem sempre do token e registro alheio responde 404. A alteração de senha (RN009) e a exclusão lógica do usuário (RN012) ainda **não** foram adicionadas. O segundo contexto real é `src/domain/account-group`, com o cadastro do grupo de contas (`POST /account-groups`, RF003, RN015, RN016), a listagem com filtro por tipo (`GET /account-groups`, RN015) e a consulta individual (`GET /account-groups/:id`, RN011); a edição e a exclusão bloqueada por contas vinculadas (RN017) ainda **não** foram adicionadas. O terceiro contexto real é `src/domain/account`, com o cadastro da conta de grupo do tipo "Padrão" (`POST /accounts`, RF004, RN018); a conta de grupo do tipo "Cartão de Crédito" (RN019, RN020), a listagem, a consulta, a edição e o arquivamento (RN024, RN025) ainda **não** foram adicionados.
 
 ## Ambiente Docker
 
@@ -336,9 +336,28 @@ A atualização é uma substituição do perfil editável: `name` e `email` são
 
 As três rotas do contexto respondem pela mesma representação, produzida pelo `AccountGroupPresenter`, que inclui o campo **`accountsCount`** — a quantidade de contas vinculadas ao grupo, que existe para o cliente antecipar a RN017 (grupo com contas não pode ser excluído) sem uma segunda requisição.
 
-O contexto de _Contas_ (RN018 em diante) ainda não foi implementado: não há entidade, tabela nem repositório de `accounts`. Enquanto for assim, o `DrizzleAccountGroupsRepository` devolve `accountsCount: 0`, o que hoje é o número correto — nenhuma conta existe para vincular. Quando a tabela `accounts` entrar, o único ponto a mudar é o `withAccountsCount` do repositório Drizzle, que passa a contar de verdade; o contrato HTTP e os casos de uso não mudam. O `InMemoryAccountGroupsRepository` já expõe `accountsCountByAccountGroupId` para que os testes fixem a contagem sem depender de contas reais.
+O `accountsCount` é contado no próprio `DrizzleAccountGroupsRepository`, por `leftJoin` com `accounts` agrupado pela chave primária do grupo — uma consulta só, sem N+1 e sem contagem em memória. O `InMemoryAccountGroupsRepository` expõe `accountsCountByAccountGroupId` para que os testes fixem a contagem sem depender de contas reais.
 
 O termo _Conta_ substituiu _Ativo_ na SCRUM-88: o agregado é o contêiner de dinheiro (RN018, RN021), e `Asset` fica reservado ao instrumento negociável de uma eventual carteira de investimentos. A migration `0004_rename_asset_groups_to_account_groups` renomeia a tabela, o enum, o índice e as constraints, sem tocar no SQL já aplicado.
+
+## Contas
+
+`POST /accounts` (RF004, RN018) cadastra a conta com nome, grupo, saldo inicial, ícone e cor. O grupo vem do corpo pelo `accountGroupId` e é validado no caso de uso antes de qualquer coisa: grupo inexistente **ou de outro usuário** devolve `ResourceNotFoundError` (404), como todo registro alheio (RN010, RN011).
+
+Só grupo do tipo "Padrão" é aceito por esta rota. Grupo do tipo "Cartão de Crédito" exige limite, dia de fechamento e dia de vencimento (RN019, RN020), que ainda não foram implementados, então ele é recusado com `InvalidAccountGroupTypeError` (`INVALID_ACCOUNT_GROUP_TYPE`, 400) — não é 404, porque o grupo existe e é do usuário; o que não serve é o tipo.
+
+O **saldo inicial** é o `initialBalance`, inteiro em centavos pelo `moneySchema` (RNF004). É opcional e assume zero quando omitido (RN018); valor negativo é aceito, porque saldo devedor é um estado real da conta. A resposta o devolve pelo `MoneyPresenter`, com `amountInCents` e `formatted`.
+
+**Ícone e cor** não têm formato especificado nos requisitos; o formato adotado é validado como invariante na entidade `Account`:
+
+| Campo   | Formato                                                                 | Ausente                     |
+| ------- | ----------------------------------------------------------------------- | --------------------------- |
+| `icon`  | identificador em kebab-case (`wallet`, `credit-card`), até 60 caracteres, normalizado para minúsculas | assume `Account.DEFAULT_ICON` (`wallet`) |
+| `color` | hexadecimal `#RRGGBB`, normalizada para maiúsculas                       | 422 — é obrigatória          |
+
+A cor também é conferida pelo schema Zod do controller, para que o erro saia com `details[].field` apontando o campo; o ícone fora do formato só é barrado pela entidade e responde `INVARIANT_VIOLATION` (422).
+
+O saldo corrente (RN021) e o arquivamento (RN024, RN025) ainda não existem — a entidade guarda apenas o saldo inicial.
 
 ## Testes
 

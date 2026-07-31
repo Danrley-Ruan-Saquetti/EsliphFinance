@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import { and, asc, eq } from 'drizzle-orm'
+import { and, asc, count, eq } from 'drizzle-orm'
 
 import {
   AccountGroupWithAccountsCount,
@@ -10,6 +10,12 @@ import { AccountGroup } from '@domain/account-group/enterprise/entities/account-
 import { DrizzleService } from '@infra/database/drizzle/drizzle.service'
 import { AccountGroupRecord, DrizzleAccountGroupMapper } from '@infra/database/drizzle/mappers/drizzle-account-group-mapper'
 import { accountGroups } from '@infra/database/drizzle/schemas/account-groups'
+import { accounts } from '@infra/database/drizzle/schemas/accounts'
+
+interface AccountGroupWithAccountsCountRecord {
+  accountGroup: AccountGroupRecord
+  accountsCount: number
+}
 
 @Injectable()
 export class DrizzleAccountGroupsRepository extends AccountGroupsRepository {
@@ -22,13 +28,19 @@ export class DrizzleAccountGroupsRepository extends AccountGroupsRepository {
   }
 
   async findById(id: string): Promise<AccountGroupWithAccountsCount | null> {
-    const [record] = await this.drizzle.db.select().from(accountGroups).where(eq(accountGroups.id, id)).limit(1)
+    const [record] = await this.drizzle.db
+      .select({ accountGroup: accountGroups, accountsCount: count(accounts.id) })
+      .from(accountGroups)
+      .leftJoin(accounts, eq(accounts.accountGroupId, accountGroups.id))
+      .where(eq(accountGroups.id, id))
+      .groupBy(accountGroups.id)
+      .limit(1)
 
     if (!record) {
       return null
     }
 
-    return this.withAccountsCount(record)
+    return this.toDomain(record)
   }
 
   async findManyByOwnerId(ownerId: string, filters: FindManyAccountGroupsFilters = {}): Promise<AccountGroupWithAccountsCount[]> {
@@ -39,15 +51,17 @@ export class DrizzleAccountGroupsRepository extends AccountGroupsRepository {
     }
 
     const records = await this.drizzle.db
-      .select()
+      .select({ accountGroup: accountGroups, accountsCount: count(accounts.id) })
       .from(accountGroups)
+      .leftJoin(accounts, eq(accounts.accountGroupId, accountGroups.id))
       .where(and(...conditions))
+      .groupBy(accountGroups.id)
       .orderBy(asc(accountGroups.name))
 
-    return records.map(record => this.withAccountsCount(record))
+    return records.map(record => this.toDomain(record))
   }
 
-  private withAccountsCount(record: AccountGroupRecord): AccountGroupWithAccountsCount {
-    return { accountGroup: DrizzleAccountGroupMapper.toDomain(record), accountsCount: 0 }
+  private toDomain({ accountGroup, accountsCount }: AccountGroupWithAccountsCountRecord): AccountGroupWithAccountsCount {
+    return { accountGroup: DrizzleAccountGroupMapper.toDomain(accountGroup), accountsCount }
   }
 }

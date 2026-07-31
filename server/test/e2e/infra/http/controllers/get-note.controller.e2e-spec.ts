@@ -8,6 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { AppModule } from '@app.module'
 import { DrizzleService } from '@infra/database/drizzle/drizzle.service'
 import { accountGroups } from '@infra/database/drizzle/schemas/account-groups'
+import { accounts } from '@infra/database/drizzle/schemas/accounts'
 import { notes } from '@infra/database/drizzle/schemas/notes'
 import { refreshTokens } from '@infra/database/drizzle/schemas/refresh-tokens'
 import { users } from '@infra/database/drizzle/schemas/users'
@@ -36,6 +37,7 @@ describe('Consultar nota (e2e)', () => {
 
     const drizzle = app.get(DrizzleService)
 
+    await drizzle.db.delete(accounts)
     await drizzle.db.delete(accountGroups)
     await drizzle.db.delete(notes)
     await drizzle.db.delete(refreshTokens)
