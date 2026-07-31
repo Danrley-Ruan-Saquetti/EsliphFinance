@@ -3,6 +3,8 @@ import { APP_FILTER } from '@nestjs/core'
 
 import { AssetGroupsRepository } from '@domain/asset-group/application/repositories/asset-groups-repository'
 import { CreateAssetGroupUseCase } from '@domain/asset-group/application/use-cases/create-asset-group'
+import { GetAssetGroupUseCase } from '@domain/asset-group/application/use-cases/get-asset-group'
+import { ListAssetGroupsUseCase } from '@domain/asset-group/application/use-cases/list-asset-groups'
 import { NotesRepository } from '@domain/example/application/repositories/notes-repository'
 import { CreateNoteUseCase } from '@domain/example/application/use-cases/create-note'
 import { GetNoteUseCase } from '@domain/example/application/use-cases/get-note'
@@ -28,9 +30,11 @@ import { CreateAssetGroupController } from '@infra/http/controllers/create-asset
 import { CreateNoteController } from '@infra/http/controllers/create-note.controller'
 import { CreateUserController } from '@infra/http/controllers/create-user.controller'
 import { EndSessionController } from '@infra/http/controllers/end-session.controller'
+import { GetAssetGroupController } from '@infra/http/controllers/get-asset-group.controller'
 import { GetNoteController } from '@infra/http/controllers/get-note.controller'
 import { GetUserProfileController } from '@infra/http/controllers/get-user-profile.controller'
 import { HealthController } from '@infra/http/controllers/health.controller'
+import { ListAssetGroupsController } from '@infra/http/controllers/list-asset-groups.controller'
 import { RefreshSessionController } from '@infra/http/controllers/refresh-session.controller'
 import { UpdateUserProfileController } from '@infra/http/controllers/update-user-profile.controller'
 import { AllExceptionsFilter } from '@infra/http/filters/all-exceptions-filter'
@@ -52,6 +56,8 @@ import { SecurityHeadersMiddleware } from '@infra/http/middlewares/security-head
     RefreshSessionController,
     EndSessionController,
     CreateAssetGroupController,
+    ListAssetGroupsController,
+    GetAssetGroupController,
   ],
   providers: [
     {
@@ -122,6 +128,16 @@ import { SecurityHeadersMiddleware } from '@infra/http/middlewares/security-head
     {
       provide: CreateAssetGroupUseCase,
       useFactory: (assetGroupsRepository: AssetGroupsRepository) => new CreateAssetGroupUseCase(assetGroupsRepository),
+      inject: [AssetGroupsRepository],
+    },
+    {
+      provide: ListAssetGroupsUseCase,
+      useFactory: (assetGroupsRepository: AssetGroupsRepository) => new ListAssetGroupsUseCase(assetGroupsRepository),
+      inject: [AssetGroupsRepository],
+    },
+    {
+      provide: GetAssetGroupUseCase,
+      useFactory: (assetGroupsRepository: AssetGroupsRepository) => new GetAssetGroupUseCase(assetGroupsRepository),
       inject: [AssetGroupsRepository],
     },
   ],
