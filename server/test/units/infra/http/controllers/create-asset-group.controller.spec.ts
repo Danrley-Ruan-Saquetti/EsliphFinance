@@ -14,7 +14,7 @@ describe('CreateAssetGroupController', () => {
     sut = new CreateAssetGroupController(new CreateAssetGroupUseCase(assetGroupsRepository))
   })
 
-  it('deve devolver o grupo de ativo criado no formato de resposta', async () => {
+  it('deve devolver o grupo de ativo criado, sem nenhum ativo vinculado, no formato de resposta', async () => {
     const currentUser = { id: new UniqueEntityID().toString() }
 
     const response = await sut.handle(currentUser, { name: 'Cartões', type: 'CREDIT_CARD' })
@@ -23,6 +23,7 @@ describe('CreateAssetGroupController', () => {
       id: assetGroupsRepository.items[0].id.toString(),
       name: 'Cartões',
       type: 'CREDIT_CARD',
+      assetsCount: 0,
       createdAt: assetGroupsRepository.items[0].createdAt,
       updatedAt: null,
     })

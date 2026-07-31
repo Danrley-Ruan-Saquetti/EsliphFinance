@@ -25,6 +25,6 @@ export class CreateAssetGroupController {
   async handle(@CurrentUser() currentUser: AuthenticatedUser, @Body(new ZodValidationPipe(createAssetGroupBodySchema)) body: CreateAssetGroupBody) {
     const result = await this.createAssetGroup.execute({ ...body, ownerId: currentUser.id })
 
-    return { assetGroup: AssetGroupPresenter.toHTTP(result.value.assetGroup) }
+    return { assetGroup: AssetGroupPresenter.toHTTP(result.value.assetGroup, 0) }
   }
 }
