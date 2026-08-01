@@ -188,7 +188,7 @@ Cobrir 100% das linhas com um caso feliz por método é fácil e quase inútil. 
 - **Coleção vazia e ausência**: listar sem nenhum registro, buscar id inexistente, campo opcional ausente e `null` — não são a mesma coisa no mapper.
 - **Idempotência e estado repetido**: pagar fatura já paga, arquivar o que já está arquivado, usar duas vezes o token de renovação (RN007).
 
-Quando o comportamento não estiver em nenhuma RN, **pergunte antes de inventar** — `docs/requirements.md` termina com uma seção "Decisões em Aberto", e uma regra chutada dentro de um teste vira especificação de fato sem ninguém ter decidido nada.
+Quando o comportamento não estiver em nenhuma RN, **pergunte antes de inventar** — uma regra chutada dentro de um teste vira especificação de fato sem ninguém ter decidido nada. Quem responde por isso é a skill `business-analyst`, dona de `docs/requirements.md` e de `docs/open-decisions.md`: acione-a para localizar a regra, ou para transformar a lacuna em uma RN nova ou em uma pendência **DA0xx**. Um ponto que ainda está em `docs/open-decisions.md` não tem regra e não deve ganhar teste.
 
 ## E2E: só a comunicação
 
