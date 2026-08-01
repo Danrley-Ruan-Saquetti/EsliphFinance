@@ -4,7 +4,7 @@ Um arquivo por contexto de `server/src/domain`, com o mapa técnico da fatia: os
 
 Estes documentos descrevem **o que está construído**. O que o produto **deve** fazer está em [`../requirements.md`](../requirements.md), e o que ainda não foi decidido em [`../open-decisions.md`](../open-decisions.md). Quando os dois divergem, o documento do domínio registra a divergência e aponta a RN contrariada — é um bug, não uma regra.
 
-O que vale para o repositório inteiro — stack, camadas, comandos, contrato de erro, guard global, convenções de nomenclatura — está em [`../../server/CLAUDE.md`](../../server/CLAUDE.md) e não é repetido aqui.
+O que vale para o repositório inteiro não é repetido aqui: a arquitetura transversal — camadas, blocos de `core/`, módulos e injeção, ciclo da requisição e contrato de erro, persistência, segurança, configuração — está em [`../architecture/`](../architecture/README.md); stack, ambiente, comandos e convenções de nomenclatura estão em [`../../server/CLAUDE.md`](../../server/CLAUDE.md).
 
 A manutenção destes arquivos é da skill `domain-architect`: contexto novo em `src/domain/` nasce com o seu documento e com a sua linha nesta tabela.
 

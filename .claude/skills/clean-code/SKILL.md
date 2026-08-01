@@ -15,7 +15,7 @@ Vale para `server/` e `mobile/`. O `mobile/` ainda está embrionário e não tem
 
 **Depois de escrever**: passe pelo [checklist](#checklist) e rode a verificação. Não entregue código que você não formatou.
 
-Isto aqui cobre _como_ escrever. A arquitetura — camadas, regra de dependência, onde cada arquivo mora, contratos de use-case e repositório — está em `server/CLAUDE.md`, e as regras de negócio em `docs/requirements.md`. Consulte-os; não duplique o conteúdo deles aqui.
+Isto aqui cobre _como_ escrever. A arquitetura — camadas, regra de dependência, onde cada arquivo mora, contratos de use-case e repositório — está em `server/CLAUDE.md` e, em detalhe, em `docs/architecture/`; as regras de negócio em `docs/requirements.md`. Consulte-os; não duplique o conteúdo deles aqui.
 
 ## Zero comentários
 

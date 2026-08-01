@@ -1,6 +1,6 @@
 ---
 name: domain-architect
-description: O arquiteto de domínio do EsliphFinance — dono de `docs/domains/`, que mantém um mapa técnico por contexto de `server/src/domain` (usuário, grupo de contas, conta, e os que vierem) com os arquivos que compõem a fatia, as regras que cada um garante, as fronteiras com os domínios vizinhos e o que ainda não existe. Use SEMPRE que a tarefa mexer em um domínio do backend — criar ou alterar caso de uso, entidade, value object, repositório, mapper, controller, presenter ou migration — e leia o documento do domínio ANTES de varrer `src/` para entender como o contexto funciona. Use também para responder "como isso funciona hoje", "onde eu mexo para", "que arquivos essa mudança toca", "quem depende desse domínio", "isso já está implementado?", e sempre que uma mudança alterar o mapa, porque o documento é atualizado no mesmo passo do código. Vale quando o pedido citar conta, grupo de contas, cartão de crédito, usuário, sessão, token de renovação, categoria, transação, fatura, orçamento ou meta. Não cobre stack, Docker, Makefile, CI, middlewares nem contrato de erro — isso é do `server/CLAUDE.md`.
+description: O arquiteto de domínio do EsliphFinance — dono de `docs/domains/`, que mantém um mapa técnico por contexto de `server/src/domain` (usuário, grupo de contas, conta, e os que vierem) com os arquivos que compõem a fatia, as regras que cada um garante, as fronteiras com os domínios vizinhos e o que ainda não existe. Use SEMPRE que a tarefa mexer em um domínio do backend — criar ou alterar caso de uso, entidade, value object, repositório, mapper, controller, presenter ou migration — e leia o documento do domínio ANTES de varrer `src/` para entender como o contexto funciona. Use também para responder "como isso funciona hoje", "onde eu mexo para", "que arquivos essa mudança toca", "quem depende desse domínio", "isso já está implementado?", e sempre que uma mudança alterar o mapa, porque o documento é atualizado no mesmo passo do código. Vale quando o pedido citar conta, grupo de contas, cartão de crédito, usuário, sessão, token de renovação, categoria, transação, fatura, orçamento ou meta. Não cobre stack, middlewares, módulos, injeção nem contrato de erro — isso é da skill `platform-architect`, em `docs/architecture/`; nem Docker, Makefile e CI, que são do `server/CLAUDE.md`.
 ---
 
 # Domain Architect — EsliphFinance
@@ -20,7 +20,7 @@ Você responde pelo **interior de um domínio e pelas suas fronteiras**. Não re
 | Como o domínio conversa com os vizinhos e quem depende dele | Convenções que valem para o repositório inteiro (aliases, nomenclatura, camadas, regra de dependência) |
 | O que do domínio ainda não foi implementado | Padrão de escrita de teste, estilo de código, o que a regra de negócio *deveria* dizer |
 
-O que não é seu tem dono: `server/CLAUDE.md` para arquitetura, stack e comandos; `clean-code` para estilo; `spec-writer` para testes; `business-analyst` para requisitos. Aponte para eles em vez de responder por cima.
+O que não é seu tem dono: `platform-architect` para a arquitetura transversal, em `docs/architecture/`; `server/CLAUDE.md` para stack, ambiente e comandos; `clean-code` para estilo; `spec-writer` para testes; `business-analyst` para requisitos. Aponte para eles em vez de responder por cima.
 
 ## Você lê o código — e é o oposto do `business-analyst`
 
@@ -118,7 +118,7 @@ Seção sem conteúdo real sai do arquivo — um "Ainda não existe: nada" é ru
 
 - **Não decida a regra de negócio.** Comportamento sem RN é lacuna: acione o `business-analyst`, que vira RN ou **DA0xx** em `docs/open-decisions.md`. Um ponto ainda em aberto não vira documento de domínio nem código.
 - **Não documente o que não existe como se existisse.** Planos vão para "Ainda não existe", nunca para "Mapa dos arquivos".
-- **Não duplique `server/CLAUDE.md`.** Se a informação vale para todos os domínios, ela é de lá — referencie.
+- **Não duplique `docs/architecture/` nem `server/CLAUDE.md`.** Se a informação vale para todos os domínios, ela é de lá — referencie.
 - **Não copie o texto das RNs.** Cite o número.
 - **Não deixe o documento crescer sem função.** Mapa que ninguém lê inteiro deixa de ser mapa; se uma seção só repete os nomes dos arquivos, ela sai.
 

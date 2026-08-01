@@ -53,7 +53,7 @@ São **dois agregados**, e a separação é deliberada: `User` é a identidade; 
 | Todos os demais | Domínio → Usuário | `ownerId` em todo agregado e FK `owner_id` em toda tabela. O identificador chega ao caso de uso pelo `@CurrentUser()`, nunca pelo corpo ou pela URL | RN010, RN011 |
 | [Grupos de Contas](account-group.md), [Contas](account.md) | → Usuário | FKs `account_groups.owner_id` e `accounts.owner_id` | RN010 |
 
-O `JwtAuthGuard` global, o `@Public()` e o `@CurrentUser()` consomem a porta `AccessTokenVerifier` deste contexto, mas são política de infraestrutura que vale para o repositório inteiro — estão descritos em `server/CLAUDE.md`, não aqui.
+O `JwtAuthGuard` global, o `@Public()` e o `@CurrentUser()` consomem a porta `AccessTokenVerifier` deste contexto, mas são política de infraestrutura que vale para o repositório inteiro — estão descritos em [`../architecture/security.md`](../architecture/security.md), não aqui.
 
 Este contexto não conhece nenhum outro: as setas apontam todas para dentro dele.
 
