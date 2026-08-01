@@ -3,6 +3,7 @@ import { UniqueEntityID } from '@core/entities/unique-entity-id'
 import { InvariantError } from '@core/errors/invariant-error'
 import { Optional } from '@core/types/optional'
 import { Money } from '@core/value-objects/money'
+import { CreditCardSettings } from '@domain/account/enterprise/value-objects/credit-card-settings'
 
 export interface AccountProps {
   ownerId: UniqueEntityID
@@ -11,6 +12,7 @@ export interface AccountProps {
   initialBalance: Money
   icon: string
   color: string
+  creditCard: CreditCardSettings | null
   createdAt: Date
   updatedAt?: Date | null
 }
@@ -22,12 +24,14 @@ export class Account extends AggregateRoot<AccountProps> {
   static readonly COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/
   static readonly DEFAULT_ICON = 'wallet'
 
-  static create(props: Optional<AccountProps, 'createdAt' | 'initialBalance' | 'icon'>, id?: UniqueEntityID): Account {
+  static create(props: Optional<AccountProps, 'createdAt' | 'initialBalance' | 'icon' | 'creditCard'>, id?: UniqueEntityID): Account {
     const name = Account.validateName(props.name)
     const icon = Account.validateIcon(props.icon ?? Account.DEFAULT_ICON)
     const color = Account.validateColor(props.color)
+    const creditCard = props.creditCard ?? null
+    const initialBalance = Account.validateInitialBalance(props.initialBalance ?? Money.zero(), creditCard)
 
-    return new Account({ ...props, name, icon, color, initialBalance: props.initialBalance ?? Money.zero(), createdAt: props.createdAt ?? new Date() }, id)
+    return new Account({ ...props, name, icon, color, creditCard, initialBalance, createdAt: props.createdAt ?? new Date() }, id)
   }
 
   private static validateName(name: string): string {
@@ -66,6 +70,14 @@ export class Account extends AggregateRoot<AccountProps> {
     return normalized
   }
 
+  private static validateInitialBalance(initialBalance: Money, creditCard: CreditCardSettings | null): Money {
+    if (creditCard && initialBalance.amountInCents !== 0) {
+      throw new InvariantError('A conta de cartão de crédito não possui saldo inicial')
+    }
+
+    return initialBalance
+  }
+
   get ownerId(): UniqueEntityID {
     return this.props.ownerId
   }
@@ -88,6 +100,10 @@ export class Account extends AggregateRoot<AccountProps> {
 
   get color(): string {
     return this.props.color
+  }
+
+  get creditCard(): CreditCardSettings | null {
+    return this.props.creditCard
   }
 
   get createdAt(): Date {

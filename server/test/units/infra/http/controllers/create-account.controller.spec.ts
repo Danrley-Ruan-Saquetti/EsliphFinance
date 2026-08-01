@@ -42,9 +42,27 @@ describe('CreateAccountController', () => {
       initialBalance: { amountInCents: 15000, formatted: '150.00' },
       icon: 'wallet',
       color: '#1E88E5',
+      creditCard: null,
       createdAt: accountsRepository.items[0].createdAt,
       updatedAt: null,
     })
+  })
+
+  it('deve devolver a conta de cartão de crédito com o limite, o dia de fechamento e o dia de vencimento (RN019)', async () => {
+    const currentUser = { id: new UniqueEntityID().toString() }
+    const accountGroup = makeAccountGroup({ ownerId: new UniqueEntityID(currentUser.id), type: 'CREDIT_CARD' })
+
+    await accountGroupsRepository.create(accountGroup)
+
+    const response = await sut.handle(currentUser, {
+      accountGroupId: accountGroup.id.toString(),
+      name: 'Cartão',
+      color: '#1E88E5',
+      creditCard: { limit: Money.fromCents(500000), closingDay: 20, dueDay: 28 },
+    })
+
+    expect(response.account.creditCard).toEqual({ limit: { amountInCents: 500000, formatted: '5000.00' }, closingDay: 20, dueDay: 28 })
+    expect(response.account.initialBalance).toEqual({ amountInCents: 0, formatted: '0.00' })
   })
 
   it('deve criar a conta com o saldo inicial zerado e o ícone padrão quando não forem informados (RN018)', async () => {
@@ -98,7 +116,7 @@ describe('CreateAccountController', () => {
     )
   })
 
-  it('deve lançar InvalidAccountGroupTypeError quando o grupo de contas for do tipo "Cartão de Crédito" (RN019)', async () => {
+  it('deve lançar InvalidAccountGroupTypeError quando o grupo for do tipo "Cartão de Crédito" e os dados do cartão não forem informados (RN019)', async () => {
     const currentUser = { id: new UniqueEntityID().toString() }
     const accountGroup = makeAccountGroup({ ownerId: new UniqueEntityID(currentUser.id), type: 'CREDIT_CARD' })
 
@@ -107,5 +125,21 @@ describe('CreateAccountController', () => {
     await expect(sut.handle(currentUser, { accountGroupId: accountGroup.id.toString(), name: 'Cartão', color: '#1E88E5' })).rejects.toBeInstanceOf(
       InvalidAccountGroupTypeError,
     )
+  })
+
+  it('deve lançar InvalidAccountGroupTypeError quando o grupo for do tipo "Padrão" e os dados do cartão forem informados (RN019)', async () => {
+    const currentUser = { id: new UniqueEntityID().toString() }
+    const accountGroup = makeAccountGroup({ ownerId: new UniqueEntityID(currentUser.id) })
+
+    await accountGroupsRepository.create(accountGroup)
+
+    await expect(
+      sut.handle(currentUser, {
+        accountGroupId: accountGroup.id.toString(),
+        name: 'Carteira',
+        color: '#1E88E5',
+        creditCard: { limit: Money.fromCents(500000), closingDay: 20, dueDay: 28 },
+      }),
+    ).rejects.toBeInstanceOf(InvalidAccountGroupTypeError)
   })
 })

@@ -11,6 +11,7 @@ export function makeAccount(override: Partial<AccountProps> = {}, id?: UniqueEnt
       initialBalance: Money.zero(),
       icon: 'wallet',
       color: '#1E88E5',
+      creditCard: null,
       ...override,
     },
     id,

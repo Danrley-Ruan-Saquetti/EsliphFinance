@@ -8,6 +8,7 @@ import { AccountGroup } from '@domain/account-group/enterprise/entities/account-
 import { AccountsRepository } from '@domain/account/application/repositories/accounts-repository'
 import { InvalidAccountGroupTypeError } from '@domain/account/application/use-cases/errors/invalid-account-group-type-error'
 import { Account } from '@domain/account/enterprise/entities/account'
+import { CreditCardSettings, CreditCardSettingsInput } from '@domain/account/enterprise/value-objects/credit-card-settings'
 
 export interface CreateAccountRequest {
   ownerId: string
@@ -16,6 +17,7 @@ export interface CreateAccountRequest {
   initialBalance?: Money
   icon?: string
   color: string
+  creditCard?: CreditCardSettingsInput
 }
 
 export type CreateAccountResponse = Either<ResourceNotFoundError | InvalidAccountGroupTypeError, { account: Account }>
@@ -26,14 +28,24 @@ export class CreateAccountUseCase implements UseCase<CreateAccountRequest, Creat
     private readonly accountGroupsRepository: AccountGroupsRepository,
   ) {}
 
-  async execute({ ownerId, accountGroupId, name, initialBalance, icon, color }: CreateAccountRequest): Promise<CreateAccountResponse> {
+  async execute({ ownerId, accountGroupId, name, initialBalance, icon, color, creditCard }: CreateAccountRequest): Promise<CreateAccountResponse> {
     const found = await this.accountGroupsRepository.findById(accountGroupId)
 
     if (!found || !this.isOwnedBy(found.accountGroup, ownerId)) {
       return left(new ResourceNotFoundError('Grupo de contas não encontrado'))
     }
-    if (found.accountGroup.type !== AccountGroup.DEFAULT_TYPE) {
-      return left(new InvalidAccountGroupTypeError('A conta deve pertencer a um grupo de contas do tipo "Padrão"'))
+
+    const isCreditCardGroup = found.accountGroup.type === AccountGroup.CREDIT_CARD_TYPE
+
+    if (isCreditCardGroup && !creditCard) {
+      return left(new InvalidAccountGroupTypeError('O limite, o dia de fechamento e o dia de vencimento são obrigatórios para contas de cartão de crédito'))
+    }
+    if (!isCreditCardGroup && creditCard) {
+      return left(
+        new InvalidAccountGroupTypeError(
+          'O limite, o dia de fechamento e o dia de vencimento só podem ser informados para contas de um grupo do tipo "Cartão de Crédito"',
+        ),
+      )
     }
 
     const account = Account.create({
@@ -43,6 +55,7 @@ export class CreateAccountUseCase implements UseCase<CreateAccountRequest, Creat
       initialBalance,
       icon,
       color,
+      creditCard: creditCard ? CreditCardSettings.create(creditCard) : null,
     })
 
     await this.accountsRepository.create(account)

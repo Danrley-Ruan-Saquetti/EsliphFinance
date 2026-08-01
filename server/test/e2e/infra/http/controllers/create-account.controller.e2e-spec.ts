@@ -152,7 +152,30 @@ describe('Criar conta (e2e)', () => {
     expect(response.body.code).toBe('RESOURCE_NOT_FOUND')
   })
 
-  it('POST /accounts recusa o grupo de contas do tipo "Cartão de Crédito" (RN019)', async () => {
+  it('POST /accounts cria a conta de cartão de crédito (RN019)', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/accounts')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        accountGroupId: creditCardAccountGroupId,
+        name: 'Cartão',
+        icon: 'credit-card',
+        color: '#8E24AA',
+        creditCard: { limit: 500000, closingDay: 20, dueDay: 28 },
+      })
+
+    expect(response.statusCode).toBe(201)
+    expect(response.body.account).toEqual(
+      expect.objectContaining({
+        accountGroupId: creditCardAccountGroupId,
+        name: 'Cartão',
+        initialBalance: { amountInCents: 0, formatted: '0.00' },
+        creditCard: { limit: { amountInCents: 500000, formatted: '5000.00' }, closingDay: 20, dueDay: 28 },
+      }),
+    )
+  })
+
+  it('POST /accounts recusa o grupo de contas do tipo "Cartão de Crédito" sem os dados do cartão (RN019)', async () => {
     const response = await request(app.getHttpServer())
       .post('/accounts')
       .set('Authorization', `Bearer ${accessToken}`)
@@ -160,6 +183,32 @@ describe('Criar conta (e2e)', () => {
 
     expect(response.statusCode).toBe(400)
     expect(response.body.code).toBe('INVALID_ACCOUNT_GROUP_TYPE')
+  })
+
+  it('POST /accounts recusa os dados do cartão no grupo de contas do tipo "Padrão" (RN019)', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/accounts')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ accountGroupId, name: 'Carteira', color: '#1E88E5', creditCard: { limit: 500000, closingDay: 20, dueDay: 28 } })
+
+    expect(response.statusCode).toBe(400)
+    expect(response.body.code).toBe('INVALID_ACCOUNT_GROUP_TYPE')
+  })
+
+  it('POST /accounts rejeita o dia de fechamento fora do intervalo de 1 a 31 com 422 (RN020)', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/accounts')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        accountGroupId: creditCardAccountGroupId,
+        name: 'Cartão',
+        color: '#1E88E5',
+        creditCard: { limit: 500000, closingDay: 32, dueDay: 28 },
+      })
+
+    expect(response.statusCode).toBe(422)
+    expect(response.body.code).toBe('VALIDATION_FAILED')
+    expect(response.body.details.map((detail: { field: string }) => detail.field)).toEqual(['creditCard.closingDay'])
   })
 
   it('POST /accounts rejeita a cor fora do formato hexadecimal com 422 (RN018)', async () => {

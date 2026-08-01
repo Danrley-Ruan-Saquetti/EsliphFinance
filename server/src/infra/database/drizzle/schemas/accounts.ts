@@ -1,4 +1,4 @@
-import { char, index, pgTable, timestamp, uuid, varchar } from 'drizzle-orm/pg-core'
+import { char, index, integer, pgTable, timestamp, uuid, varchar } from 'drizzle-orm/pg-core'
 
 import { accountGroups } from './account-groups'
 import { moneyAmount } from './money-amount'
@@ -18,6 +18,9 @@ export const accounts = pgTable(
     initialBalance: moneyAmount('initial_balance').notNull(),
     icon: varchar('icon', { length: 60 }).notNull(),
     color: char('color', { length: 7 }).notNull(),
+    creditLimit: moneyAmount('credit_limit'),
+    closingDay: integer('closing_day'),
+    dueDay: integer('due_day'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }),
   },

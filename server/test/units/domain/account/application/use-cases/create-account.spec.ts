@@ -115,7 +115,29 @@ describe('Criar conta', () => {
     expect(accountsRepository.items).toHaveLength(0)
   })
 
-  it('deve retornar InvalidAccountGroupTypeError quando o grupo de contas for do tipo "Cartão de Crédito" (RN019)', async () => {
+  it('deve criar a conta de cartão de crédito com o limite, o dia de fechamento e o dia de vencimento (RN019)', async () => {
+    const ownerId = new UniqueEntityID().toString()
+    const accountGroup = makeAccountGroup({ ownerId: new UniqueEntityID(ownerId), type: 'CREDIT_CARD' })
+
+    await accountGroupsRepository.create(accountGroup)
+
+    const result = await sut.execute({
+      ownerId,
+      accountGroupId: accountGroup.id.toString(),
+      name: 'Cartão',
+      color: '#1E88E5',
+      creditCard: { limit: Money.fromCents(500000), closingDay: 20, dueDay: 28 },
+    })
+
+    expect(result.isRight()).toBe(true)
+    expect(accountsRepository.items).toHaveLength(1)
+    expect(accountsRepository.items[0].creditCard?.limit.amountInCents).toBe(500000)
+    expect(accountsRepository.items[0].creditCard?.closingDay.day).toBe(20)
+    expect(accountsRepository.items[0].creditCard?.dueDay.day).toBe(28)
+    expect(accountsRepository.items[0].initialBalance.amountInCents).toBe(0)
+  })
+
+  it('deve retornar InvalidAccountGroupTypeError quando o grupo for do tipo "Cartão de Crédito" e os dados do cartão não forem informados (RN019)', async () => {
     const ownerId = new UniqueEntityID().toString()
     const accountGroup = makeAccountGroup({ ownerId: new UniqueEntityID(ownerId), type: 'CREDIT_CARD' })
 
@@ -125,6 +147,64 @@ describe('Criar conta', () => {
 
     expect(result.isLeft()).toBe(true)
     expect(result.value).toBeInstanceOf(InvalidAccountGroupTypeError)
+    expect(accountsRepository.items).toHaveLength(0)
+  })
+
+  it('deve retornar InvalidAccountGroupTypeError quando o grupo for do tipo "Padrão" e os dados do cartão forem informados (RN019)', async () => {
+    const ownerId = new UniqueEntityID().toString()
+    const accountGroup = makeAccountGroup({ ownerId: new UniqueEntityID(ownerId), type: 'DEFAULT' })
+
+    await accountGroupsRepository.create(accountGroup)
+
+    const result = await sut.execute({
+      ownerId,
+      accountGroupId: accountGroup.id.toString(),
+      name: 'Carteira',
+      color: '#1E88E5',
+      creditCard: { limit: Money.fromCents(500000), closingDay: 20, dueDay: 28 },
+    })
+
+    expect(result.isLeft()).toBe(true)
+    expect(result.value).toBeInstanceOf(InvalidAccountGroupTypeError)
+    expect(accountsRepository.items).toHaveLength(0)
+  })
+
+  it('deve lançar InvariantError quando a conta de cartão de crédito receber saldo inicial (RN022)', async () => {
+    const ownerId = new UniqueEntityID().toString()
+    const accountGroup = makeAccountGroup({ ownerId: new UniqueEntityID(ownerId), type: 'CREDIT_CARD' })
+
+    await accountGroupsRepository.create(accountGroup)
+
+    await expect(
+      sut.execute({
+        ownerId,
+        accountGroupId: accountGroup.id.toString(),
+        name: 'Cartão',
+        initialBalance: Money.fromCents(15000),
+        color: '#1E88E5',
+        creditCard: { limit: Money.fromCents(500000), closingDay: 20, dueDay: 28 },
+      }),
+    ).rejects.toThrow(InvariantError)
+
+    expect(accountsRepository.items).toHaveLength(0)
+  })
+
+  it('deve lançar InvariantError quando o dia de fechamento ou de vencimento estiver fora do intervalo de 1 a 31 (RN020)', async () => {
+    const ownerId = new UniqueEntityID().toString()
+    const accountGroup = makeAccountGroup({ ownerId: new UniqueEntityID(ownerId), type: 'CREDIT_CARD' })
+
+    await accountGroupsRepository.create(accountGroup)
+
+    await expect(
+      sut.execute({
+        ownerId,
+        accountGroupId: accountGroup.id.toString(),
+        name: 'Cartão',
+        color: '#1E88E5',
+        creditCard: { limit: Money.fromCents(500000), closingDay: 32, dueDay: 28 },
+      }),
+    ).rejects.toThrow(InvariantError)
+
     expect(accountsRepository.items).toHaveLength(0)
   })
 

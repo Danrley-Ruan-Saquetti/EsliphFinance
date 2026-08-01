@@ -4,6 +4,7 @@ import { UniqueEntityID } from '@core/entities/unique-entity-id'
 import { InvariantError } from '@core/errors/invariant-error'
 import { Money } from '@core/value-objects/money'
 import { Account } from '@domain/account/enterprise/entities/account'
+import { CreditCardSettings } from '@domain/account/enterprise/value-objects/credit-card-settings'
 
 describe('Account', () => {
   it('deve criar a conta com o nome, o grupo, o saldo inicial, o ícone e a cor informados (RN018)', () => {
@@ -18,8 +19,33 @@ describe('Account', () => {
     expect(account.initialBalance.amountInCents).toBe(15000)
     expect(account.icon).toBe('wallet')
     expect(account.color).toBe('#1E88E5')
+    expect(account.creditCard).toBeNull()
     expect(account.createdAt).toBeInstanceOf(Date)
     expect(account.updatedAt).toBeUndefined()
+  })
+
+  it('deve criar a conta com o limite, o dia de fechamento e o dia de vencimento do cartão de crédito (RN019)', () => {
+    const creditCard = CreditCardSettings.create({ limit: Money.fromCents(500000), closingDay: 20, dueDay: 28 })
+
+    const account = Account.create({ ownerId: new UniqueEntityID(), accountGroupId: new UniqueEntityID(), name: 'Cartão', color: '#1E88E5', creditCard })
+
+    expect(account.creditCard).toBe(creditCard)
+    expect(account.initialBalance.amountInCents).toBe(0)
+  })
+
+  it('deve lançar InvariantError quando a conta de cartão de crédito receber saldo inicial (RN022)', () => {
+    const creditCard = CreditCardSettings.create({ limit: Money.fromCents(500000), closingDay: 20, dueDay: 28 })
+
+    expect(() =>
+      Account.create({
+        ownerId: new UniqueEntityID(),
+        accountGroupId: new UniqueEntityID(),
+        name: 'Cartão',
+        initialBalance: Money.fromCents(15000),
+        color: '#1E88E5',
+        creditCard,
+      }),
+    ).toThrow(InvariantError)
   })
 
   it('deve assumir o saldo inicial zerado quando ele não for informado (RN018)', () => {

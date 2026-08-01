@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { UniqueEntityID } from '@core/entities/unique-entity-id'
 import { Money } from '@core/value-objects/money'
+import { CreditCardSettings } from '@domain/account/enterprise/value-objects/credit-card-settings'
 import { AccountRecord, DrizzleAccountMapper } from '@infra/database/drizzle/mappers/drizzle-account-mapper'
 import { makeAccount } from '@tests/factories/make-account'
 
@@ -14,6 +15,9 @@ function makeRecord(override: Partial<AccountRecord> = {}): AccountRecord {
     initialBalance: 15000,
     icon: 'wallet',
     color: '#1E88E5',
+    creditLimit: null,
+    closingDay: null,
+    dueDay: null,
     createdAt: new Date('2026-01-15T12:00:00.000Z'),
     updatedAt: null,
     ...override,
@@ -33,8 +37,17 @@ describe('DrizzleAccountMapper', () => {
     expect(account.initialBalance.amountInCents).toBe(15000)
     expect(account.icon).toBe(record.icon)
     expect(account.color).toBe(record.color)
+    expect(account.creditCard).toBeNull()
     expect(account.createdAt).toEqual(record.createdAt)
     expect(account.updatedAt).toBeNull()
+  })
+
+  it('deve converter o registro do banco da conta de cartão de crédito (RN019)', () => {
+    const account = DrizzleAccountMapper.toDomain(makeRecord({ initialBalance: 0, creditLimit: 500000, closingDay: 20, dueDay: 28 }))
+
+    expect(account.creditCard?.limit.amountInCents).toBe(500000)
+    expect(account.creditCard?.closingDay.day).toBe(20)
+    expect(account.creditCard?.dueDay.day).toBe(28)
   })
 
   it('deve converter o registro do banco com saldo inicial negativo (RNF004)', () => {
@@ -64,13 +77,33 @@ describe('DrizzleAccountMapper', () => {
       initialBalance: 15000,
       icon: account.icon,
       color: account.color,
+      creditLimit: null,
+      closingDay: null,
+      dueDay: null,
       createdAt: account.createdAt,
       updatedAt: null,
     })
   })
 
+  it('deve converter a entidade da conta de cartão de crédito em registro de persistência (RN019)', () => {
+    const creditCard = CreditCardSettings.create({ limit: Money.fromCents(500000), closingDay: 20, dueDay: 28 })
+    const account = makeAccount({ creditCard })
+
+    const record = DrizzleAccountMapper.toPersistence(account)
+
+    expect(record.creditLimit).toBe(500000)
+    expect(record.closingDay).toBe(20)
+    expect(record.dueDay).toBe(28)
+  })
+
   it('deve manter a entidade equivalente ao percorrer os dois sentidos da conversão', () => {
     const record = makeRecord()
+
+    expect(DrizzleAccountMapper.toPersistence(DrizzleAccountMapper.toDomain(record))).toEqual(record)
+  })
+
+  it('deve manter a conta de cartão de crédito equivalente ao percorrer os dois sentidos da conversão (RN019)', () => {
+    const record = makeRecord({ initialBalance: 0, creditLimit: 500000, closingDay: 20, dueDay: 28 })
 
     expect(DrizzleAccountMapper.toPersistence(DrizzleAccountMapper.toDomain(record))).toEqual(record)
   })
