@@ -5,14 +5,11 @@ import { App } from 'supertest/types'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { AppModule } from '@app.module'
-import { DrizzleService } from '@infra/database/drizzle/drizzle.service'
 import { accountGroups } from '@infra/database/drizzle/schemas/account-groups'
-import { refreshTokens } from '@infra/database/drizzle/schemas/refresh-tokens'
-import { users } from '@infra/database/drizzle/schemas/users'
+import { cleanDatabase } from '@tests/database/clean-database'
 
 describe('Listar grupos de contas (e2e)', () => {
   let app: INestApplication<App>
-  let drizzle: DrizzleService
   let accessToken: string
   let anotherAccessToken: string
 
@@ -24,11 +21,7 @@ describe('Listar grupos de contas (e2e)', () => {
     app = moduleFixture.createNestApplication()
     await app.init()
 
-    drizzle = app.get(DrizzleService)
-
-    await drizzle.db.delete(accountGroups)
-    await drizzle.db.delete(refreshTokens)
-    await drizzle.db.delete(users)
+    await cleanDatabase(app)
 
     await request(app.getHttpServer()).post('/users').send({ name: 'Fulano de Tal', email: 'fulano@exemplo.com', password: 'senha-secreta' })
     await request(app.getHttpServer()).post('/users').send({ name: 'Beltrano de Tal', email: 'beltrano@exemplo.com', password: 'senha-secreta' })

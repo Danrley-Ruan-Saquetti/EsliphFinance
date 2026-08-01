@@ -36,6 +36,20 @@
       "when": 1785535722537,
       "tag": "0004_rename_asset_groups_to_account_groups",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1785538394496,
+      "tag": "0005_create_accounts_table",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1785546670345,
+      "tag": "0006_add_credit_card_settings_to_accounts",
+      "breakpoints": true
     }
   ]
 }

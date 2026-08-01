@@ -15,6 +15,7 @@ export interface AccountGroupProps {
 export class AccountGroup extends AggregateRoot<AccountGroupProps> {
   static readonly NAME_MAX_LENGTH = 120
   static readonly DEFAULT_TYPE: AccountGroupType = 'DEFAULT'
+  static readonly CREDIT_CARD_TYPE: AccountGroupType = 'CREDIT_CARD'
 
   static create(props: Optional<AccountGroupProps, 'createdAt' | 'type'>, id?: UniqueEntityID): AccountGroup {
     const name = AccountGroup.validateName(props.name)

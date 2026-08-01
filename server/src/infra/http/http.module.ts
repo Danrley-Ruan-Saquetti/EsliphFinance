@@ -5,6 +5,8 @@ import { AccountGroupsRepository } from '@domain/account-group/application/repos
 import { CreateAccountGroupUseCase } from '@domain/account-group/application/use-cases/create-account-group'
 import { GetAccountGroupUseCase } from '@domain/account-group/application/use-cases/get-account-group'
 import { ListAccountGroupsUseCase } from '@domain/account-group/application/use-cases/list-account-groups'
+import { AccountsRepository } from '@domain/account/application/repositories/accounts-repository'
+import { CreateAccountUseCase } from '@domain/account/application/use-cases/create-account'
 import { NotesRepository } from '@domain/example/application/repositories/notes-repository'
 import { CreateNoteUseCase } from '@domain/example/application/use-cases/create-note'
 import { GetNoteUseCase } from '@domain/example/application/use-cases/get-note'
@@ -27,6 +29,7 @@ import { EnvModule } from '@infra/env/env.module'
 import { EnvService } from '@infra/env/env.service'
 import { AuthenticateUserController } from '@infra/http/controllers/authenticate-user.controller'
 import { CreateAccountGroupController } from '@infra/http/controllers/create-account-group.controller'
+import { CreateAccountController } from '@infra/http/controllers/create-account.controller'
 import { CreateNoteController } from '@infra/http/controllers/create-note.controller'
 import { CreateUserController } from '@infra/http/controllers/create-user.controller'
 import { EndSessionController } from '@infra/http/controllers/end-session.controller'
@@ -58,6 +61,7 @@ import { SecurityHeadersMiddleware } from '@infra/http/middlewares/security-head
     CreateAccountGroupController,
     ListAccountGroupsController,
     GetAccountGroupController,
+    CreateAccountController,
   ],
   providers: [
     {
@@ -139,6 +143,12 @@ import { SecurityHeadersMiddleware } from '@infra/http/middlewares/security-head
       provide: GetAccountGroupUseCase,
       useFactory: (accountGroupsRepository: AccountGroupsRepository) => new GetAccountGroupUseCase(accountGroupsRepository),
       inject: [AccountGroupsRepository],
+    },
+    {
+      provide: CreateAccountUseCase,
+      useFactory: (accountsRepository: AccountsRepository, accountGroupsRepository: AccountGroupsRepository) =>
+        new CreateAccountUseCase(accountsRepository, accountGroupsRepository),
+      inject: [AccountsRepository, AccountGroupsRepository],
     },
   ],
 })

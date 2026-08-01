@@ -15,7 +15,7 @@ API do EsliphFinance. Este documento cobre apenas o backend; o contexto geral do
 | Ambiente         | Docker + Docker Compose            |
 | Comandos         | Makefile                           |
 
-> Estado atual do repositório: a fundação arquitetural está implementada (camadas, `core/`, pipe global de validação, padrão `Either`, aliases), a persistência com Drizzle e o pipeline de migrations estão no ar, e há um **módulo de exemplo** em `src/domain/example` servindo de referência de estrutura — ele não faz parte do domínio real. O primeiro contexto real é `src/domain/user`, com o cadastro de usuário (`POST /users`, RF001), o login (`POST /sessions`, RF002, RN004), a renovação da sessão (`POST /sessions/refresh`, RN006, RN007), o encerramento da sessão (`POST /sessions/logout`, RN008), o guard global de autenticação (RNF005) e a consulta e atualização do perfil (`GET /users/me` e `PUT /users/me`, RN002, RN011). O isolamento dos registros por usuário (RN010, RN011) já é o padrão: fora `/status`, cadastro, login e renovação, toda rota exige token, o dono vem sempre do token e registro alheio responde 404. A alteração de senha (RN009) e a exclusão lógica do usuário (RN012) ainda **não** foram adicionadas. O segundo contexto real é `src/domain/account-group`, com o cadastro do grupo de contas (`POST /account-groups`, RF003, RN015, RN016), a listagem com filtro por tipo (`GET /account-groups`, RN015) e a consulta individual (`GET /account-groups/:id`, RN011); a edição e a exclusão bloqueada por contas vinculadas (RN017) ainda **não** foram adicionadas.
+> Estado atual do repositório: a fundação arquitetural está implementada (camadas, `core/`, pipe global de validação, padrão `Either`, aliases), a persistência com Drizzle e o pipeline de migrations estão no ar, e há um **módulo de exemplo** em `src/domain/example` servindo de referência de estrutura — ele não faz parte do domínio real. O primeiro contexto real é `src/domain/user`, com o cadastro de usuário (`POST /users`, RF001), o login (`POST /sessions`, RF002, RN004), a renovação da sessão (`POST /sessions/refresh`, RN006, RN007), o encerramento da sessão (`POST /sessions/logout`, RN008), o guard global de autenticação (RNF005) e a consulta e atualização do perfil (`GET /users/me` e `PUT /users/me`, RN002, RN011). O isolamento dos registros por usuário (RN010, RN011) já é o padrão: fora `/status`, cadastro, login e renovação, toda rota exige token, o dono vem sempre do token e registro alheio responde 404. A alteração de senha (RN009) e a exclusão lógica do usuário (RN012) ainda **não** foram adicionadas. O segundo contexto real é `src/domain/account-group`, com o cadastro do grupo de contas (`POST /account-groups`, RF003, RN015, RN016), a listagem com filtro por tipo (`GET /account-groups`, RN015) e a consulta individual (`GET /account-groups/:id`, RN011); a edição e a exclusão bloqueada por contas vinculadas (RN017) ainda **não** foram adicionadas. O terceiro contexto real é `src/domain/account`, com o cadastro da conta pela mesma rota nos dois tipos de grupo — "Padrão" (`POST /accounts`, RF004, RN018) e "Cartão de Crédito", com limite, dia de fechamento e dia de vencimento (RN019, RN020); a listagem, a consulta, a edição e o arquivamento (RN024, RN025) ainda **não** foram adicionados.
 
 ## Ambiente Docker
 
@@ -336,16 +336,48 @@ A atualização é uma substituição do perfil editável: `name` e `email` são
 
 As três rotas do contexto respondem pela mesma representação, produzida pelo `AccountGroupPresenter`, que inclui o campo **`accountsCount`** — a quantidade de contas vinculadas ao grupo, que existe para o cliente antecipar a RN017 (grupo com contas não pode ser excluído) sem uma segunda requisição.
 
-O contexto de _Contas_ (RN018 em diante) ainda não foi implementado: não há entidade, tabela nem repositório de `accounts`. Enquanto for assim, o `DrizzleAccountGroupsRepository` devolve `accountsCount: 0`, o que hoje é o número correto — nenhuma conta existe para vincular. Quando a tabela `accounts` entrar, o único ponto a mudar é o `withAccountsCount` do repositório Drizzle, que passa a contar de verdade; o contrato HTTP e os casos de uso não mudam. O `InMemoryAccountGroupsRepository` já expõe `accountsCountByAccountGroupId` para que os testes fixem a contagem sem depender de contas reais.
+O `accountsCount` é contado no próprio `DrizzleAccountGroupsRepository`, por `leftJoin` com `accounts` agrupado pela chave primária do grupo — uma consulta só, sem N+1 e sem contagem em memória. O `InMemoryAccountGroupsRepository` expõe `accountsCountByAccountGroupId` para que os testes fixem a contagem sem depender de contas reais.
 
 O termo _Conta_ substituiu _Ativo_ na SCRUM-88: o agregado é o contêiner de dinheiro (RN018, RN021), e `Asset` fica reservado ao instrumento negociável de uma eventual carteira de investimentos. A migration `0004_rename_asset_groups_to_account_groups` renomeia a tabela, o enum, o índice e as constraints, sem tocar no SQL já aplicado.
+
+## Contas
+
+`POST /accounts` (RF004, RN018) cadastra a conta com nome, grupo, saldo inicial, ícone e cor. O grupo vem do corpo pelo `accountGroupId` e é validado no caso de uso antes de qualquer coisa: grupo inexistente **ou de outro usuário** devolve `ResourceNotFoundError` (404), como todo registro alheio (RN010, RN011).
+
+A mesma rota cadastra os dois tipos de conta, e é o **tipo do grupo** que decide quais campos valem — por isso a checagem mora no caso de uso, e não no schema Zod: o tipo só se conhece depois de carregar o grupo do banco. A combinação incompatível responde `InvalidAccountGroupTypeError` (`INVALID_ACCOUNT_GROUP_TYPE`, 400) — não é 404, porque o grupo existe e é do usuário; o que não serve é a combinação.
+
+| Grupo              | `initialBalance`                  | `creditCard`                    |
+| ------------------ | --------------------------------- | ------------------------------- |
+| "Padrão"           | opcional, zero quando omitido     | recusado com 400                |
+| "Cartão de Crédito" | recusado — cartão não tem saldo (RN022) | obrigatório (RN019), recusado com 400 quando ausente |
+
+O **saldo inicial** é o `initialBalance`, inteiro em centavos pelo `moneySchema` (RNF004). É opcional e assume zero quando omitido (RN018); valor negativo é aceito, porque saldo devedor é um estado real da conta. A resposta o devolve pelo `MoneyPresenter`, com `amountInCents` e `formatted`.
+
+### Cartão de crédito
+
+O `creditCard` do corpo (`{ limit, closingDay, dueDay }`) vira o Value Object `CreditCardSettings` (RN019), que guarda o limite como `Money` e os dois dias como `BillingDay`. O limite precisa ser maior que zero — cartão sem limite não compra nada, e a RN não define o caso; se o requisito passar a admitir limite zero, a invariante é o único ponto a mudar. Saldo inicial junto de `creditCard` é `InvariantError` (422) na própria entidade `Account`, que é onde a incoerência é detectável sem conhecer o grupo.
+
+`BillingDay` é o dia do ciclo da fatura e existe para carregar a RN020 inteira: aceita só inteiro de 1 a 31 e resolve a data do mês por `resolveForMonth(year, month)`, que **ajusta para o último dia** quando o mês não possui o dia configurado — dia 31 vira 28 em fevereiro de 2026, 29 em 2028 e 30 em abril. A data sai em UTC, para que o dia do calendário não escorregue com o fuso de quem consulta. O intervalo é conferido duas vezes: no schema Zod do controller, para o erro sair com `details[].field` apontando `creditCard.closingDay`, e na criação do VO, que é a garantia de quem chama o domínio por outro caminho (mapper, caso de uso futuro).
+
+As três colunas — `credit_limit`, `closing_day` e `due_day` (migration `0006_add_credit_card_settings_to_accounts`) — são anuláveis e só são preenchidas juntas: o `DrizzleAccountMapper` monta o VO quando as três existem e devolve `null` quando qualquer uma falta. O presenter expõe `creditCard: null` para conta comum, o que mantém o shape da resposta estável nos dois tipos.
+
+**Ícone e cor** não têm formato especificado nos requisitos; o formato adotado é validado como invariante na entidade `Account`:
+
+| Campo   | Formato                                                                 | Ausente                     |
+| ------- | ----------------------------------------------------------------------- | --------------------------- |
+| `icon`  | identificador em kebab-case (`wallet`, `credit-card`), até 60 caracteres, normalizado para minúsculas | assume `Account.DEFAULT_ICON` (`wallet`) |
+| `color` | hexadecimal `#RRGGBB`, normalizada para maiúsculas                       | 422 — é obrigatória          |
+
+A cor também é conferida pelo schema Zod do controller, para que o erro saia com `details[].field` apontando o campo; o ícone fora do formato só é barrado pela entidade e responde `INVARIANT_VIOLATION` (422).
+
+O saldo corrente (RN021) e o arquivamento (RN024, RN025) ainda não existem — a entidade guarda apenas o saldo inicial.
 
 ## Testes
 
 - Todo teste vive em `test/` — nada de `*.spec.ts` dentro de `src/`.
 - São **duas configurações do Vitest**: `vitest.config.js` coleta `test/units/**/*.spec.ts` (unitários) e `vitest.config.e2e.js` coleta `test/e2e/**/*.e2e-spec.ts` (e2e). Um arquivo fora desses padrões não é executado por ninguém.
 - **Unitários** ficam em `test/units/` **no mesmo caminho do arquivo testado em `src/`** (`src/domain/example/application/use-cases/create-note.ts` → `test/units/domain/example/application/use-cases/create-note.spec.ts`) e cobrem entidades e casos de uso usando **repositórios in-memory**, sem Docker de banco e sem NestJS.
-- **E2E** ficam em `test/e2e/` **no mesmo caminho do arquivo testado em `src/`** — normalmente o controller (`src/infra/http/controllers/get-note.controller.ts` → `test/e2e/infra/http/controllers/get-note.controller.e2e-spec.ts`), um arquivo por controller. Sobem a aplicação Nest e batem no serviço `database` com as migrations já aplicadas (`make db-migrate`). Cada spec limpa no `beforeAll` as tabelas que usa, via `app.get(DrizzleService)`, e os arquivos rodam em série (`fileParallelism: false`) porque compartilham o mesmo banco.
+- **E2E** ficam em `test/e2e/` **no mesmo caminho do arquivo testado em `src/`** — normalmente o controller (`src/infra/http/controllers/get-note.controller.ts` → `test/e2e/infra/http/controllers/get-note.controller.e2e-spec.ts`), um arquivo por controller. Sobem a aplicação Nest e batem no serviço `database` com as migrations já aplicadas (`make db-migrate`). Cada spec chama `await cleanDatabase(app)` (`@tests/database/clean-database`) no `beforeAll`, e os arquivos rodam em série (`fileParallelism: false`) porque compartilham o mesmo banco. O helper enumera as tabelas por `isTable` sobre o `schemas/index.ts` e as trunca com `RESTART IDENTITY CASCADE`, então **tabela nova é limpa sozinha** assim que entra no índice de schemas — nenhum spec lista tabela para limpar, e um spec só importa uma tabela quando for consultá-la em asserção.
 - **Factories** ficam em `test/factories/make-<entidade>.ts`, com assinatura `(override = {}, id?)`, e são a forma padrão de montar entidade em spec — exceto no spec da própria entidade, onde a construção é o que está sob teste.
 - Coverage está habilitado por padrão nos unitários, então qualquer execução grava em `coverage/`. A meta é **100% dos arquivos testáveis**, com o `vitest.config.js` reprovando abaixo de **85%**; ficam fora da conta o bootstrap, os módulos Nest, o `DrizzleService`, os repositórios e schemas Drizzle e os repositórios in-memory.
 - Casos de uso novos entram com teste unitário; o teste deve referenciar a RN que implementa.

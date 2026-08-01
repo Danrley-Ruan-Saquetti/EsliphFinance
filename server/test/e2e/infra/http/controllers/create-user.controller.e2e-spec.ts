@@ -5,10 +5,7 @@ import { App } from 'supertest/types'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { AppModule } from '@app.module'
-import { DrizzleService } from '@infra/database/drizzle/drizzle.service'
-import { accountGroups } from '@infra/database/drizzle/schemas/account-groups'
-import { refreshTokens } from '@infra/database/drizzle/schemas/refresh-tokens'
-import { users } from '@infra/database/drizzle/schemas/users'
+import { cleanDatabase } from '@tests/database/clean-database'
 
 describe('Cadastrar usuário (e2e)', () => {
   let app: INestApplication<App>
@@ -21,11 +18,7 @@ describe('Cadastrar usuário (e2e)', () => {
     app = moduleFixture.createNestApplication()
     await app.init()
 
-    const drizzle = app.get(DrizzleService)
-
-    await drizzle.db.delete(accountGroups)
-    await drizzle.db.delete(refreshTokens)
-    await drizzle.db.delete(users)
+    await cleanDatabase(app)
   })
 
   afterAll(async () => {
