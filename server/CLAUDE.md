@@ -15,7 +15,7 @@ API do EsliphFinance. Este documento cobre apenas o backend; o contexto geral do
 | Ambiente         | Docker + Docker Compose            |
 | Comandos         | Makefile                           |
 
-> Estado atual do repositório: a fundação arquitetural está implementada (camadas, `core/`, pipe global de validação, padrão `Either`, aliases), a persistência com Drizzle e o pipeline de migrations estão no ar, e há um **módulo de exemplo** em `src/domain/example` servindo de referência de estrutura — ele não faz parte do domínio real. O primeiro contexto real é `src/domain/user`, com o cadastro de usuário (`POST /users`, RF001), o login (`POST /sessions`, RF002, RN004), a renovação da sessão (`POST /sessions/refresh`, RN006, RN007), o encerramento da sessão (`POST /sessions/logout`, RN008), o guard global de autenticação (RNF005) e a consulta e atualização do perfil (`GET /users/me` e `PUT /users/me`, RN002, RN011). O isolamento dos registros por usuário (RN010, RN011) já é o padrão: fora `/status`, cadastro, login e renovação, toda rota exige token, o dono vem sempre do token e registro alheio responde 404. A alteração de senha (RN009) e a exclusão lógica do usuário (RN012) ainda **não** foram adicionadas. O segundo contexto real é `src/domain/account-group`, com o cadastro do grupo de contas (`POST /account-groups`, RF003, RN015, RN016), a listagem com filtro por tipo (`GET /account-groups`, RN015) e a consulta individual (`GET /account-groups/:id`, RN011); a edição e a exclusão bloqueada por contas vinculadas (RN017) ainda **não** foram adicionadas. O terceiro contexto real é `src/domain/account`, com o cadastro da conta pela mesma rota nos dois tipos de grupo — "Padrão" (`POST /accounts`, RF004, RN018) e "Cartão de Crédito", com limite, dia de fechamento e dia de vencimento (RN019, RN020) — e a listagem com saldo calculado e filtros (`GET /accounts`, RN021, RN022); a consulta individual, a edição e as operações de arquivamento e exclusão (RN024, RN025) ainda **não** foram adicionadas.
+> Estado atual do repositório: a fundação arquitetural está implementada (camadas, `core/`, pipe global de validação, padrão `Either`, aliases), a persistência com Drizzle e o pipeline de migrations estão no ar, e há um **módulo de exemplo** em `src/domain/example` servindo de referência de estrutura — ele não faz parte do domínio real. Os contextos reais implementados são `src/domain/user` (RF001, RF002), `src/domain/account-group` (RF003) e `src/domain/account` (RF004); **o que existe em cada um, o que ainda falta e como eles se ligam está em [`../docs/domains/`](../docs/domains/README.md)**, um arquivo por contexto. O isolamento dos registros por usuário (RN010, RN011) já é o padrão: fora `/status`, cadastro, login e renovação, toda rota exige token, o dono vem sempre do token e registro alheio responde 404.
 
 ## Ambiente Docker
 
@@ -283,18 +283,7 @@ Nenhum segredo é versionado: só o `.env.example` vai para o repositório, com 
 
 ## Autenticação
 
-O login (`POST /sessions`, RN004) troca e-mail e senha por um par de tokens. Os dois têm naturezas diferentes de propósito:
-
-- **Token de acesso**: JWT HS256 assinado com `JWT_SECRET`, carregando o id do usuário em `sub` e expiração curta (RN005, RNF005). É autocontido e não é persistido. Quem o emite é a porta `AccessTokenGenerator`, implementada pelo `JwtAccessTokenGenerator`.
-- **Token de renovação**: valor aleatório opaco de 32 bytes em `base64url`, **não** um JWT — ele precisa ser invalidável a qualquer momento (RN007, RN008, RN009, RN013), e um JWT autocontido não permite isso. O que vai para a tabela `refresh_tokens` é o **SHA-256 do token**, nunca o valor entregue ao cliente; a busca posterior é feita pelo mesmo hash. Quem o gera e deriva o hash é a porta `RefreshTokenGenerator`, implementada pelo `CryptoRefreshTokenGenerator`.
-
-A senha é comparada contra o hash armazenado pela porta `HashComparer` (bcrypt), e o `BcryptHasher` implementa tanto ela quanto o `HashGenerator`. E-mail inexistente e senha incorreta devolvem o **mesmo** `InvalidCredentialsError` (401), com a mesma mensagem, para não revelar quais e-mails estão cadastrados.
-
-A renovação (`POST /sessions/refresh`, RN006) recebe o token de renovação em texto e o procura pelo SHA-256; o registro só serve se `isUsable` — nem revogado, nem vencido. A rotação é obrigatória (RN007): o registro encontrado é revogado e persistido **antes** da emissão do par novo, então o token consumido nunca volta a valer e o cliente precisa guardar o token devolvido a cada renovação. Token inexistente, vencido, revogado ou já consumido devolvem o mesmo `InvalidRefreshTokenError` (401). A validade do par vem de `ACCESS_TOKEN_EXPIRES_IN_SECONDS` e `REFRESH_TOKEN_EXPIRES_IN_SECONDS`, e o `envSchema` recusa o bootstrap se a segunda não for maior que a primeira (RN006).
-
-Quem calcula a expiração do token de renovação é a entidade, por `RefreshToken.issue({ userId, tokenHash, expiresInSeconds })` — o login e a renovação emitem pelo mesmo caminho. `RefreshToken.create` fica para reconstruir o registro vindo do banco.
-
-O encerramento (`POST /sessions/logout`, RN008) revoga o token de renovação da sessão informada e só dela — as demais sessões do usuário continuam valendo, porque cada login tem o seu próprio registro em `refresh_tokens`. Diferente do login e da renovação, a rota **não** é pública: quem encerra a sessão está autenticado, e o caso de uso confere que o token de renovação pertence ao usuário do token de acesso (RN011). A resposta é `204` sem corpo e é **idempotente** — token inexistente, já revogado, vencido **ou de outro usuário** encerram sem erro, para que o cliente possa limpar a sessão local sem tratar caso de borda. O token de outro usuário é indistinguível de um inexistente e continua valendo: nenhuma sessão alheia é derrubada, e a resposta não revela que aquele token existe.
+O par de tokens, a rotação do token de renovação e o comportamento de cada rota de sessão são do contexto de _Usuários_ e estão em [`../docs/domains/user.md`](../docs/domains/user.md). O que segue vale para o repositório inteiro, em todo domínio.
 
 ### Rota protegida por padrão
 
@@ -324,76 +313,11 @@ if (!note || !this.isOwnedBy(note, ownerId)) {
 
 Todo caso de uso que lê ou altera um registro entra com teste de acesso cruzado entre dois usuários, citando RN010 e RN011 no nome, tanto no unitário quanto no e2e.
 
-## Perfil do usuário
+## Domínios
 
-`GET /users/me` e `PUT /users/me` (RN002, RN011) trabalham sempre sobre o usuário do token, nunca sobre um id vindo da URL — não existe rota de perfil por identificador. Os dois passam pelo `UserPresenter`, que não expõe o hash da senha.
+O que cada contexto de `src/domain` tem construído — os arquivos que compõem a fatia, as regras que cada um garante, as fronteiras com os vizinhos e o que ainda não existe — está em [`../docs/domains/`](../docs/domains/README.md), um arquivo por contexto: [usuários](../docs/domains/user.md), [grupos de contas](../docs/domains/account-group.md) e [contas](../docs/domains/account.md).
 
-A atualização é uma substituição do perfil editável: `name` e `email` são obrigatórios, e a senha **não** é alterada por aqui (RN009 tem fluxo próprio, com senha atual e invalidação dos tokens de renovação). O e-mail novo é rejeitado com `EmailAlreadyInUseError` quando pertence a outro usuário, inclusive um excluído logicamente (RN014); manter o próprio e-mail é aceito. Usuário inexistente ou excluído logicamente devolve `ResourceNotFoundError` (RN012, RN013), o que também vale para um token de acesso ainda válido de uma conta encerrada.
-
-## Grupos de contas
-
-`GET /account-groups` lista os grupos do usuário do token, em ordem alfabética de nome, e aceita o filtro opcional `?type=DEFAULT|CREDIT_CARD` (RN015) — tipo fora do domínio é 422 pelo `ZodValidationPipe`. `GET /account-groups/:id` devolve um grupo só, e grupo de outro usuário responde 404 como qualquer outro registro alheio (RN010, RN011).
-
-As três rotas do contexto respondem pela mesma representação, produzida pelo `AccountGroupPresenter`, que inclui o campo **`accountsCount`** — a quantidade de contas vinculadas ao grupo, que existe para o cliente antecipar a RN017 (grupo com contas não pode ser excluído) sem uma segunda requisição.
-
-O `accountsCount` é contado no próprio `DrizzleAccountGroupsRepository`, por `leftJoin` com `accounts` agrupado pela chave primária do grupo — uma consulta só, sem N+1 e sem contagem em memória. O `InMemoryAccountGroupsRepository` expõe `accountsCountByAccountGroupId` para que os testes fixem a contagem sem depender de contas reais.
-
-O termo _Conta_ substituiu _Ativo_ na SCRUM-88: o agregado é o contêiner de dinheiro (RN018, RN021), e `Asset` fica reservado ao instrumento negociável de uma eventual carteira de investimentos. A migration `0004_rename_asset_groups_to_account_groups` renomeia a tabela, o enum, o índice e as constraints, sem tocar no SQL já aplicado.
-
-## Contas
-
-`POST /accounts` (RF004, RN018) cadastra a conta com nome, grupo, saldo inicial, ícone e cor. O grupo vem do corpo pelo `accountGroupId` e é validado no caso de uso antes de qualquer coisa: grupo inexistente **ou de outro usuário** devolve `ResourceNotFoundError` (404), como todo registro alheio (RN010, RN011).
-
-A mesma rota cadastra os dois tipos de conta, e é o **tipo do grupo** que decide quais campos valem — por isso a checagem mora no caso de uso, e não no schema Zod: o tipo só se conhece depois de carregar o grupo do banco. A combinação incompatível responde `InvalidAccountGroupTypeError` (`INVALID_ACCOUNT_GROUP_TYPE`, 400) — não é 404, porque o grupo existe e é do usuário; o que não serve é a combinação.
-
-| Grupo              | `initialBalance`                  | `creditCard`                    |
-| ------------------ | --------------------------------- | ------------------------------- |
-| "Padrão"           | opcional, zero quando omitido     | recusado com 400                |
-| "Cartão de Crédito" | recusado — cartão não tem saldo (RN022) | obrigatório (RN019), recusado com 400 quando ausente |
-
-O **saldo inicial** é o `initialBalance`, inteiro em centavos pelo `moneySchema` (RNF004). É opcional e assume zero quando omitido (RN018); valor negativo é aceito, porque saldo devedor é um estado real da conta. A resposta o devolve pelo `MoneyPresenter`, com `amountInCents` e `formatted`.
-
-### Cartão de crédito
-
-O `creditCard` do corpo (`{ limit, closingDay, dueDay }`) vira o Value Object `CreditCardSettings` (RN019), que guarda o limite como `Money` e os dois dias como `BillingDay`. O limite precisa ser maior que zero — cartão sem limite não compra nada, e a RN não define o caso; se o requisito passar a admitir limite zero, a invariante é o único ponto a mudar. Saldo inicial junto de `creditCard` é `InvariantError` (422) na própria entidade `Account`, que é onde a incoerência é detectável sem conhecer o grupo.
-
-`BillingDay` é o dia do ciclo da fatura e existe para carregar a RN020 inteira: aceita só inteiro de 1 a 31 e resolve a data do mês por `resolveForMonth(year, month)`, que **ajusta para o último dia** quando o mês não possui o dia configurado — dia 31 vira 28 em fevereiro de 2026, 29 em 2028 e 30 em abril. A data sai em UTC, para que o dia do calendário não escorregue com o fuso de quem consulta. O intervalo é conferido duas vezes: no schema Zod do controller, para o erro sair com `details[].field` apontando `creditCard.closingDay`, e na criação do VO, que é a garantia de quem chama o domínio por outro caminho (mapper, caso de uso futuro).
-
-As três colunas — `credit_limit`, `closing_day` e `due_day` (migration `0006_add_credit_card_settings_to_accounts`) — são anuláveis e só são preenchidas juntas: o `DrizzleAccountMapper` monta o VO quando as três existem e devolve `null` quando qualquer uma falta. O presenter expõe `creditCard: null` para conta comum, o que mantém o shape da resposta estável nos dois tipos.
-
-**Ícone e cor** não têm formato especificado nos requisitos; o formato adotado é validado como invariante na entidade `Account`:
-
-| Campo   | Formato                                                                 | Ausente                     |
-| ------- | ----------------------------------------------------------------------- | --------------------------- |
-| `icon`  | identificador em kebab-case (`wallet`, `credit-card`), até 60 caracteres, normalizado para minúsculas | assume `Account.DEFAULT_ICON` (`wallet`) |
-| `color` | hexadecimal `#RRGGBB`, normalizada para maiúsculas                       | 422 — é obrigatória          |
-
-A cor também é conferida pelo schema Zod do controller, para que o erro saia com `details[].field` apontando o campo; o ícone fora do formato só é barrado pela entidade e responde `INVARIANT_VIOLATION` (422).
-
-### Listagem e saldo
-
-`GET /accounts` (RF004) lista as contas do usuário do token em ordem alfabética de nome, com três filtros opcionais e independentes na query:
-
-| Filtro             | Valores                | Efeito                                                          |
-| ------------------ | ---------------------- | --------------------------------------------------------------- |
-| `accountGroupId`   | UUID                   | Restringe a um grupo                                             |
-| `accountGroupType` | `DEFAULT`, `CREDIT_CARD` | Restringe ao tipo do grupo (RN015); valor fora do domínio é 422 |
-| `archived`         | `true`, `false`        | Só arquivadas ou só ativas; **omitido devolve as duas** (RN024)  |
-
-A resposta é produzida pelo `AccountPresenter.toListHTTP`, que acrescenta ao shape do cadastro os campos que só a listagem calcula. O que cada tipo de conta devolve é excludente, e é o que separa a RN021 da RN022:
-
-| Grupo               | `balance`                                             | `creditCard.availableLimit` |
-| ------------------- | ----------------------------------------------------- | --------------------------- |
-| "Padrão"            | saldo inicial acrescido das transações efetivadas (RN021) | `creditCard` é `null`   |
-| "Cartão de Crédito" | `null` — cartão não tem saldo (RN022)                 | limite menos o consumo (RN023) |
-
-Quem aplica essa distinção é o `ListAccountsUseCase`, a partir do `creditCard` da conta — não o presenter e não o repositório, que devolve o saldo bruto de toda conta pelo `AccountWithBalance`. O saldo é agregado na consulta, nunca em memória: quando as _Transações_ existirem, o `DrizzleAccountsRepository` soma as efetivadas no próprio `select` (`leftJoin` + `groupBy`), e nada muda no caso de uso. Enquanto o contexto de _Transações_ não existe, o saldo é o saldo inicial e o **limite disponível é o limite integral** — a dedução das faturas em aberto e dos lançamentos não faturados (RN023) é a SCRUM-41.
-
-O filtro por tipo de grupo é o motivo do `innerJoin` com `account_groups` na consulta; o filtro de arquivamento vira `IS NULL` / `IS NOT NULL` sobre `archived_at`.
-
-### Arquivamento
-
-A entidade guarda `archivedAt` (coluna `archived_at`, migration `0007_add_archived_at_to_accounts`) e responde `isArchived`, o que basta para o filtro e para a exposição do estado na resposta. **Arquivar e desarquivar ainda não existem como operação** (RN024, RN025) — são a SCRUM-42; hoje a data só entra pelo mapper, vinda do banco.
+Ao mexer em um domínio, leia o documento dele **antes** de varrer `src/`, e atualize-o no mesmo passo do código — é a skill `domain-architect` que responde por esses arquivos. Este `CLAUDE.md` fica com o que atravessa todos os domínios: stack, camadas, comandos, transporte, contrato de erro e testes.
 
 ## Testes
 

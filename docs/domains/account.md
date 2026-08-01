@@ -1,0 +1,89 @@
+# Contas
+
+> **Contexto** `server/src/domain/account` · **Requisitos** RF004 · RN018–RN025
+
+A _Conta_ é o contêiner de dinheiro do usuário. Ela existe em duas naturezas excludentes, decididas pelo **tipo do grupo** ao qual pertence e não por um campo próprio: conta de grupo "Padrão" tem saldo e não tem cartão; conta de grupo "Cartão de Crédito" não tem saldo e é controlada por limite (RN021, RN022). Essa bifurcação é a origem de quase toda a complexidade do contexto — inclusive de onde as validações moram.
+
+## Mapa dos arquivos
+
+| Artefato | Caminho (a partir de `server/`) | O que só ele sabe |
+| -------- | ------------------------------- | ----------------- |
+| `Account` (agregado) | `src/domain/account/enterprise/entities/account.ts` | Formato de nome, ícone e cor; recusa saldo inicial junto de cartão; `isArchived` derivado de `archivedAt`. Não tem método de mutação — nem renomear, nem arquivar. |
+| `CreditCardSettings` (VO) | `src/domain/account/enterprise/value-objects/credit-card-settings.ts` | Mantém limite, dia de fechamento e dia de vencimento como um bloco só: os três existem juntos ou nenhum existe (RN019). Limite precisa ser maior que zero. |
+| `BillingDay` (VO) | `src/domain/account/enterprise/value-objects/billing-day.ts` | Carrega a RN020 inteira: aceita 1 a 31 e `resolveForMonth(year, month)` ajusta para o último dia quando o mês não tem o dia configurado. Devolve data em UTC, para o dia não escorregar com fuso. |
+| `AccountsRepository` (porta) | `src/domain/account/application/repositories/accounts-repository.ts` | `create`, `findById` e `findManyByOwnerId(ownerId, filters)`. A listagem devolve `AccountWithBalance` — o saldo vem do repositório, não da entidade, porque é agregação. |
+| `CreateAccountUseCase` | `src/domain/account/application/use-cases/create-account.ts` | Carrega o grupo antes de qualquer coisa e decide a compatibilidade tipo × campos. |
+| `ListAccountsUseCase` | `src/domain/account/application/use-cases/list-accounts.ts` | Separa saldo de limite disponível pelo `creditCard` da conta. Devolve `Either<never, ...>` — não tem caminho de erro. |
+| `InvalidAccountGroupTypeError` | `src/domain/account/application/use-cases/errors/invalid-account-group-type-error.ts` | `INVALID_ACCOUNT_GROUP_TYPE`, traduzido para **400**. |
+| Tabela `accounts` | `src/infra/database/drizzle/schemas/accounts.ts` | Colunas de cartão anuláveis; índices por dono e por grupo. |
+| `DrizzleAccountMapper` | `src/infra/database/drizzle/mappers/drizzle-account-mapper.ts` | Monta o `CreditCardSettings` só quando as três colunas existem; qualquer uma nula devolve `null`. |
+| `DrizzleAccountsRepository` | `src/infra/database/drizzle/repositories/drizzle-accounts-repository.ts` | Todos os filtros em SQL; `innerJoin` com `account_groups` (é o que viabiliza filtrar por tipo); ordena por nome. |
+| `InMemoryAccountsRepository` | `src/infra/database/in-memory/in-memory-accounts-repository.ts` | **Recebe o `InMemoryAccountGroupsRepository` no construtor** — sem ele não dá para filtrar por tipo de grupo. Todo spec do contexto precisa montar os dois. |
+| `CreateAccountController` | `src/infra/http/controllers/create-account.controller.ts` | Schema Zod do corpo, incluindo o formato da cor e o intervalo dos dias. |
+| `ListAccountsController` | `src/infra/http/controllers/list-accounts.controller.ts` | Schema Zod da query com os três filtros. |
+| `AccountPresenter` | `src/infra/http/presenters/account-presenter.ts` | `toHTTP` (cadastro) e `toListHTTP` (listagem, com `balance` e `availableLimit`). |
+
+## Regras que o código garante
+
+| RN | Onde é aplicada | Como falha |
+| -- | --------------- | ---------- |
+| RN018 | `Account.create` (nome, ícone, cor) + schema Zod de `CreateAccountController` | Nome vazio ou acima de 120 caracteres, ícone fora do kebab-case ou cor fora de `#RRGGBB` → `InvariantError` (422). Saldo inicial omitido assume zero; negativo é aceito, porque saldo devedor é estado real. |
+| RN019 | `CreateAccountUseCase` + `CreditCardSettings.create` | Grupo "Cartão de Crédito" sem `creditCard`, ou grupo "Padrão" com `creditCard` → `InvalidAccountGroupTypeError` (400). Limite ≤ 0 → `InvariantError` (422). |
+| RN020 | `BillingDay.create` e `BillingDay.resolveForMonth` + schema Zod da rota | Dia fora de 1–31 → 422. O intervalo é conferido nos dois lugares de propósito: o Zod faz o erro sair com `details[].field` apontando `creditCard.closingDay`; o VO garante quem chega pelo mapper ou por um caso de uso futuro. |
+| RN021 | `DrizzleAccountsRepository.findManyByOwnerId` | **Parcial.** O saldo é agregado na consulta, mas hoje a agregação é só o `initial_balance` — _Transações_ ainda não existem como contexto. |
+| RN022 | `Account.validateInitialBalance` e `ListAccountsUseCase` | Saldo inicial diferente de zero junto de `creditCard` → `InvariantError` (422). Na listagem, conta de cartão devolve `balance: null`. |
+| RN023 | `ListAccountsUseCase` | **Parcial.** O `availableLimit` é hoje o limite integral: a dedução das faturas em aberto e dos lançamentos não faturados depende do contexto de _Faturas_. |
+| RN024, RN025 | `Account.archivedAt` / `isArchived` e o filtro `archived` | **Parcial.** O estado existe e é filtrável, mas arquivar e desarquivar não existem como operação — a data só entra pelo mapper, vinda do banco. |
+| RN010, RN011 | `CreateAccountUseCase` (grupo do dono) e `findManyByOwnerId` | Grupo inexistente **ou de outro usuário** → `ResourceNotFoundError` (404), indistinguíveis de propósito. O `ownerId` nunca vem do cliente: sai do `@CurrentUser()`. |
+
+## Fronteiras
+
+| Domínio | Direção | Ponto de contato | O que rege |
+| ------- | ------- | ---------------- | ---------- |
+| [Grupos de Contas](account-group.md) | Conta → Grupo | `CreateAccountUseCase` injeta `AccountGroupsRepository` para ler o tipo; `Account.accountGroupId`; `FindManyAccountsFilters.accountGroupType` importa `AccountGroupType`; FK `accounts.account_group_id`; `innerJoin` na listagem | RN015, RN018, RN019 |
+| [Usuários](user.md) | Conta → Usuário | `Account.ownerId`, vindo do token; FK `accounts.owner_id` | RN010, RN011 |
+| Transações _(não existe)_ | Transação → Conta | Vai somar no saldo agregado da consulta de listagem | RN021, RN050 |
+| Faturas _(não existe)_ | Fatura → Conta | Vai deduzir do `availableLimit` | RN023, RN052 |
+
+A dependência é de mão única: o contexto de Grupos de Contas não conhece `Account` no domínio. O `accountsCount` que ele expõe é contado na infraestrutura, por join — ver [Grupos de Contas](account-group.md).
+
+## Persistência
+
+Tabela `accounts`, criada pela migration `0005_create_accounts_table` e alterada por `0006_add_credit_card_settings_to_accounts` (as três colunas de cartão) e `0007_add_archived_at_to_accounts`.
+
+| Coluna | Observação |
+| ------ | ---------- |
+| `owner_id`, `account_group_id` | FKs para `users` e `account_groups`, ambas indexadas |
+| `initial_balance` | `moneyAmount` — `bigint` com `mode: 'number'`, inteiro em centavos (RNF004). Nunca `numeric` nem `real` |
+| `color` | `char(7)`, guardada em maiúsculas |
+| `credit_limit`, `closing_day`, `due_day` | Anuláveis e preenchidas juntas — é o contrato que o mapper assume nos dois sentidos |
+| `archived_at` | Nulo significa ativa; o filtro `archived` vira `IS NULL` / `IS NOT NULL` |
+
+## Contrato HTTP
+
+| Rota | Controller | Caso de uso | Respostas |
+| ---- | ---------- | ----------- | --------- |
+| `POST /accounts` | `CreateAccountController` | `CreateAccountUseCase` | 201; 404 grupo inexistente ou alheio; 400 combinação tipo × campos; 422 validação e invariante |
+| `GET /accounts` | `ListAccountsController` | `ListAccountsUseCase` | 200. Filtros opcionais e independentes: `accountGroupId`, `accountGroupType`, `archived`. **Omitir `archived` devolve arquivadas e ativas** |
+
+Conta de grupo "Padrão" responde `balance` preenchido e `creditCard: null`; conta de cartão responde `balance: null` e `creditCard` com `availableLimit`. O shape é estável nos dois tipos — o cliente não precisa checar o tipo do grupo para ler a resposta.
+
+## Ainda não existe
+
+| Operação | RN | O que a destrava |
+| -------- | -- | ---------------- |
+| Consulta individual e edição | RN018 | Nada — é só implementar |
+| Arquivar e desarquivar | RN024, RN025 | Nada; o estado já existe na entidade e no banco |
+| Exclusão bloqueada por transações vinculadas | RN024 | Contexto de _Transações_ |
+| Saldo real (transações efetivadas) | RN021, RN050 | Contexto de _Transações_. A consulta já é o lugar certo: acrescentar `leftJoin` + `groupBy` no `DrizzleAccountsRepository` não muda o caso de uso |
+| Limite disponível real | RN023 | Contexto de _Faturas_ |
+
+## Onde tocar
+
+**Campo novo na conta** → entidade (`Account`, com a invariante) → `schemas/accounts.ts` → gerar a migration → `DrizzleAccountMapper` nos dois sentidos → schema Zod do controller → `AccountPresenter` → `test/factories/make-account.ts` → specs.
+
+**Operação nova** → caso de uso em `application/use-cases/` → método novo na porta `AccountsRepository`, se precisar → implementar nos **dois** repositórios (Drizzle e in-memory) → controller → registrar em `HttpModule` com `useFactory` + `inject` → presenter → spec unitário e e2e.
+
+**Filtro novo na listagem** → `FindManyAccountsFilters` → `DrizzleAccountsRepository` (condição em SQL) → `InMemoryAccountsRepository` (mesmo comportamento) → schema Zod da query → `ListAccountsRequest`.
+
+**Mexer no comportamento de cartão** → comece pelo `CreditCardSettings` e pelo `BillingDay`; a regra quase sempre é do VO. A checagem que depende do **tipo do grupo** é a exceção e mora no caso de uso, porque o tipo só se conhece depois de carregar o grupo do banco — não tente movê-la para o schema Zod.

@@ -146,7 +146,7 @@ E o mais importante: **discorde quando for o caso**. Se o usuário pedir uma reg
 ## Fronteiras
 
 - **Não decida sozinho** o que ainda não foi decidido. Recomende e registre.
-- **Não responda sobre implementação.** Arquitetura, banco, endpoint, teste, comando — outro assunto. Aponte para `CLAUDE.md`, `server/CLAUDE.md` ou as skills `clean-code` e `spec-writer`.
+- **Não responda sobre implementação.** Arquitetura, banco, endpoint, teste, comando — outro assunto. Aponte para `CLAUDE.md`, `server/CLAUDE.md` ou as skills `domain-architect` (o que está construído em cada domínio), `clean-code` e `spec-writer`.
 - **Não invente número de RN.** Leu, cita; não leu, não cita.
 - **Não escreva no arquivo sem aval.**
 - **Não deixe o documento crescer sem necessidade.** Regra que repete o que outra já diz, ou que descreve o óbvio, é ruído — e ruído em especificação vira teste inútil.
