@@ -23,6 +23,7 @@ export const accounts = pgTable(
     dueDay: integer('due_day'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }),
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
   },
   table => [index('accounts_owner_id_index').on(table.ownerId), index('accounts_account_group_id_index').on(table.accountGroupId)],
 )

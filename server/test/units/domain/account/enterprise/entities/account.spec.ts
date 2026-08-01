@@ -142,4 +142,20 @@ describe('Account', () => {
       InvariantError,
     )
   })
+
+  it('deve criar a conta sem data de arquivamento (RN024)', () => {
+    const account = Account.create({ ownerId: new UniqueEntityID(), accountGroupId: new UniqueEntityID(), name: 'Carteira', color: '#1E88E5' })
+
+    expect(account.archivedAt).toBeUndefined()
+    expect(account.isArchived).toBe(false)
+  })
+
+  it('deve reconhecer a conta como arquivada quando possuir data de arquivamento (RN024, RN025)', () => {
+    const archivedAt = new Date('2026-03-10T12:00:00.000Z')
+
+    const account = Account.create({ ownerId: new UniqueEntityID(), accountGroupId: new UniqueEntityID(), name: 'Carteira', color: '#1E88E5', archivedAt })
+
+    expect(account.archivedAt).toEqual(archivedAt)
+    expect(account.isArchived).toBe(true)
+  })
 })

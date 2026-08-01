@@ -20,6 +20,7 @@ export class DrizzleAccountMapper {
         creditCard: DrizzleAccountMapper.toCreditCardSettings(record),
         createdAt: record.createdAt,
         updatedAt: record.updatedAt,
+        archivedAt: record.archivedAt,
       },
       new UniqueEntityID(record.id),
     )
@@ -39,6 +40,7 @@ export class DrizzleAccountMapper {
       dueDay: account.creditCard?.dueDay.day ?? null,
       createdAt: account.createdAt,
       updatedAt: account.updatedAt ?? null,
+      archivedAt: account.archivedAt ?? null,
     }
   }
 

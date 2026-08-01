@@ -20,6 +20,7 @@ function makeRecord(override: Partial<AccountRecord> = {}): AccountRecord {
     dueDay: null,
     createdAt: new Date('2026-01-15T12:00:00.000Z'),
     updatedAt: null,
+    archivedAt: null,
     ...override,
   }
 }
@@ -40,6 +41,7 @@ describe('DrizzleAccountMapper', () => {
     expect(account.creditCard).toBeNull()
     expect(account.createdAt).toEqual(record.createdAt)
     expect(account.updatedAt).toBeNull()
+    expect(account.archivedAt).toBeNull()
   })
 
   it('deve converter o registro do banco da conta de cartão de crédito (RN019)', () => {
@@ -64,6 +66,15 @@ describe('DrizzleAccountMapper', () => {
     expect(account.updatedAt).toEqual(updatedAt)
   })
 
+  it('deve converter o registro do banco com data de arquivamento preenchida (RN024)', () => {
+    const archivedAt = new Date('2026-03-10T12:00:00.000Z')
+
+    const account = DrizzleAccountMapper.toDomain(makeRecord({ archivedAt }))
+
+    expect(account.archivedAt).toEqual(archivedAt)
+    expect(account.isArchived).toBe(true)
+  })
+
   it('deve converter a entidade em registro de persistência com o saldo inicial em centavos (RNF004)', () => {
     const account = makeAccount({ initialBalance: Money.fromCents(15000) })
 
@@ -82,6 +93,7 @@ describe('DrizzleAccountMapper', () => {
       dueDay: null,
       createdAt: account.createdAt,
       updatedAt: null,
+      archivedAt: null,
     })
   })
 

@@ -19,6 +19,7 @@ describe('AccountPresenter', () => {
       icon: account.icon,
       color: account.color,
       creditCard: null,
+      archivedAt: null,
       createdAt: account.createdAt,
       updatedAt: null,
     })
@@ -52,5 +53,45 @@ describe('AccountPresenter', () => {
     const account = makeAccount({ updatedAt })
 
     expect(AccountPresenter.toHTTP(account).updatedAt).toEqual(updatedAt)
+  })
+
+  it('deve expor a data de arquivamento quando a conta está arquivada (RN024)', () => {
+    const archivedAt = new Date('2026-03-10T12:00:00.000Z')
+    const account = makeAccount({ archivedAt })
+
+    expect(AccountPresenter.toHTTP(account).archivedAt).toEqual(archivedAt)
+  })
+
+  it('deve expor o saldo da conta na listagem (RN021)', () => {
+    const account = makeAccount({ initialBalance: Money.fromCents(15000) })
+
+    const result = AccountPresenter.toListHTTP({ account, balance: Money.fromCents(15000), availableLimit: null })
+
+    expect(result.balance).toEqual({ amountInCents: 15000, formatted: '150.00' })
+    expect(result.creditCard).toBeNull()
+  })
+
+  it('deve expor a conta de cartão de crédito sem saldo e com o limite disponível na listagem (RN022, RN023)', () => {
+    const creditCard = CreditCardSettings.create({ limit: Money.fromCents(500000), closingDay: 20, dueDay: 28 })
+    const account = makeAccount({ creditCard })
+
+    const result = AccountPresenter.toListHTTP({ account, balance: null, availableLimit: Money.fromCents(320000) })
+
+    expect(result.balance).toBeNull()
+    expect(result.creditCard).toEqual({
+      limit: { amountInCents: 500000, formatted: '5000.00' },
+      availableLimit: { amountInCents: 320000, formatted: '3200.00' },
+      closingDay: 20,
+      dueDay: 28,
+    })
+  })
+
+  it('deve expor o limite disponível nulo quando ele não for calculado (RN023)', () => {
+    const creditCard = CreditCardSettings.create({ limit: Money.fromCents(500000), closingDay: 20, dueDay: 28 })
+    const account = makeAccount({ creditCard })
+
+    const result = AccountPresenter.toListHTTP({ account, balance: null, availableLimit: null })
+
+    expect(result.creditCard?.availableLimit).toBeNull()
   })
 })

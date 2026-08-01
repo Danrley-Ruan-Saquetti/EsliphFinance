@@ -15,7 +15,7 @@ API do EsliphFinance. Este documento cobre apenas o backend; o contexto geral do
 | Ambiente         | Docker + Docker Compose            |
 | Comandos         | Makefile                           |
 
-> Estado atual do repositório: a fundação arquitetural está implementada (camadas, `core/`, pipe global de validação, padrão `Either`, aliases), a persistência com Drizzle e o pipeline de migrations estão no ar, e há um **módulo de exemplo** em `src/domain/example` servindo de referência de estrutura — ele não faz parte do domínio real. O primeiro contexto real é `src/domain/user`, com o cadastro de usuário (`POST /users`, RF001), o login (`POST /sessions`, RF002, RN004), a renovação da sessão (`POST /sessions/refresh`, RN006, RN007), o encerramento da sessão (`POST /sessions/logout`, RN008), o guard global de autenticação (RNF005) e a consulta e atualização do perfil (`GET /users/me` e `PUT /users/me`, RN002, RN011). O isolamento dos registros por usuário (RN010, RN011) já é o padrão: fora `/status`, cadastro, login e renovação, toda rota exige token, o dono vem sempre do token e registro alheio responde 404. A alteração de senha (RN009) e a exclusão lógica do usuário (RN012) ainda **não** foram adicionadas. O segundo contexto real é `src/domain/account-group`, com o cadastro do grupo de contas (`POST /account-groups`, RF003, RN015, RN016), a listagem com filtro por tipo (`GET /account-groups`, RN015) e a consulta individual (`GET /account-groups/:id`, RN011); a edição e a exclusão bloqueada por contas vinculadas (RN017) ainda **não** foram adicionadas. O terceiro contexto real é `src/domain/account`, com o cadastro da conta pela mesma rota nos dois tipos de grupo — "Padrão" (`POST /accounts`, RF004, RN018) e "Cartão de Crédito", com limite, dia de fechamento e dia de vencimento (RN019, RN020); a listagem, a consulta, a edição e o arquivamento (RN024, RN025) ainda **não** foram adicionados.
+> Estado atual do repositório: a fundação arquitetural está implementada (camadas, `core/`, pipe global de validação, padrão `Either`, aliases), a persistência com Drizzle e o pipeline de migrations estão no ar, e há um **módulo de exemplo** em `src/domain/example` servindo de referência de estrutura — ele não faz parte do domínio real. O primeiro contexto real é `src/domain/user`, com o cadastro de usuário (`POST /users`, RF001), o login (`POST /sessions`, RF002, RN004), a renovação da sessão (`POST /sessions/refresh`, RN006, RN007), o encerramento da sessão (`POST /sessions/logout`, RN008), o guard global de autenticação (RNF005) e a consulta e atualização do perfil (`GET /users/me` e `PUT /users/me`, RN002, RN011). O isolamento dos registros por usuário (RN010, RN011) já é o padrão: fora `/status`, cadastro, login e renovação, toda rota exige token, o dono vem sempre do token e registro alheio responde 404. A alteração de senha (RN009) e a exclusão lógica do usuário (RN012) ainda **não** foram adicionadas. O segundo contexto real é `src/domain/account-group`, com o cadastro do grupo de contas (`POST /account-groups`, RF003, RN015, RN016), a listagem com filtro por tipo (`GET /account-groups`, RN015) e a consulta individual (`GET /account-groups/:id`, RN011); a edição e a exclusão bloqueada por contas vinculadas (RN017) ainda **não** foram adicionadas. O terceiro contexto real é `src/domain/account`, com o cadastro da conta pela mesma rota nos dois tipos de grupo — "Padrão" (`POST /accounts`, RF004, RN018) e "Cartão de Crédito", com limite, dia de fechamento e dia de vencimento (RN019, RN020) — e a listagem com saldo calculado e filtros (`GET /accounts`, RN021, RN022); a consulta individual, a edição e as operações de arquivamento e exclusão (RN024, RN025) ainda **não** foram adicionadas.
 
 ## Ambiente Docker
 
@@ -370,7 +370,30 @@ As três colunas — `credit_limit`, `closing_day` e `due_day` (migration `0006_
 
 A cor também é conferida pelo schema Zod do controller, para que o erro saia com `details[].field` apontando o campo; o ícone fora do formato só é barrado pela entidade e responde `INVARIANT_VIOLATION` (422).
 
-O saldo corrente (RN021) e o arquivamento (RN024, RN025) ainda não existem — a entidade guarda apenas o saldo inicial.
+### Listagem e saldo
+
+`GET /accounts` (RF004) lista as contas do usuário do token em ordem alfabética de nome, com três filtros opcionais e independentes na query:
+
+| Filtro             | Valores                | Efeito                                                          |
+| ------------------ | ---------------------- | --------------------------------------------------------------- |
+| `accountGroupId`   | UUID                   | Restringe a um grupo                                             |
+| `accountGroupType` | `DEFAULT`, `CREDIT_CARD` | Restringe ao tipo do grupo (RN015); valor fora do domínio é 422 |
+| `archived`         | `true`, `false`        | Só arquivadas ou só ativas; **omitido devolve as duas** (RN024)  |
+
+A resposta é produzida pelo `AccountPresenter.toListHTTP`, que acrescenta ao shape do cadastro os campos que só a listagem calcula. O que cada tipo de conta devolve é excludente, e é o que separa a RN021 da RN022:
+
+| Grupo               | `balance`                                             | `creditCard.availableLimit` |
+| ------------------- | ----------------------------------------------------- | --------------------------- |
+| "Padrão"            | saldo inicial acrescido das transações efetivadas (RN021) | `creditCard` é `null`   |
+| "Cartão de Crédito" | `null` — cartão não tem saldo (RN022)                 | limite menos o consumo (RN023) |
+
+Quem aplica essa distinção é o `ListAccountsUseCase`, a partir do `creditCard` da conta — não o presenter e não o repositório, que devolve o saldo bruto de toda conta pelo `AccountWithBalance`. O saldo é agregado na consulta, nunca em memória: quando as _Transações_ existirem, o `DrizzleAccountsRepository` soma as efetivadas no próprio `select` (`leftJoin` + `groupBy`), e nada muda no caso de uso. Enquanto o contexto de _Transações_ não existe, o saldo é o saldo inicial e o **limite disponível é o limite integral** — a dedução das faturas em aberto e dos lançamentos não faturados (RN023) é a SCRUM-41.
+
+O filtro por tipo de grupo é o motivo do `innerJoin` com `account_groups` na consulta; o filtro de arquivamento vira `IS NULL` / `IS NOT NULL` sobre `archived_at`.
+
+### Arquivamento
+
+A entidade guarda `archivedAt` (coluna `archived_at`, migration `0007_add_archived_at_to_accounts`) e responde `isArchived`, o que basta para o filtro e para a exposição do estado na resposta. **Arquivar e desarquivar ainda não existem como operação** (RN024, RN025) — são a SCRUM-42; hoje a data só entra pelo mapper, vinda do banco.
 
 ## Testes
 
