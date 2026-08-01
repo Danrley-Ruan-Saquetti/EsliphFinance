@@ -37,7 +37,9 @@ As credenciais vêm de variáveis interpoladas (`POSTGRES_USER`, `POSTGRES_PASSW
 
 **Nunca rodar `npm`/`node`/`npx` direto na máquina host.** Tudo executa dentro do container `workspace`, e todo comando é centralizado no `Makefile`.
 
-`make` sem argumento (ou `make help`) imprime a lista completa de alvos — é o índice canônico e deve ser mantido em dia quando um alvo novo entrar.
+`make` sem argumento (ou `make help`) imprime a lista completa de alvos — é o índice canônico e deve ser mantido em dia quando um alvo novo entrar. A partir da raiz do repositório, invoque com `make -C server <alvo>`.
+
+A execução é da skill `stack-runner`: ela conhece o que cada alvo exige do ambiente, o que é destrutivo, as armadilhas (cobertura reprovando `make test`, `test-file` que só alcança unitários, `make dev` sem porta publicada) e o formato de um alvo novo. **Use-a sempre que for rodar qualquer coisa da stack.**
 
 **Dependências**
 

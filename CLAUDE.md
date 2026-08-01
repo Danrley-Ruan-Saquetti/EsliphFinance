@@ -8,7 +8,7 @@ EsliphFinance é um aplicativo de finanças pessoais. O repositório é um monor
 
 | Diretório | O que é |
 | --------- | ------- |
-| `server/` | API backend (NestJS + PostgreSQL, tudo via Docker; nada de `npm` no host — os comandos são alvos do `Makefile`, e `make help` lista todos). **Tem o seu próprio `CLAUDE.md`** com stack, arquitetura e comandos — leia-o antes de mexer em qualquer coisa aqui. |
+| `server/` | API backend (NestJS + PostgreSQL, tudo via Docker; nada de `npm` no host — os comandos são alvos do `Makefile`, e `make help` lista todos; a execução é da skill `stack-runner`). **Tem o seu próprio `CLAUDE.md`** com stack, arquitetura e comandos — leia-o antes de mexer em qualquer coisa aqui. |
 | `mobile/` | Aplicativo Expo / React Native, com scripts npm próprios rodando direto no host. Consulte o diretório para a sua stack e comandos. |
 | `docs/`   | Documentação de produto: `requirements.md` (a especificação) e `open-decisions.md` (o que ainda não foi decidido). Em `domains/`, um arquivo por contexto de `server/src/domain` com o mapa técnico da fatia — arquivos, regras que cada um garante, fronteiras com os vizinhos e o que ainda não existe. Em `architecture/`, um arquivo por eixo transversal do backend — ciclo da requisição, módulos e injeção, blocos de `core/`, persistência, segurança e configuração. |
 | `.github/workflows/` | Pipelines do GitHub Actions. `server-tests.yml` roda os testes unitários e e2e do backend nos pushes e pull requests para `main` e `develop`, direto no Node 22 do runner (sem Docker), com o Postgres como *service container*. |
