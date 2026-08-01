@@ -7,6 +7,7 @@ import { GetAccountGroupUseCase } from '@domain/account-group/application/use-ca
 import { ListAccountGroupsUseCase } from '@domain/account-group/application/use-cases/list-account-groups'
 import { AccountsRepository } from '@domain/account/application/repositories/accounts-repository'
 import { CreateAccountUseCase } from '@domain/account/application/use-cases/create-account'
+import { ListAccountsUseCase } from '@domain/account/application/use-cases/list-accounts'
 import { NotesRepository } from '@domain/example/application/repositories/notes-repository'
 import { CreateNoteUseCase } from '@domain/example/application/use-cases/create-note'
 import { GetNoteUseCase } from '@domain/example/application/use-cases/get-note'
@@ -38,6 +39,7 @@ import { GetNoteController } from '@infra/http/controllers/get-note.controller'
 import { GetUserProfileController } from '@infra/http/controllers/get-user-profile.controller'
 import { HealthController } from '@infra/http/controllers/health.controller'
 import { ListAccountGroupsController } from '@infra/http/controllers/list-account-groups.controller'
+import { ListAccountsController } from '@infra/http/controllers/list-accounts.controller'
 import { RefreshSessionController } from '@infra/http/controllers/refresh-session.controller'
 import { UpdateUserProfileController } from '@infra/http/controllers/update-user-profile.controller'
 import { AllExceptionsFilter } from '@infra/http/filters/all-exceptions-filter'
@@ -62,6 +64,7 @@ import { SecurityHeadersMiddleware } from '@infra/http/middlewares/security-head
     ListAccountGroupsController,
     GetAccountGroupController,
     CreateAccountController,
+    ListAccountsController,
   ],
   providers: [
     {
@@ -149,6 +152,11 @@ import { SecurityHeadersMiddleware } from '@infra/http/middlewares/security-head
       useFactory: (accountsRepository: AccountsRepository, accountGroupsRepository: AccountGroupsRepository) =>
         new CreateAccountUseCase(accountsRepository, accountGroupsRepository),
       inject: [AccountsRepository, AccountGroupsRepository],
+    },
+    {
+      provide: ListAccountsUseCase,
+      useFactory: (accountsRepository: AccountsRepository) => new ListAccountsUseCase(accountsRepository),
+      inject: [AccountsRepository],
     },
   ],
 })

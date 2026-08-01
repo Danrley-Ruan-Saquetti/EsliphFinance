@@ -1,11 +1,18 @@
 import { Injectable } from '@nestjs/common'
-import { eq } from 'drizzle-orm'
+import { and, asc, eq, isNotNull, isNull } from 'drizzle-orm'
 
-import { AccountsRepository } from '@domain/account/application/repositories/accounts-repository'
+import { Money } from '@core/value-objects/money'
+import { AccountWithBalance, AccountsRepository, FindManyAccountsFilters } from '@domain/account/application/repositories/accounts-repository'
 import { Account } from '@domain/account/enterprise/entities/account'
 import { DrizzleService } from '@infra/database/drizzle/drizzle.service'
-import { DrizzleAccountMapper } from '@infra/database/drizzle/mappers/drizzle-account-mapper'
+import { AccountRecord, DrizzleAccountMapper } from '@infra/database/drizzle/mappers/drizzle-account-mapper'
+import { accountGroups } from '@infra/database/drizzle/schemas/account-groups'
 import { accounts } from '@infra/database/drizzle/schemas/accounts'
+
+interface AccountWithBalanceRecord {
+  account: AccountRecord
+  balanceInCents: number
+}
 
 @Injectable()
 export class DrizzleAccountsRepository extends AccountsRepository {
@@ -25,5 +32,32 @@ export class DrizzleAccountsRepository extends AccountsRepository {
     }
 
     return DrizzleAccountMapper.toDomain(record)
+  }
+
+  async findManyByOwnerId(ownerId: string, filters: FindManyAccountsFilters = {}): Promise<AccountWithBalance[]> {
+    const conditions = [eq(accounts.ownerId, ownerId)]
+
+    if (filters.accountGroupId) {
+      conditions.push(eq(accounts.accountGroupId, filters.accountGroupId))
+    }
+    if (filters.accountGroupType) {
+      conditions.push(eq(accountGroups.type, filters.accountGroupType))
+    }
+    if (filters.archived !== undefined) {
+      conditions.push(filters.archived ? isNotNull(accounts.archivedAt) : isNull(accounts.archivedAt))
+    }
+
+    const records = await this.drizzle.db
+      .select({ account: accounts, balanceInCents: accounts.initialBalance })
+      .from(accounts)
+      .innerJoin(accountGroups, eq(accountGroups.id, accounts.accountGroupId))
+      .where(and(...conditions))
+      .orderBy(asc(accounts.name))
+
+    return records.map(record => this.toDomain(record))
+  }
+
+  private toDomain({ account, balanceInCents }: AccountWithBalanceRecord): AccountWithBalance {
+    return { account: DrizzleAccountMapper.toDomain(account), balance: Money.fromCents(balanceInCents) }
   }
 }

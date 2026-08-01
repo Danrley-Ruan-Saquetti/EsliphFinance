@@ -16,8 +16,8 @@ let sut: CreateAccountController
 
 describe('CreateAccountController', () => {
   beforeEach(() => {
-    accountsRepository = new InMemoryAccountsRepository()
     accountGroupsRepository = new InMemoryAccountGroupsRepository()
+    accountsRepository = new InMemoryAccountsRepository(accountGroupsRepository)
     sut = new CreateAccountController(new CreateAccountUseCase(accountsRepository, accountGroupsRepository))
   })
 
@@ -43,6 +43,7 @@ describe('CreateAccountController', () => {
       icon: 'wallet',
       color: '#1E88E5',
       creditCard: null,
+      archivedAt: null,
       createdAt: accountsRepository.items[0].createdAt,
       updatedAt: null,
     })

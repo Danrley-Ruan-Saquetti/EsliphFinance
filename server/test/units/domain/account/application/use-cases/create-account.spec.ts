@@ -16,8 +16,8 @@ let sut: CreateAccountUseCase
 
 describe('Criar conta', () => {
   beforeEach(() => {
-    accountsRepository = new InMemoryAccountsRepository()
     accountGroupsRepository = new InMemoryAccountGroupsRepository()
+    accountsRepository = new InMemoryAccountsRepository(accountGroupsRepository)
     sut = new CreateAccountUseCase(accountsRepository, accountGroupsRepository)
   })
 

@@ -15,6 +15,7 @@ export interface AccountProps {
   creditCard: CreditCardSettings | null
   createdAt: Date
   updatedAt?: Date | null
+  archivedAt?: Date | null
 }
 
 export class Account extends AggregateRoot<AccountProps> {
@@ -112,5 +113,13 @@ export class Account extends AggregateRoot<AccountProps> {
 
   get updatedAt(): Date | null | undefined {
     return this.props.updatedAt
+  }
+
+  get archivedAt(): Date | null | undefined {
+    return this.props.archivedAt
+  }
+
+  get isArchived(): boolean {
+    return Boolean(this.props.archivedAt)
   }
 }
