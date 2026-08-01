@@ -7,13 +7,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { AppModule } from '@app.module'
 import { GetNoteUseCase } from '@domain/example/application/use-cases/get-note'
-import { DrizzleService } from '@infra/database/drizzle/drizzle.service'
-import { accountGroups } from '@infra/database/drizzle/schemas/account-groups'
-import { accounts } from '@infra/database/drizzle/schemas/accounts'
-import { notes } from '@infra/database/drizzle/schemas/notes'
-import { refreshTokens } from '@infra/database/drizzle/schemas/refresh-tokens'
-import { users } from '@infra/database/drizzle/schemas/users'
 import { RequestIdMiddleware } from '@infra/http/middlewares/request-id-middleware'
+import { cleanDatabase } from '@tests/database/clean-database'
 
 async function registerAndAuthenticate(app: INestApplication<App>, name: string, email: string): Promise<string> {
   await request(app.getHttpServer()).post('/users').send({ name, email, password: 'senha-secreta' })
@@ -35,13 +30,7 @@ describe('Contrato de erro da API (e2e)', () => {
     app = moduleFixture.createNestApplication()
     await app.init()
 
-    const drizzle = app.get(DrizzleService)
-
-    await drizzle.db.delete(accounts)
-    await drizzle.db.delete(accountGroups)
-    await drizzle.db.delete(notes)
-    await drizzle.db.delete(refreshTokens)
-    await drizzle.db.delete(users)
+    await cleanDatabase(app)
 
     accessToken = await registerAndAuthenticate(app, 'Fulano de Tal', 'fulano@exemplo.com')
   })

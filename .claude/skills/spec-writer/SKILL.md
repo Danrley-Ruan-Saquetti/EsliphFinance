@@ -204,7 +204,9 @@ O que **não** entra no e2e: variação de regra de negócio, cálculo, edge cas
 
 **Um arquivo de e2e por arquivo de `src/` espelhado**, e não um por recurso: `create-note.controller.e2e-spec.ts` e `get-note.controller.e2e-spec.ts` são arquivos separados, ainda que ambos batam em `/notes`. Um spec que cobre dois controllers deixa de ter caminho espelhado e volta a esconder o que tem teste e o que não tem.
 
-A forma é a dos specs existentes: `Test.createTestingModule({ imports: [AppModule] })`, `app.init()`, limpeza das tabelas usadas no `beforeAll` via `app.get(DrizzleService)`, `app.close()` no `afterAll`, e `request(app.getHttpServer())` do supertest. Quando o cenário exigir um registro preexistente, criá-lo pela própria API é aceitável — é setup, não asserção.
+A forma é a dos specs existentes: `Test.createTestingModule({ imports: [AppModule] })`, `app.init()`, `await cleanDatabase(app)` (`@tests/database/clean-database`) no `beforeAll`, `app.close()` no `afterAll`, e `request(app.getHttpServer())` do supertest. Quando o cenário exigir um registro preexistente, criá-lo pela própria API é aceitável — é setup, não asserção.
+
+O `cleanDatabase` trunca **todas** as tabelas declaradas em `@infra/database/drizzle/schemas`, na ordem que o `CASCADE` resolver. Nenhum spec lista as tabelas que usa: tabela nova entra no `schemas/index.ts` e passa a ser limpa em todo lugar, sem tocar em spec nenhum. Só importe uma tabela no spec quando for consultá-la em uma asserção.
 
 Os e2e exigem banco no ar com as migrations aplicadas (`make db-migrate`), rodam sem coverage e **em série** (`fileParallelism: false`): todos compartilham a mesma instância do Postgres, então dois arquivos limpando a mesma tabela em paralelo produziriam falha intermitente, que é o pior tipo de teste — o que ninguém confia nem investiga.
 

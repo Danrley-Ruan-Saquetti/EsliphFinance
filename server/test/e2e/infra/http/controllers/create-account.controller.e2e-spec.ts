@@ -8,10 +8,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { AppModule } from '@app.module'
 import { DrizzleService } from '@infra/database/drizzle/drizzle.service'
-import { accountGroups } from '@infra/database/drizzle/schemas/account-groups'
 import { accounts } from '@infra/database/drizzle/schemas/accounts'
-import { refreshTokens } from '@infra/database/drizzle/schemas/refresh-tokens'
 import { users } from '@infra/database/drizzle/schemas/users'
+import { cleanDatabase } from '@tests/database/clean-database'
 
 describe('Criar conta (e2e)', () => {
   let app: INestApplication<App>
@@ -31,10 +30,7 @@ describe('Criar conta (e2e)', () => {
 
     drizzle = app.get(DrizzleService)
 
-    await drizzle.db.delete(accounts)
-    await drizzle.db.delete(accountGroups)
-    await drizzle.db.delete(refreshTokens)
-    await drizzle.db.delete(users)
+    await cleanDatabase(app)
 
     await request(app.getHttpServer()).post('/users').send({ name: 'Fulano de Tal', email: 'fulano@exemplo.com', password: 'senha-secreta' })
 
