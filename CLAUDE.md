@@ -8,9 +8,9 @@ EsliphFinance é um aplicativo de finanças pessoais. O repositório é um monor
 
 | Diretório | O que é |
 | --------- | ------- |
-| `server/` | API backend (NestJS + PostgreSQL, tudo via Docker; nada de `npm` no host — os comandos são alvos do `Makefile`, e `make help` lista todos). **Tem o seu próprio `CLAUDE.md`** com stack, arquitetura e comandos — leia-o antes de mexer em qualquer coisa aqui. |
+| `server/` | API backend (NestJS + PostgreSQL, tudo via Docker; nada de `npm` no host — os comandos são alvos do `Makefile`, e `make help` lista todos; a execução é da skill `stack-runner`). **Tem o seu próprio `CLAUDE.md`** com stack, arquitetura e comandos — leia-o antes de mexer em qualquer coisa aqui. |
 | `mobile/` | Aplicativo Expo / React Native, com scripts npm próprios rodando direto no host. Consulte o diretório para a sua stack e comandos. |
-| `docs/`   | Documentação de produto. |
+| `docs/`   | Documentação de produto: `requirements.md` (a especificação) e `open-decisions.md` (o que ainda não foi decidido). Em `domains/`, um arquivo por contexto de `server/src/domain` com o mapa técnico da fatia — arquivos, regras que cada um garante, fronteiras com os vizinhos e o que ainda não existe. Em `architecture/`, um arquivo por eixo transversal do backend — ciclo da requisição, módulos e injeção, blocos de `core/`, persistência, segurança e configuração. |
 | `.github/workflows/` | Pipelines do GitHub Actions. `server-tests.yml` roda os testes unitários e e2e do backend nos pushes e pull requests para `main` e `develop`, direto no Node 22 do runner (sem Docker), com o Postgres como *service container*. |
 
 ## `docs/requirements.md` é a fonte de verdade
@@ -21,7 +21,13 @@ Todo o domínio está especificado em `docs/requirements.md`, em português, com
 - **RNF001…** requisitos não funcionais
 - **RN001…** regras de negócio (a maior parte do documento, agrupada por contexto: usuários, contas, categorias, transações, faturas, repetições, orçamentos, metas, relatórios, notificações)
 
-Antes de implementar qualquer comportamento, localize a RN correspondente — ela costuma conter restrições que não são óbvias pelo nome da feature (exclusão lógica vs. arquivamento, compatibilidade de natureza entre categoria e transação, atribuição de lançamentos a faturas, escopo de edição de séries repetidas). Ao escrever código ou testes, referencie a RN. Se o requisito não cobrir o caso, pergunte em vez de inventar a regra; o documento termina com uma seção **Decisões em Aberto** para pontos ainda indefinidos.
+Antes de implementar qualquer comportamento, localize a RN correspondente — ela costuma conter restrições que não são óbvias pelo nome da feature (exclusão lógica vs. arquivamento, compatibilidade de natureza entre categoria e transação, atribuição de lançamentos a faturas, escopo de edição de séries repetidas). Ao escrever código ou testes, referencie a RN. Se o requisito não cobrir o caso, pergunte em vez de inventar a regra: os pontos ainda indefinidos ficam em `docs/open-decisions.md`, identificados por **DA0xx**, e um item que ainda está lá não tem regra e não deve ser implementado.
+
+A manutenção desses dois documentos é da skill `business-analyst` — use-a sempre que precisar localizar, interpretar, criar ou alterar um requisito.
+
+A contrapartida técnica fica em `docs/domains/`: enquanto `requirements.md` diz o que o produto **deve** fazer, cada arquivo de domínio descreve o que **está construído** naquele contexto — quais arquivos formam a fatia vertical, onde cada RN é aplicada, por onde o contexto conversa com os vizinhos e o que dele ainda não existe. Leia o documento do domínio antes de varrer `server/src` para entender uma feature, e atualize-o no mesmo passo em que o código muda. A manutenção é da skill `domain-architect`.
+
+O que sustenta todos os domínios está em `docs/architecture/`: camadas, blocos de `core/`, módulos e injeção, ciclo da requisição e contrato de erro, persistência, segurança e configuração. A mesma regra vale — leia o eixo antes de varrer `server/src/core` ou `server/src/infra`, e atualize-o no mesmo passo do código. A manutenção é da skill `platform-architect`.
 
 Regras que atravessam os dois projetos e valem sempre:
 

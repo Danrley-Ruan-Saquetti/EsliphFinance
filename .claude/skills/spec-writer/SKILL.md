@@ -7,7 +7,7 @@ description: Como escrever e manter os testes automatizados do EsliphFinance com
 
 O teste aqui não é uma rede de segurança opcional escrita depois: ele é a forma executável de `docs/requirements.md`. As RNs são a especificação do produto, e o único lugar onde elas viram algo verificável é o nome e o corpo de um `it(...)`. É por isso que a regra prática deste projeto é **a implementação serve ao teste**, e não o contrário — quando os dois discordam, a suspeita recai primeiro sobre a implementação.
 
-Esta skill cobre **o que testar, onde colocar e como escrever**. O estilo do código (zero comentários, sem ponto e vírgula, linha em branco antes do `return`) está na skill `clean-code` e vale integralmente dentro dos arquivos de teste. A arquitetura e os comandos estão em `server/CLAUDE.md`.
+Esta skill cobre **o que testar, onde colocar e como escrever**. O estilo do código (zero comentários, sem ponto e vírgula, linha em branco antes do `return`) está na skill `clean-code` e vale integralmente dentro dos arquivos de teste. Os comandos estão em `server/CLAUDE.md`, a arquitetura transversal em `docs/architecture/` (mantida pela skill `platform-architect`), e o mapa do domínio que você vai testar — quais arquivos formam a fatia e onde cada RN é aplicada — está em `docs/domains/`, mantido pela skill `domain-architect`.
 
 ## A pirâmide deste projeto
 
@@ -188,7 +188,7 @@ Cobrir 100% das linhas com um caso feliz por método é fácil e quase inútil. 
 - **Coleção vazia e ausência**: listar sem nenhum registro, buscar id inexistente, campo opcional ausente e `null` — não são a mesma coisa no mapper.
 - **Idempotência e estado repetido**: pagar fatura já paga, arquivar o que já está arquivado, usar duas vezes o token de renovação (RN007).
 
-Quando o comportamento não estiver em nenhuma RN, **pergunte antes de inventar** — `docs/requirements.md` termina com uma seção "Decisões em Aberto", e uma regra chutada dentro de um teste vira especificação de fato sem ninguém ter decidido nada.
+Quando o comportamento não estiver em nenhuma RN, **pergunte antes de inventar** — uma regra chutada dentro de um teste vira especificação de fato sem ninguém ter decidido nada. Quem responde por isso é a skill `business-analyst`, dona de `docs/requirements.md` e de `docs/open-decisions.md`: acione-a para localizar a regra, ou para transformar a lacuna em uma RN nova ou em uma pendência **DA0xx**. Um ponto que ainda está em `docs/open-decisions.md` não tem regra e não deve ganhar teste.
 
 ## E2E: só a comunicação
 

@@ -1,6 +1,6 @@
 ---
 name: clean-code
-description: Padrão de escrita, formatação e design de código do EsliphFinance (server NestJS e mobile Expo) — código sem nenhum comentário, autodescritivo pelos nomes, formatado conforme o eslint.config.mjs e o .prettierrc do projeto. Use SEMPRE que for escrever, alterar, refatorar ou revisar qualquer arquivo TypeScript deste repositório, mesmo que o pedido seja só "cria o use-case X", "adiciona esse campo", "corrige esse bug" ou "arruma o import" — vale tanto antes de escrever, para guiar o design, quanto depois, para revisar o que foi produzido. Também vale quando o pedido mencionar clean code, formatação, nomenclatura, coesão, legibilidade ou remoção de comentários.
+description: Padrão de escrita, formatação e design de código do EsliphFinance (server NestJS e mobile Expo) — código sem nenhum comentário, autodescritivo pelos nomes, formatado conforme o eslint.config.mjs e o .prettierrc do projeto. Use SEMPRE que for escrever, alterar ou refatorar qualquer arquivo TypeScript deste repositório, mesmo que o pedido seja só "cria o use-case X", "adiciona esse campo", "corrige esse bug" ou "arruma o import" — ela vale antes de escrever, para guiar o design, e é a fonte do padrão que a skill `code-reviewer` aplica na revisão. Também vale quando o pedido mencionar clean code, formatação, nomenclatura, coesão, legibilidade ou remoção de comentários. Não é a skill da revisão: "revisa isso", "esse código está bom?" e "o que faltou aqui" são da `code-reviewer`.
 ---
 
 # Clean Code — EsliphFinance
@@ -13,9 +13,9 @@ Vale para `server/` e `mobile/`. O `mobile/` ainda está embrionário e não tem
 
 **Antes de escrever**: leia esta skill inteira e decida os nomes primeiro. Nomes são o mecanismo pelo qual este código se explica — se você precisou de um comentário para justificar um trecho, o nome ainda não está pronto.
 
-**Depois de escrever**: passe pelo [checklist](#checklist) e rode a verificação. Não entregue código que você não formatou.
+**Depois de escrever**: rode a verificação — não entregue código que você não formatou. A revisão é da skill `code-reviewer`, que confronta o código com a RN, a arquitetura e os testes; o [checklist](#checklist) daqui é um dos eixos dela, e o mais raso deles. Estilo verde não significa código correto.
 
-Isto aqui cobre _como_ escrever. A arquitetura — camadas, regra de dependência, onde cada arquivo mora, contratos de use-case e repositório — está em `server/CLAUDE.md`, e as regras de negócio em `docs/requirements.md`. Consulte-os; não duplique o conteúdo deles aqui.
+Isto aqui cobre _como_ escrever. A arquitetura — camadas, regra de dependência, onde cada arquivo mora, contratos de use-case e repositório — está em `server/CLAUDE.md` e, em detalhe, em `docs/architecture/`; as regras de negócio em `docs/requirements.md`. Consulte-os; não duplique o conteúdo deles aqui.
 
 ## Zero comentários
 

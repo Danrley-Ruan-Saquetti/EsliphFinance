@@ -15,7 +15,7 @@ API do EsliphFinance. Este documento cobre apenas o backend; o contexto geral do
 | Ambiente         | Docker + Docker Compose            |
 | Comandos         | Makefile                           |
 
-> Estado atual do repositório: a fundação arquitetural está implementada (camadas, `core/`, pipe global de validação, padrão `Either`, aliases), a persistência com Drizzle e o pipeline de migrations estão no ar, e há um **módulo de exemplo** em `src/domain/example` servindo de referência de estrutura — ele não faz parte do domínio real. O primeiro contexto real é `src/domain/user`, com o cadastro de usuário (`POST /users`, RF001), o login (`POST /sessions`, RF002, RN004), a renovação da sessão (`POST /sessions/refresh`, RN006, RN007), o encerramento da sessão (`POST /sessions/logout`, RN008), o guard global de autenticação (RNF005) e a consulta e atualização do perfil (`GET /users/me` e `PUT /users/me`, RN002, RN011). O isolamento dos registros por usuário (RN010, RN011) já é o padrão: fora `/status`, cadastro, login e renovação, toda rota exige token, o dono vem sempre do token e registro alheio responde 404. A alteração de senha (RN009) e a exclusão lógica do usuário (RN012) ainda **não** foram adicionadas. O segundo contexto real é `src/domain/account-group`, com o cadastro do grupo de contas (`POST /account-groups`, RF003, RN015, RN016), a listagem com filtro por tipo (`GET /account-groups`, RN015) e a consulta individual (`GET /account-groups/:id`, RN011); a edição e a exclusão bloqueada por contas vinculadas (RN017) ainda **não** foram adicionadas. O terceiro contexto real é `src/domain/account`, com o cadastro da conta pela mesma rota nos dois tipos de grupo — "Padrão" (`POST /accounts`, RF004, RN018) e "Cartão de Crédito", com limite, dia de fechamento e dia de vencimento (RN019, RN020) — e a listagem com saldo calculado e filtros (`GET /accounts`, RN021, RN022); a consulta individual, a edição e as operações de arquivamento e exclusão (RN024, RN025) ainda **não** foram adicionadas.
+> Estado atual do repositório: a fundação arquitetural está implementada (camadas, `core/`, pipe de validação, padrão `Either`, aliases), a persistência com Drizzle e o pipeline de migrations estão no ar, e há um **módulo de exemplo** em `src/domain/example` servindo de referência de estrutura — ele não faz parte do domínio real. Os contextos reais implementados são `src/domain/user` (RF001, RF002), `src/domain/account-group` (RF003) e `src/domain/account` (RF004); **o que existe em cada um, o que ainda falta e como eles se ligam está em [`../docs/domains/`](../docs/domains/README.md)**, um arquivo por contexto, e **o que sustenta todos eles está em [`../docs/architecture/`](../docs/architecture/README.md)**, um arquivo por eixo transversal.
 
 ## Ambiente Docker
 
@@ -37,7 +37,9 @@ As credenciais vêm de variáveis interpoladas (`POSTGRES_USER`, `POSTGRES_PASSW
 
 **Nunca rodar `npm`/`node`/`npx` direto na máquina host.** Tudo executa dentro do container `workspace`, e todo comando é centralizado no `Makefile`.
 
-`make` sem argumento (ou `make help`) imprime a lista completa de alvos — é o índice canônico e deve ser mantido em dia quando um alvo novo entrar.
+`make` sem argumento (ou `make help`) imprime a lista completa de alvos — é o índice canônico e deve ser mantido em dia quando um alvo novo entrar. A partir da raiz do repositório, invoque com `make -C server <alvo>`.
+
+A execução é da skill `stack-runner`: ela conhece o que cada alvo exige do ambiente, o que é destrutivo, as armadilhas (cobertura reprovando `make test`, `test-file` que só alcança unitários, `make dev` sem porta publicada) e o formato de um alvo novo. **Use-a sempre que for rodar qualquer coisa da stack.**
 
 **Dependências**
 
@@ -172,228 +174,48 @@ test/
 
 - **Contextos** derivam dos requisitos: usuários/autenticação, grupos de contas, contas, cartões de débito, categorias, tags, transações, faturas, orçamentos, metas, lançamentos favoritos, anexos, relatórios e notificações.
 - **Casos de uso** implementam `UseCase<Request, Response>` (`@core/use-case`): um único método `execute(request)` que retorna `Either<Erro, Sucesso>` — erros esperados de negócio são valor de retorno, não exceção. Exceção fica para falha inesperada e para invariante de domínio violada (`InvariantError`, lançado pela entidade).
-- **Erros** herdam de `BaseError` (`@core/errors/base-error`), expõem um `code` estável em inglês e carregam a mensagem em português (ver [Idioma das mensagens](#idioma-das-mensagens)); a tradução para status HTTP acontece na infraestrutura, nunca dentro do caso de uso — nem no controller, que apenas lança o erro do `Either` e deixa o filtro global responder (ver [Contrato de erro da API](#contrato-de-erro-da-api)).
 - **Casos de uso não recebem `@Injectable()`**: são registrados nos módulos Nest com `useFactory` + `inject`, o que mantém a aplicação livre do framework.
 - **Repositórios** são declarados como classe abstrata em `domain/<ctx>/application/repositories` (a classe abstrata também é o token de injeção) e ligados à implementação em `infra/database/database.module.ts`. O uso no caso de uso é sempre pelo tipo abstrato.
-- **Persistência** passa por `DrizzleService`, o único dono do pool `pg`: ele abre a conexão no `onModuleInit` e a encerra no `onApplicationShutdown`. Nenhum outro arquivo instancia `Pool` ou chama `drizzle()`.
-- **Schema do banco** vive em `infra/database/drizzle/schemas/` e é a fonte das migrations — alterar tabela é editar o schema e rodar `make db-generate NAME=<nome>`, nunca DDL manual nem edição do SQL já aplicado. Esses arquivos usam import relativo entre irmãos, porque o Drizzle Kit os lê fora do build do Nest e não resolve os path aliases.
-- **Mapper** por agregado (`DrizzleNoteMapper`) traduz registro do banco ↔ entidade; o repositório não monta entidade à mão e a entidade não conhece a tabela.
-- **Configuração** vive inteira em `infra/env`: `envSchema` (Zod) declara toda variável, `validateEnv` roda no bootstrap pelo `ConfigModule` e derruba a aplicação com a lista de variáveis ausentes ou inválidas, e o `EnvService` é a única forma de ler uma variável — nada de `process.env` espalhado. Variável nova entra no schema, no `.env.example` e no `docker-compose.yml`, junto (ver [Configuração e segurança de transporte](#configuração-e-segurança-de-transporte)).
-- **Zod** valida nas bordas: corpo/query/params HTTP e variáveis de ambiente. O `ZodValidationPipe` (`@infra/http/pipes/zod-validation-pipe`) recebe o schema no construtor, valida com o locale português do Zod e é aplicado por rota, no parâmetro — `@Body(new ZodValidationPipe(schema)) body: z.infer<typeof schema>` —, então um controller pode ter quantos schemas precisar. A validação de entrada não substitui as invariantes do domínio, que ficam nas entidades.
-- **Dinheiro** é encapsulado no Value Object `Money` sobre inteiro em centavos; nunca `float`, nem em coluna do banco (ver [Valores monetários](#valores-monetários)).
-- **Propriedade do registro** é verificada dentro do caso de uso, não por filtro implícito no repositório: buscar o registro e comparar o dono antes de ler ou alterar. Registro de outro usuário é tratado como **inexistente** (ver [Isolamento dos registros por usuário](#isolamento-dos-registros-por-usuário)).
+- **Schema do banco** vive em `infra/database/drizzle/schemas/` e é a fonte das migrations — alterar tabela é editar o schema e rodar `make db-generate NAME=<nome>`, nunca DDL manual nem edição do SQL já aplicado.
+- **Zod** valida nas bordas: corpo/query/params HTTP e variáveis de ambiente. A validação de entrada não substitui as invariantes do domínio, que ficam nas entidades.
+- **Dinheiro** é encapsulado no Value Object `Money` sobre inteiro em centavos; nunca `float`, nem em coluna do banco (RNF004).
+- **Propriedade do registro** é verificada dentro do caso de uso, não por filtro implícito no repositório: buscar o registro e comparar o dono antes de ler ou alterar. Registro de outro usuário é tratado como **inexistente** (RN011).
 - **Exclusões** são majoritariamente lógicas ou bloqueadas por vínculos — conferir a RN correspondente antes de implementar um delete.
 - **Nomenclatura**: arquivos em kebab-case com sufixo de papel (`create-note.ts`, `notes-repository.ts`, `create-note.controller.ts`, `note-presenter.ts`, `http.module.ts`); um artefato por arquivo, com o nome do arquivo espelhando o do artefato; contextos no singular, repositórios no plural do agregado.
-- **Path aliases**: `@*` → `src/*`, `@tests/*` → `test/*`. Import relativo só entre arquivos irmãos da mesma pasta.
+- **Path aliases**: `@*` → `src/*`, `@tests/*` → `test/*`. Import relativo só entre arquivos irmãos da mesma pasta — com uma exceção obrigatória nos schemas Drizzle, explicada em [`../docs/architecture/persistence.md`](../docs/architecture/persistence.md).
 
-## Contrato de erro da API
+## Plataforma
 
-Toda resposta de erro — validação, regra de negócio ou falha inesperada — sai no mesmo formato, produzido pelo `AllExceptionsFilter` (`@infra/http/filters/all-exceptions-filter`), registrado globalmente com `APP_FILTER` no `HttpModule`:
+O detalhe de como isto está montado — e o **porquê** de cada escolha — está em [`../docs/architecture/`](../docs/architecture/README.md), um arquivo por eixo. Leia o eixo **antes** de varrer `src/core` ou `src/infra`, e atualize-o no mesmo passo do código; é a skill `platform-architect` que responde por esses arquivos.
 
-```json
-{
-  "statusCode": 422,
-  "code": "VALIDATION_FAILED",
-  "message": "Falha na validação",
-  "details": [{ "field": "ownerId", "message": "UUID inválido" }],
-  "path": "/notes",
-  "timestamp": "2026-07-28T12:00:00.000Z",
-  "requestId": "6d0f1a1e-2b6b-4a5f-9a0e-2f2b0e7d51c3"
-}
-```
+| Eixo | Cobre |
+| ---- | ----- |
+| [Ciclo de vida da requisição](../docs/architecture/request-lifecycle.md) | Middlewares em ordem, guard, pipe, controller, presenter, e o **contrato de erro da API**: formato único de resposta, mapa `code` → status, `requestId` |
+| [Módulos e injeção](../docs/architecture/modules-and-di.md) | Grafo dos módulos, `useFactory` + `inject`, classe abstrata como token, ciclo de vida do bootstrap |
+| [Blocos de `core/`](../docs/architecture/core-building-blocks.md) | `Entity`, `ValueObject`, `Either`, `BaseError` e **`Money`** — operações, arredondamento e as três bordas do valor monetário |
+| [Persistência](../docs/architecture/persistence.md) | `DrizzleService`, schemas como fonte das migrations, mappers, repositórios Drizzle e in-memory |
+| [Segurança](../docs/architecture/security.md) | Rota protegida por padrão e `@Public()`, `@CurrentUser()`, **isolamento dos registros por usuário** (RN010, RN011), cryptography |
+| [Configuração](../docs/architecture/configuration.md) | Todas as variáveis de ambiente, o que o schema recusa em produção, e como se lê pelo `EnvService` |
 
-- `code` é o `code` estável do `BaseError`, em inglês, e é o que o app mobile deve consumir para decidir o que fazer — nunca a mensagem, que é texto de apresentação.
-- `message` e `details[].message` são **em português**, prontos para exibição: é a regra de idioma do repositório (ver [Idioma das mensagens](#idioma-das-mensagens)).
-- `details` só aparece em erro de validação, com um item por issue do Zod; `field` é o caminho do campo (`owner.id`) ou a origem do argumento quando o erro não é de um campo específico.
-- `requestId` vem do `RequestIdMiddleware`, que aceita o header `x-request-id` do cliente ou gera um UUID, devolve-o no header da resposta e o repete no corpo.
+Três consequências valem em toda tarefa, mesmo sem abrir os documentos:
 
-| Categoria                 | Origem                                              | Status               |
-| ------------------------- | --------------------------------------------------- | -------------------- |
-| Validação de entrada      | `ValidationError`, lançado pelo `ZodValidationPipe` | 422                  |
-| Invariante de domínio     | `InvariantError`, lançado pela entidade             | 422                  |
-| Registro inexistente **ou de outro usuário** | `ResourceNotFoundError` (RN011)  | 404                  |
-| Operação não permitida sobre registro próprio | `NotAllowedError`               | 403                  |
-| Requisição sem autenticação válida | `UnauthenticatedError` (RNF005)            | 401                  |
-| Credenciais de login inválidas | `InvalidCredentialsError` (RN004)              | 401                  |
-| Conflito com registro existente | `EmailAlreadyInUseError` (RN002, RN014)       | 409                  |
-| Demais erros de negócio   | qualquer `BaseError` sem mapeamento                 | 400                  |
-| Exceção do NestJS         | `HttpException` (rota inexistente, método...)       | o da própria exceção |
-| Falha inesperada          | qualquer outra coisa                                | 500                  |
-
-O mapa código → status vive em `@infra/http/errors/http-status-by-error-code`. Ao criar um erro de negócio novo, herde de `BaseError` com um `code` estável e acrescente a entrada ali se 400 não servir.
-
-Resposta 5xx nunca devolve a mensagem original nem stack trace: o corpo traz `Erro interno do servidor` e o stack vai só para o log, junto de método, rota, status e `requestId`. Erros esperados (4xx) não são logados.
+- **Toda rota nasce autenticada** — o `JwtAuthGuard` é `APP_GUARD`. Abrir uma rota exige `@Public()` e uma justificativa da ordem de "existe para obter credencial".
+- **O dono do registro vem do token, nunca do cliente** — `{ ...body, ownerId: currentUser.id }`, nessa ordem, e registro alheio responde **404**, nunca 403.
+- **Erro vira resposta em um lugar só** — o controller lança o erro do `Either` e o `AllExceptionsFilter` responde. Nada de montar status no controller.
 
 ## Idioma das mensagens
 
 Identificador, nome de arquivo e `code` de erro são em inglês; **toda mensagem que chega ao usuário é em português**, porque o app é para um público brasileiro e o texto da API é exibido como está.
 
 - **Erro de negócio e invariante** recebem a frase pronta no ponto em que são lançados — `new ResourceNotFoundError('Nota não encontrada')`, `new InvariantError('O título da nota não pode ser vazio')`. `ResourceNotFoundError` e `NotAllowedError` levam a mensagem inteira, não um nome de recurso interpolado, justamente para a concordância de gênero sair certa.
-- **Validação de entrada** sai traduzida sem esforço: o `ZodValidationPipe` passa o locale português do Zod (`z.locales.pt()`) em cada `safeParse`, então a mensagem padrão já vem como `UUID inválido` ou `Muito pequeno: esperado que string tivesse >=1 caracteres`. Mensagem customizada em schema (`moneySchema`) também é escrita em português.
-- **Continuam em inglês**, por serem diagnóstico de quem opera a aplicação e não texto de tela: os logs, a validação das variáveis de ambiente (`@infra/env/validate-env`, que derruba o bootstrap) e a mensagem que o próprio Nest gera para `HttpException` de rota inexistente ou método não permitido (`Cannot GET /unknown`) — nesse caso o cliente decide pelo `code`.
+- **Validação de entrada** sai traduzida sem esforço, porque o `ZodValidationPipe` aplica o locale português do Zod. Mensagem customizada em schema também é escrita em português.
+- **Continuam em inglês**, por serem diagnóstico de quem opera a aplicação e não texto de tela: os logs, a validação das variáveis de ambiente (que derruba o bootstrap) e a mensagem que o próprio Nest gera para `HttpException` de rota inexistente ou método não permitido (`Cannot GET /unknown`) — nesse caso o cliente decide pelo `code`.
 
-## Valores monetários
+## Domínios
 
-Todo valor monetário é **inteiro em centavos** (RNF004) da entrada à persistência; as duas casas decimais existem apenas na exibição. `number` cru não circula: quem representa dinheiro é o Value Object `Money` (`@core/value-objects/money`), imutável, que só aceita inteiro seguro em centavos e lança `InvariantError` para fracionário, `NaN`, infinito ou estouro do inteiro seguro.
+O que cada contexto de `src/domain` tem construído — os arquivos que compõem a fatia, as regras que cada um garante, as fronteiras com os vizinhos e o que ainda não existe — está em [`../docs/domains/`](../docs/domains/README.md), um arquivo por contexto: [usuários](../docs/domains/user.md), [grupos de contas](../docs/domains/account-group.md) e [contas](../docs/domains/account.md).
 
-| Operação                    | Comportamento                                                                                       |
-| --------------------------- | --------------------------------------------------------------------------------------------------- |
-| `add` / `subtract`          | Devolvem um novo `Money`; valor negativo é válido (saldo devedor, estorno).                          |
-| `multiply(factor)`          | Aceita fator fracionário e arredonda para o centavo mais próximo, afastando-se do zero (`166.5 → 167`, `-166.5 → -167`). |
-| `allocate(parts)`           | Divisão com rateio: reparte o valor em `parts` inteiras e joga a diferença de arredondamento na **primeira** parte (RN065). A soma das partes é sempre igual ao total. |
-| `toString()`                | Formata com duas casas e ponto decimal (`123456 → "1234.56"`, `-5 → "-0.05"`) — sem símbolo de moeda e sem locale, que são decisão do cliente. |
-
-As três bordas:
-
-- **Entrada** usa o `moneySchema` (`@infra/http/schemas/money-schema`), que valida o inteiro em centavos e já transforma em `Money` — compõe com o `ZodValidationPipe` como qualquer outro schema. Restrição adicional (valor obrigatoriamente positivo, por exemplo) fica em quem usa o schema, não nele.
-- **Persistência** usa a coluna `moneyAmount(name)` (`@infra/database/drizzle/schemas/money-amount`), um `bigint` com `mode: 'number'`. Nenhum campo monetário usa `numeric`, `real` ou `double precision`.
-- **Saída** passa pelo `MoneyPresenter`, que expõe as duas representações no mesmo objeto e sempre com os mesmos nomes:
-
-```json
-{ "amountInCents": 123456, "formatted": "1234.56" }
-```
-
-O app mobile deve calcular sobre `amountInCents` e usar `formatted` só para exibir.
-
-## Configuração e segurança de transporte
-
-| Variável            | Padrão                           | Para que serve                                                         |
-| ------------------- | -------------------------------- | ---------------------------------------------------------------------- |
-| `NODE_ENV`          | `development`                    | `development`, `test` ou `production`; endurece a validação em produção |
-| `PORT`              | `3000`                           | Porta da API                                                           |
-| `DATABASE_URL`      | obrigatória                      | URL de conexão                                                         |
-| `DATABASE_SSL`      | `false`                          | `true` para instâncias gerenciadas em nuvem (RNF003)                   |
-| `DATABASE_POOL_MAX` | `10`                             | Tamanho máximo do pool                                                 |
-| `CORS_ORIGINS`      | `*`                              | Origens aceitas, separadas por vírgula                                 |
-| `ENFORCE_HTTPS`     | `true` em produção, `false` fora | Redireciona HTTP para HTTPS e habilita o HSTS (RNF007)                 |
-| `HSTS_MAX_AGE`      | `31536000`                       | Duração, em segundos, do `Strict-Transport-Security`                   |
-| `JWT_SECRET`        | obrigatória                      | Segredo HS256 de assinatura do token de acesso, mínimo de 32 caracteres (RNF005) |
-| `ACCESS_TOKEN_EXPIRES_IN_SECONDS`  | `900`             | Validade do token de acesso (RN005)                                    |
-| `REFRESH_TOKEN_EXPIRES_IN_SECONDS` | `2592000`         | Validade do token de renovação; precisa ser maior que a do token de acesso (RN006) |
-
-Em `NODE_ENV="production"` o `envSchema` recusa `ENFORCE_HTTPS="false"` e recusa `*` em `CORS_ORIGINS` — as duas coisas derrubam o bootstrap, não geram aviso. Em qualquer ambiente ele também recusa um `REFRESH_TOKEN_EXPIRES_IN_SECONDS` menor ou igual ao `ACCESS_TOKEN_EXPIRES_IN_SECONDS` (RN006).
-
-Três middlewares cuidam do transporte, aplicados no `HttpModule` na ordem `CorsMiddleware → SecurityHeadersMiddleware → RequestIdMiddleware → HttpsRedirectMiddleware`:
-
-- **`CorsMiddleware`** monta a política a partir de `CORS_ORIGINS`, expõe o `x-request-id` e mantém as credenciais de navegador desabilitadas — a autenticação é por Bearer token (RNF005), não por cookie.
-- **`SecurityHeadersMiddleware`** aplica o helmet com CSP `default-src 'none'`, `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy: no-referrer` e `Cross-Origin-Resource-Policy: same-origin`; o `Strict-Transport-Security` só entra com `ENFORCE_HTTPS="true"`.
-- **`HttpsRedirectMiddleware`** decide pelo `x-forwarded-proto` (o TLS termina no proxy, que é obrigado a sobrescrever esse header) com fallback para `request.secure`. Requisição insegura vira **308**, que preserva método e corpo; sem `Host` para onde redirecionar, vira `403 INSECURE_TRANSPORT`.
-
-Nenhum segredo é versionado: só o `.env.example` vai para o repositório, com defaults de desenvolvimento.
-
-## Autenticação
-
-O login (`POST /sessions`, RN004) troca e-mail e senha por um par de tokens. Os dois têm naturezas diferentes de propósito:
-
-- **Token de acesso**: JWT HS256 assinado com `JWT_SECRET`, carregando o id do usuário em `sub` e expiração curta (RN005, RNF005). É autocontido e não é persistido. Quem o emite é a porta `AccessTokenGenerator`, implementada pelo `JwtAccessTokenGenerator`.
-- **Token de renovação**: valor aleatório opaco de 32 bytes em `base64url`, **não** um JWT — ele precisa ser invalidável a qualquer momento (RN007, RN008, RN009, RN013), e um JWT autocontido não permite isso. O que vai para a tabela `refresh_tokens` é o **SHA-256 do token**, nunca o valor entregue ao cliente; a busca posterior é feita pelo mesmo hash. Quem o gera e deriva o hash é a porta `RefreshTokenGenerator`, implementada pelo `CryptoRefreshTokenGenerator`.
-
-A senha é comparada contra o hash armazenado pela porta `HashComparer` (bcrypt), e o `BcryptHasher` implementa tanto ela quanto o `HashGenerator`. E-mail inexistente e senha incorreta devolvem o **mesmo** `InvalidCredentialsError` (401), com a mesma mensagem, para não revelar quais e-mails estão cadastrados.
-
-A renovação (`POST /sessions/refresh`, RN006) recebe o token de renovação em texto e o procura pelo SHA-256; o registro só serve se `isUsable` — nem revogado, nem vencido. A rotação é obrigatória (RN007): o registro encontrado é revogado e persistido **antes** da emissão do par novo, então o token consumido nunca volta a valer e o cliente precisa guardar o token devolvido a cada renovação. Token inexistente, vencido, revogado ou já consumido devolvem o mesmo `InvalidRefreshTokenError` (401). A validade do par vem de `ACCESS_TOKEN_EXPIRES_IN_SECONDS` e `REFRESH_TOKEN_EXPIRES_IN_SECONDS`, e o `envSchema` recusa o bootstrap se a segunda não for maior que a primeira (RN006).
-
-Quem calcula a expiração do token de renovação é a entidade, por `RefreshToken.issue({ userId, tokenHash, expiresInSeconds })` — o login e a renovação emitem pelo mesmo caminho. `RefreshToken.create` fica para reconstruir o registro vindo do banco.
-
-O encerramento (`POST /sessions/logout`, RN008) revoga o token de renovação da sessão informada e só dela — as demais sessões do usuário continuam valendo, porque cada login tem o seu próprio registro em `refresh_tokens`. Diferente do login e da renovação, a rota **não** é pública: quem encerra a sessão está autenticado, e o caso de uso confere que o token de renovação pertence ao usuário do token de acesso (RN011). A resposta é `204` sem corpo e é **idempotente** — token inexistente, já revogado, vencido **ou de outro usuário** encerram sem erro, para que o cliente possa limpar a sessão local sem tratar caso de borda. O token de outro usuário é indistinguível de um inexistente e continua valendo: nenhuma sessão alheia é derrubada, e a resposta não revela que aquele token existe.
-
-### Rota protegida por padrão
-
-O `JwtAuthGuard` (`@infra/auth/jwt-auth-guard`) é registrado como `APP_GUARD` pelo `AuthModule`, então **toda rota nasce autenticada** — RN010 e RN011 dizem que todo registro pertence a um usuário, e uma rota aberta por esquecimento é o erro caro. Abrir uma rota é um ato explícito: `@Public()` (`@infra/auth/public-decorator`) no controller ou no handler. Os únicos públicos são `/status` e as três rotas que existem justamente para obter credencial — `POST /users` (cadastro), `POST /sessions` (login) e `POST /sessions/refresh` (renovação). Rota nova entra protegida; `@Public()` só com uma justificativa dessa ordem.
-
-O guard exige o header `Authorization: Bearer <token de acesso>`, valida a assinatura pela porta `AccessTokenVerifier` — implementada pelo `JwtAccessTokenVerifier`, que confere assinatura, expiração e o formato do `sub` — e anexa `{ id }` à requisição. Header ausente, esquema diferente de `Bearer`, assinatura inválida, token vencido e payload sem identificador de usuário devolvem todos o mesmo `UnauthenticatedError` (401).
-
-O controller lê o usuário autenticado por `@CurrentUser()` (`@infra/auth/current-user-decorator`), que devolve o `AuthenticatedUser` anexado pelo guard e lança `UnauthenticatedError` se ele não estiver lá. O identificador entra no caso de uso como qualquer outro dado de entrada — quem confere a propriedade do registro continua sendo o caso de uso, nunca o guard.
-
-### Isolamento dos registros por usuário
-
-O dono de um registro **nunca** vem do cliente. Não existe `ownerId` em corpo, query ou path: o identificador chega ao caso de uso pelo `@CurrentUser()`. Aceitá-lo do cliente seria deixar qualquer usuário autenticado escrever no acervo alheio.
-
-Duas camadas garantem isso, e as duas são obrigatórias. O schema Zod não declara o campo, então o pipe descarta um `ownerId` que venha no corpo; e o controller monta o objeto com **o spread antes do valor do token** — `{ ...body, ownerId: currentUser.id }`, nunca o inverso —, de modo que o dono do token vença a chave repetida mesmo que ela chegue lá. A ordem importa porque a primeira camada pode mudar sem que ninguém se lembre da segunda.
-
-Acesso a registro de outro usuário responde **`ResourceNotFoundError` (404)**, com a mesma mensagem do registro que não existe — nunca 403. Um 403 confirmaria que aquele identificador existe e pertence a alguém, e essa diferença é enumerável: o cliente legítimo não ganha nada com ela, e quem sonda o acervo alheio ganha um oráculo. Na prática o caso de uso reúne as duas condições em uma guard clause só:
-
-```ts
-const note = await this.notesRepository.findById(noteId)
-
-if (!note || !this.isOwnedBy(note, ownerId)) {
-  return left(new ResourceNotFoundError('Nota não encontrada'))
-}
-```
-
-`NotAllowedError` (403) fica reservado para a operação que o dono do registro não pode executar sobre o que é dele — não para propriedade, que é sempre 404.
-
-Todo caso de uso que lê ou altera um registro entra com teste de acesso cruzado entre dois usuários, citando RN010 e RN011 no nome, tanto no unitário quanto no e2e.
-
-## Perfil do usuário
-
-`GET /users/me` e `PUT /users/me` (RN002, RN011) trabalham sempre sobre o usuário do token, nunca sobre um id vindo da URL — não existe rota de perfil por identificador. Os dois passam pelo `UserPresenter`, que não expõe o hash da senha.
-
-A atualização é uma substituição do perfil editável: `name` e `email` são obrigatórios, e a senha **não** é alterada por aqui (RN009 tem fluxo próprio, com senha atual e invalidação dos tokens de renovação). O e-mail novo é rejeitado com `EmailAlreadyInUseError` quando pertence a outro usuário, inclusive um excluído logicamente (RN014); manter o próprio e-mail é aceito. Usuário inexistente ou excluído logicamente devolve `ResourceNotFoundError` (RN012, RN013), o que também vale para um token de acesso ainda válido de uma conta encerrada.
-
-## Grupos de contas
-
-`GET /account-groups` lista os grupos do usuário do token, em ordem alfabética de nome, e aceita o filtro opcional `?type=DEFAULT|CREDIT_CARD` (RN015) — tipo fora do domínio é 422 pelo `ZodValidationPipe`. `GET /account-groups/:id` devolve um grupo só, e grupo de outro usuário responde 404 como qualquer outro registro alheio (RN010, RN011).
-
-As três rotas do contexto respondem pela mesma representação, produzida pelo `AccountGroupPresenter`, que inclui o campo **`accountsCount`** — a quantidade de contas vinculadas ao grupo, que existe para o cliente antecipar a RN017 (grupo com contas não pode ser excluído) sem uma segunda requisição.
-
-O `accountsCount` é contado no próprio `DrizzleAccountGroupsRepository`, por `leftJoin` com `accounts` agrupado pela chave primária do grupo — uma consulta só, sem N+1 e sem contagem em memória. O `InMemoryAccountGroupsRepository` expõe `accountsCountByAccountGroupId` para que os testes fixem a contagem sem depender de contas reais.
-
-O termo _Conta_ substituiu _Ativo_ na SCRUM-88: o agregado é o contêiner de dinheiro (RN018, RN021), e `Asset` fica reservado ao instrumento negociável de uma eventual carteira de investimentos. A migration `0004_rename_asset_groups_to_account_groups` renomeia a tabela, o enum, o índice e as constraints, sem tocar no SQL já aplicado.
-
-## Contas
-
-`POST /accounts` (RF004, RN018) cadastra a conta com nome, grupo, saldo inicial, ícone e cor. O grupo vem do corpo pelo `accountGroupId` e é validado no caso de uso antes de qualquer coisa: grupo inexistente **ou de outro usuário** devolve `ResourceNotFoundError` (404), como todo registro alheio (RN010, RN011).
-
-A mesma rota cadastra os dois tipos de conta, e é o **tipo do grupo** que decide quais campos valem — por isso a checagem mora no caso de uso, e não no schema Zod: o tipo só se conhece depois de carregar o grupo do banco. A combinação incompatível responde `InvalidAccountGroupTypeError` (`INVALID_ACCOUNT_GROUP_TYPE`, 400) — não é 404, porque o grupo existe e é do usuário; o que não serve é a combinação.
-
-| Grupo              | `initialBalance`                  | `creditCard`                    |
-| ------------------ | --------------------------------- | ------------------------------- |
-| "Padrão"           | opcional, zero quando omitido     | recusado com 400                |
-| "Cartão de Crédito" | recusado — cartão não tem saldo (RN022) | obrigatório (RN019), recusado com 400 quando ausente |
-
-O **saldo inicial** é o `initialBalance`, inteiro em centavos pelo `moneySchema` (RNF004). É opcional e assume zero quando omitido (RN018); valor negativo é aceito, porque saldo devedor é um estado real da conta. A resposta o devolve pelo `MoneyPresenter`, com `amountInCents` e `formatted`.
-
-### Cartão de crédito
-
-O `creditCard` do corpo (`{ limit, closingDay, dueDay }`) vira o Value Object `CreditCardSettings` (RN019), que guarda o limite como `Money` e os dois dias como `BillingDay`. O limite precisa ser maior que zero — cartão sem limite não compra nada, e a RN não define o caso; se o requisito passar a admitir limite zero, a invariante é o único ponto a mudar. Saldo inicial junto de `creditCard` é `InvariantError` (422) na própria entidade `Account`, que é onde a incoerência é detectável sem conhecer o grupo.
-
-`BillingDay` é o dia do ciclo da fatura e existe para carregar a RN020 inteira: aceita só inteiro de 1 a 31 e resolve a data do mês por `resolveForMonth(year, month)`, que **ajusta para o último dia** quando o mês não possui o dia configurado — dia 31 vira 28 em fevereiro de 2026, 29 em 2028 e 30 em abril. A data sai em UTC, para que o dia do calendário não escorregue com o fuso de quem consulta. O intervalo é conferido duas vezes: no schema Zod do controller, para o erro sair com `details[].field` apontando `creditCard.closingDay`, e na criação do VO, que é a garantia de quem chama o domínio por outro caminho (mapper, caso de uso futuro).
-
-As três colunas — `credit_limit`, `closing_day` e `due_day` (migration `0006_add_credit_card_settings_to_accounts`) — são anuláveis e só são preenchidas juntas: o `DrizzleAccountMapper` monta o VO quando as três existem e devolve `null` quando qualquer uma falta. O presenter expõe `creditCard: null` para conta comum, o que mantém o shape da resposta estável nos dois tipos.
-
-**Ícone e cor** não têm formato especificado nos requisitos; o formato adotado é validado como invariante na entidade `Account`:
-
-| Campo   | Formato                                                                 | Ausente                     |
-| ------- | ----------------------------------------------------------------------- | --------------------------- |
-| `icon`  | identificador em kebab-case (`wallet`, `credit-card`), até 60 caracteres, normalizado para minúsculas | assume `Account.DEFAULT_ICON` (`wallet`) |
-| `color` | hexadecimal `#RRGGBB`, normalizada para maiúsculas                       | 422 — é obrigatória          |
-
-A cor também é conferida pelo schema Zod do controller, para que o erro saia com `details[].field` apontando o campo; o ícone fora do formato só é barrado pela entidade e responde `INVARIANT_VIOLATION` (422).
-
-### Listagem e saldo
-
-`GET /accounts` (RF004) lista as contas do usuário do token em ordem alfabética de nome, com três filtros opcionais e independentes na query:
-
-| Filtro             | Valores                | Efeito                                                          |
-| ------------------ | ---------------------- | --------------------------------------------------------------- |
-| `accountGroupId`   | UUID                   | Restringe a um grupo                                             |
-| `accountGroupType` | `DEFAULT`, `CREDIT_CARD` | Restringe ao tipo do grupo (RN015); valor fora do domínio é 422 |
-| `archived`         | `true`, `false`        | Só arquivadas ou só ativas; **omitido devolve as duas** (RN024)  |
-
-A resposta é produzida pelo `AccountPresenter.toListHTTP`, que acrescenta ao shape do cadastro os campos que só a listagem calcula. O que cada tipo de conta devolve é excludente, e é o que separa a RN021 da RN022:
-
-| Grupo               | `balance`                                             | `creditCard.availableLimit` |
-| ------------------- | ----------------------------------------------------- | --------------------------- |
-| "Padrão"            | saldo inicial acrescido das transações efetivadas (RN021) | `creditCard` é `null`   |
-| "Cartão de Crédito" | `null` — cartão não tem saldo (RN022)                 | limite menos o consumo (RN023) |
-
-Quem aplica essa distinção é o `ListAccountsUseCase`, a partir do `creditCard` da conta — não o presenter e não o repositório, que devolve o saldo bruto de toda conta pelo `AccountWithBalance`. O saldo é agregado na consulta, nunca em memória: quando as _Transações_ existirem, o `DrizzleAccountsRepository` soma as efetivadas no próprio `select` (`leftJoin` + `groupBy`), e nada muda no caso de uso. Enquanto o contexto de _Transações_ não existe, o saldo é o saldo inicial e o **limite disponível é o limite integral** — a dedução das faturas em aberto e dos lançamentos não faturados (RN023) é a SCRUM-41.
-
-O filtro por tipo de grupo é o motivo do `innerJoin` com `account_groups` na consulta; o filtro de arquivamento vira `IS NULL` / `IS NOT NULL` sobre `archived_at`.
-
-### Arquivamento
-
-A entidade guarda `archivedAt` (coluna `archived_at`, migration `0007_add_archived_at_to_accounts`) e responde `isArchived`, o que basta para o filtro e para a exposição do estado na resposta. **Arquivar e desarquivar ainda não existem como operação** (RN024, RN025) — são a SCRUM-42; hoje a data só entra pelo mapper, vinda do banco.
+Ao mexer em um domínio, leia o documento dele **antes** de varrer `src/`, e atualize-o no mesmo passo do código — é a skill `domain-architect` que responde por esses arquivos.
 
 ## Testes
 
@@ -403,7 +225,7 @@ A entidade guarda `archivedAt` (coluna `archived_at`, migration `0007_add_archiv
 - **E2E** ficam em `test/e2e/` **no mesmo caminho do arquivo testado em `src/`** — normalmente o controller (`src/infra/http/controllers/get-note.controller.ts` → `test/e2e/infra/http/controllers/get-note.controller.e2e-spec.ts`), um arquivo por controller. Sobem a aplicação Nest e batem no serviço `database` com as migrations já aplicadas (`make db-migrate`). Cada spec chama `await cleanDatabase(app)` (`@tests/database/clean-database`) no `beforeAll`, e os arquivos rodam em série (`fileParallelism: false`) porque compartilham o mesmo banco. O helper enumera as tabelas por `isTable` sobre o `schemas/index.ts` e as trunca com `RESTART IDENTITY CASCADE`, então **tabela nova é limpa sozinha** assim que entra no índice de schemas — nenhum spec lista tabela para limpar, e um spec só importa uma tabela quando for consultá-la em asserção.
 - **Factories** ficam em `test/factories/make-<entidade>.ts`, com assinatura `(override = {}, id?)`, e são a forma padrão de montar entidade em spec — exceto no spec da própria entidade, onde a construção é o que está sob teste.
 - Coverage está habilitado por padrão nos unitários, então qualquer execução grava em `coverage/`. A meta é **100% dos arquivos testáveis**, com o `vitest.config.js` reprovando abaixo de **85%**; ficam fora da conta o bootstrap, os módulos Nest, o `DrizzleService`, os repositórios e schemas Drizzle e os repositórios in-memory.
-- Casos de uso novos entram com teste unitário; o teste deve referenciar a RN que implementa.
+- Casos de uso novos entram com teste unitário; o teste deve referenciar a RN que implementa. Todo caso de uso que lê ou altera registro entra também com teste de acesso cruzado entre dois usuários, citando RN010 e RN011.
 - A skill `spec-writer` (em `.claude/skills/`) traz o padrão completo de escrita dos specs, a lista de edge cases do domínio e o checklist.
 - No CI (`.github/workflows/server-tests.yml`) os testes rodam **sem Docker**: Node 22 via `actions/setup-node` e os scripts npm direto (`npm ci`, `npm test`, `npm run db:migrate`, `npm run test:e2e`), com o Postgres subindo como _service container_ do GitHub Actions em `localhost:5432`. O `Makefile` continua sendo o caminho do desenvolvimento local; ao criar um alvo novo que o CI precise, adicione o script npm equivalente ao workflow. Roda a cada push e pull request para `main` e `develop` que toque em `server/`.
 

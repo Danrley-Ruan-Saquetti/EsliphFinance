@@ -151,7 +151,3 @@
 -   RN080 - O sistema deve notificar o usuário sobre o vencimento de _Faturas_.
 -   RN081 - O sistema deve notificar o usuário sobre as _Transações_ "Previstas" do dia.
 -   RN082 - O sistema deve notificar o usuário quando um _Orçamento_ atingir o percentual configurado ou for ultrapassado.
-
-# Decisões em Aberto
-
--   A recuperação de senha ("esqueci minha senha") está em stand by, aguardando a definição da estratégia de envio de e-mails.
