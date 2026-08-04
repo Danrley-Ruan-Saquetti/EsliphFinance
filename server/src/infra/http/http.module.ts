@@ -8,6 +8,8 @@ import { ListAccountGroupsUseCase } from '@domain/account-group/application/use-
 import { AccountsRepository } from '@domain/account/application/repositories/accounts-repository'
 import { CreateAccountUseCase } from '@domain/account/application/use-cases/create-account'
 import { ListAccountsUseCase } from '@domain/account/application/use-cases/list-accounts'
+import { CategoriesRepository } from '@domain/category/application/repositories/categories-repository'
+import { CreateCategoryUseCase } from '@domain/category/application/use-cases/create-category'
 import { NotesRepository } from '@domain/example/application/repositories/notes-repository'
 import { CreateNoteUseCase } from '@domain/example/application/use-cases/create-note'
 import { GetNoteUseCase } from '@domain/example/application/use-cases/get-note'
@@ -31,6 +33,7 @@ import { EnvService } from '@infra/env/env.service'
 import { AuthenticateUserController } from '@infra/http/controllers/authenticate-user.controller'
 import { CreateAccountGroupController } from '@infra/http/controllers/create-account-group.controller'
 import { CreateAccountController } from '@infra/http/controllers/create-account.controller'
+import { CreateCategoryController } from '@infra/http/controllers/create-category.controller'
 import { CreateNoteController } from '@infra/http/controllers/create-note.controller'
 import { CreateUserController } from '@infra/http/controllers/create-user.controller'
 import { EndSessionController } from '@infra/http/controllers/end-session.controller'
@@ -65,6 +68,7 @@ import { SecurityHeadersMiddleware } from '@infra/http/middlewares/security-head
     GetAccountGroupController,
     CreateAccountController,
     ListAccountsController,
+    CreateCategoryController,
   ],
   providers: [
     {
@@ -157,6 +161,11 @@ import { SecurityHeadersMiddleware } from '@infra/http/middlewares/security-head
       provide: ListAccountsUseCase,
       useFactory: (accountsRepository: AccountsRepository) => new ListAccountsUseCase(accountsRepository),
       inject: [AccountsRepository],
+    },
+    {
+      provide: CreateCategoryUseCase,
+      useFactory: (categoriesRepository: CategoriesRepository) => new CreateCategoryUseCase(categoriesRepository),
+      inject: [CategoriesRepository],
     },
   ],
 })
