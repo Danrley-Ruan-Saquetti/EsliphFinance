@@ -57,6 +57,13 @@
       "when": 1785590342057,
       "tag": "0007_add_archived_at_to_accounts",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1785703165090,
+      "tag": "0008_create_categories_table",
+      "breakpoints": true
     }
   ]
 }
