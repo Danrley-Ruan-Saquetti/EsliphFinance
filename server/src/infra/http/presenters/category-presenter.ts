@@ -4,6 +4,7 @@ export class CategoryPresenter {
   static toHTTP(category: Category) {
     return {
       id: category.id.toString(),
+      parentId: category.parentId?.toString() ?? null,
       name: category.name,
       nature: category.nature,
       icon: category.icon,

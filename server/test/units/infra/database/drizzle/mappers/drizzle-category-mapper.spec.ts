@@ -8,6 +8,7 @@ function makeRecord(override: Partial<CategoryRecord> = {}): CategoryRecord {
   return {
     id: new UniqueEntityID().toString(),
     ownerId: new UniqueEntityID().toString(),
+    parentId: null,
     name: 'Alimentação',
     nature: 'EXPENSE',
     icon: 'restaurant',
@@ -26,6 +27,7 @@ describe('DrizzleCategoryMapper', () => {
 
     expect(category.id.toString()).toBe(record.id)
     expect(category.ownerId.toString()).toBe(record.ownerId)
+    expect(category.parentId).toBeNull()
     expect(category.name).toBe(record.name)
     expect(category.nature).toBe(record.nature)
     expect(category.icon).toBe(record.icon)
@@ -38,6 +40,14 @@ describe('DrizzleCategoryMapper', () => {
     const category = DrizzleCategoryMapper.toDomain(makeRecord({ nature: 'BOTH' }))
 
     expect(category.nature).toBe('BOTH')
+  })
+
+  it('deve converter o registro do banco preservando o vínculo com a categoria pai (RN031)', () => {
+    const parentId = new UniqueEntityID().toString()
+
+    const category = DrizzleCategoryMapper.toDomain(makeRecord({ parentId }))
+
+    expect(category.parentId?.toString()).toBe(parentId)
   })
 
   it('deve converter o registro do banco com data de atualização preenchida', () => {
@@ -56,6 +66,7 @@ describe('DrizzleCategoryMapper', () => {
     expect(record).toEqual({
       id: category.id.toString(),
       ownerId: category.ownerId.toString(),
+      parentId: null,
       name: category.name,
       nature: category.nature,
       icon: category.icon,

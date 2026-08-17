@@ -64,6 +64,13 @@
       "when": 1785703165090,
       "tag": "0008_create_categories_table",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1786990562221,
+      "tag": "0009_add-category-parent-id",
+      "breakpoints": true
     }
   ]
 }

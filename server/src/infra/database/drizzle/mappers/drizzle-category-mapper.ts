@@ -10,6 +10,7 @@ export class DrizzleCategoryMapper {
     return Category.create(
       {
         ownerId: new UniqueEntityID(record.ownerId),
+        parentId: record.parentId ? new UniqueEntityID(record.parentId) : null,
         name: record.name,
         nature: record.nature,
         icon: record.icon,
@@ -25,6 +26,7 @@ export class DrizzleCategoryMapper {
     return {
       id: category.id.toString(),
       ownerId: category.ownerId.toString(),
+      parentId: category.parentId?.toString() ?? null,
       name: category.name,
       nature: category.nature,
       icon: category.icon,

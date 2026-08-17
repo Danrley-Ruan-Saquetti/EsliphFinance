@@ -12,4 +12,10 @@ export class InMemoryCategoriesRepository extends CategoriesRepository {
 
     return Promise.resolve()
   }
+
+  findById(id: string): Promise<Category | null> {
+    const category = this.items.find(item => item.id.toString() === id)
+
+    return Promise.resolve(category ?? null)
+  }
 }

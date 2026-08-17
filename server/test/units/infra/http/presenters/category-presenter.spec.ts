@@ -11,6 +11,7 @@ describe('CategoryPresenter', () => {
 
     expect(result).toEqual({
       id: category.id.toString(),
+      parentId: null,
       name: category.name,
       nature: category.nature,
       icon: category.icon,

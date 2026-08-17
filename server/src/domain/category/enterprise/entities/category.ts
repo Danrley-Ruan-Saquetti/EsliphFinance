@@ -6,6 +6,7 @@ import { CATEGORY_NATURES, CategoryNature } from '@domain/category/enterprise/va
 
 export interface CategoryProps {
   ownerId: UniqueEntityID
+  parentId?: UniqueEntityID | null
   name: string
   nature: CategoryNature
   icon: string
@@ -78,6 +79,10 @@ export class Category extends AggregateRoot<CategoryProps> {
 
   get ownerId(): UniqueEntityID {
     return this.props.ownerId
+  }
+
+  get parentId(): UniqueEntityID | null {
+    return this.props.parentId ?? null
   }
 
   get name(): string {

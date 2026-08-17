@@ -10,6 +10,7 @@ import { ZodValidationPipe } from '@infra/http/pipes/zod-validation-pipe'
 import { CategoryPresenter } from '@infra/http/presenters/category-presenter'
 
 const createCategoryBodySchema = z.object({
+  parentId: z.uuid().optional(),
   name: z.string().min(1).max(Category.NAME_MAX_LENGTH),
   nature: z.enum(CATEGORY_NATURES),
   icon: z.string().min(1).max(Category.ICON_MAX_LENGTH),
@@ -26,6 +27,10 @@ export class CreateCategoryController {
   @HttpCode(201)
   async handle(@CurrentUser() currentUser: AuthenticatedUser, @Body(new ZodValidationPipe(createCategoryBodySchema)) body: CreateCategoryBody) {
     const result = await this.createCategory.execute({ ...body, ownerId: currentUser.id })
+
+    if (result.isLeft()) {
+      throw result.value
+    }
 
     return { category: CategoryPresenter.toHTTP(result.value.category) }
   }

@@ -25,7 +25,7 @@ describe('Headers de segurança (e2e)', () => {
   it('aplica os headers de segurança nas respostas de sucesso', async () => {
     const response = await request(app.getHttpServer()).get('/status')
 
-    expect(response.headers['content-security-policy']).toContain('default-src \'none\'')
+    expect(response.headers['content-security-policy']).toContain("default-src 'none'")
     expect(response.headers['x-content-type-options']).toBe('nosniff')
     expect(response.headers['x-frame-options']).toBe('DENY')
     expect(response.headers['referrer-policy']).toBe('no-referrer')

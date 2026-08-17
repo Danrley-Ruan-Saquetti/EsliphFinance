@@ -94,4 +94,64 @@ describe('Criar categoria (e2e)', () => {
     expect(response.statusCode).toBe(401)
     expect(response.body.code).toBe('UNAUTHENTICATED')
   })
+
+  it('POST /categories vincula a categoria a um pai compatível (RN031)', async () => {
+    const parent = await request(app.getHttpServer())
+      .post('/categories')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ name: 'Alimentação', nature: 'EXPENSE', icon: 'restaurant', color: '#E53935' })
+
+    const response = await request(app.getHttpServer())
+      .post('/categories')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ parentId: parent.body.category.id as string, name: 'Restaurante', nature: 'EXPENSE', icon: 'restaurant', color: '#E53935' })
+
+    expect(response.statusCode).toBe(201)
+    expect(response.body.category.parentId).toBe(parent.body.category.id)
+  })
+
+  it('POST /categories rejeita natureza de subcategoria incompatível com o pai com 400 (RN033)', async () => {
+    const parent = await request(app.getHttpServer())
+      .post('/categories')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ name: 'Alimentação', nature: 'EXPENSE', icon: 'restaurant', color: '#E53935' })
+
+    const response = await request(app.getHttpServer())
+      .post('/categories')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ parentId: parent.body.category.id as string, name: 'Salário', nature: 'INCOME', icon: 'cash', color: '#43A047' })
+
+    expect(response.statusCode).toBe(400)
+    expect(response.body.code).toBe('INCOMPATIBLE_CATEGORY_NATURE')
+  })
+
+  it('POST /categories rejeita vincular a uma categoria que já é subcategoria com 400 (RN032)', async () => {
+    const grandparent = await request(app.getHttpServer())
+      .post('/categories')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ name: 'Alimentação', nature: 'EXPENSE', icon: 'restaurant', color: '#E53935' })
+
+    const parent = await request(app.getHttpServer())
+      .post('/categories')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ parentId: grandparent.body.category.id as string, name: 'Restaurante', nature: 'EXPENSE', icon: 'restaurant', color: '#E53935' })
+
+    const response = await request(app.getHttpServer())
+      .post('/categories')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ parentId: parent.body.category.id as string, name: 'Delivery', nature: 'EXPENSE', icon: 'restaurant', color: '#E53935' })
+
+    expect(response.statusCode).toBe(400)
+    expect(response.body.code).toBe('INVALID_CATEGORY_HIERARCHY')
+  })
+
+  it('POST /categories rejeita categoria pai inexistente com 404', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/categories')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ parentId: randomUUID(), name: 'Restaurante', nature: 'EXPENSE', icon: 'restaurant', color: '#E53935' })
+
+    expect(response.statusCode).toBe(404)
+    expect(response.body.code).toBe('RESOURCE_NOT_FOUND')
+  })
 })

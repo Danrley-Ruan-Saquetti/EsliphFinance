@@ -42,8 +42,8 @@ describe('SecurityHeadersMiddleware', () => {
 
     const { headers, wasCalled } = applyMiddleware(sut)
 
-    expect(headers['Content-Security-Policy']).toContain('default-src \'none\'')
-    expect(headers['Content-Security-Policy']).toContain('frame-ancestors \'none\'')
+    expect(headers['Content-Security-Policy']).toContain("default-src 'none'")
+    expect(headers['Content-Security-Policy']).toContain("frame-ancestors 'none'")
     expect(headers['X-Content-Type-Options']).toBe('nosniff')
     expect(headers['X-Frame-Options']).toBe('DENY')
     expect(headers['Referrer-Policy']).toBe('no-referrer')
