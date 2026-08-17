@@ -71,6 +71,13 @@
       "when": 1786990562221,
       "tag": "0009_add-category-parent-id",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1786992484162,
+      "tag": "0010_add-category-archived-at",
+      "breakpoints": true
     }
   ]
 }

@@ -17,6 +17,7 @@ export class DrizzleCategoryMapper {
         color: record.color,
         createdAt: record.createdAt,
         updatedAt: record.updatedAt,
+        archivedAt: record.archivedAt,
       },
       new UniqueEntityID(record.id),
     )
@@ -33,6 +34,7 @@ export class DrizzleCategoryMapper {
       color: category.color,
       createdAt: category.createdAt,
       updatedAt: category.updatedAt ?? null,
+      archivedAt: category.archivedAt ?? null,
     }
   }
 }

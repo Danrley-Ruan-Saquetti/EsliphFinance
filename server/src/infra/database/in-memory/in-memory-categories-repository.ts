@@ -13,9 +13,33 @@ export class InMemoryCategoriesRepository extends CategoriesRepository {
     return Promise.resolve()
   }
 
+  save(category: Category): Promise<void> {
+    const index = this.items.findIndex(item => item.id.equals(category.id))
+
+    if (index >= 0) {
+      this.items[index] = category
+    }
+
+    return Promise.resolve()
+  }
+
+  delete(id: string): Promise<void> {
+    const index = this.items.findIndex(item => item.id.toString() === id)
+
+    if (index >= 0) {
+      this.items.splice(index, 1)
+    }
+
+    return Promise.resolve()
+  }
+
   findById(id: string): Promise<Category | null> {
     const category = this.items.find(item => item.id.toString() === id)
 
     return Promise.resolve(category ?? null)
+  }
+
+  hasSubcategories(parentId: string): Promise<boolean> {
+    return Promise.resolve(this.items.some(item => item.parentId?.toString() === parentId))
   }
 }

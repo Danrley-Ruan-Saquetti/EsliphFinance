@@ -115,4 +115,31 @@ describe('Category', () => {
     expect(category.createdAt).toEqual(createdAt)
     expect(category.updatedAt).toEqual(updatedAt)
   })
+
+  it('não deve estar arquivada por padrão', () => {
+    const category = Category.create({ ownerId: new UniqueEntityID(), name: 'Alimentação', nature: 'EXPENSE', icon: 'restaurant', color: '#E53935' })
+
+    expect(category.isArchived).toBe(false)
+    expect(category.archivedAt).toBeFalsy()
+  })
+
+  it('deve arquivar a categoria preenchendo archivedAt e updatedAt (RN034)', () => {
+    const category = Category.create({ ownerId: new UniqueEntityID(), name: 'Alimentação', nature: 'EXPENSE', icon: 'restaurant', color: '#E53935' })
+
+    category.archive()
+
+    expect(category.isArchived).toBe(true)
+    expect(category.archivedAt).toBeInstanceOf(Date)
+    expect(category.updatedAt).toBeInstanceOf(Date)
+  })
+
+  it('deve desarquivar a categoria limpando archivedAt (RN083)', () => {
+    const category = Category.create({ ownerId: new UniqueEntityID(), name: 'Alimentação', nature: 'EXPENSE', icon: 'restaurant', color: '#E53935' })
+
+    category.archive()
+    category.unarchive()
+
+    expect(category.isArchived).toBe(false)
+    expect(category.archivedAt).toBeNull()
+  })
 })

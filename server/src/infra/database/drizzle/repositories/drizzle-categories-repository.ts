@@ -17,9 +17,23 @@ export class DrizzleCategoriesRepository extends CategoriesRepository {
     await this.drizzle.db.insert(categories).values(DrizzleCategoryMapper.toPersistence(category))
   }
 
+  async save(category: Category): Promise<void> {
+    await this.drizzle.db.update(categories).set(DrizzleCategoryMapper.toPersistence(category)).where(eq(categories.id, category.id.toString()))
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.drizzle.db.delete(categories).where(eq(categories.id, id))
+  }
+
   async findById(id: string): Promise<Category | null> {
     const [record] = await this.drizzle.db.select().from(categories).where(eq(categories.id, id)).limit(1)
 
     return record ? DrizzleCategoryMapper.toDomain(record) : null
+  }
+
+  async hasSubcategories(parentId: string): Promise<boolean> {
+    const [record] = await this.drizzle.db.select({ id: categories.id }).from(categories).where(eq(categories.parentId, parentId)).limit(1)
+
+    return Boolean(record)
   }
 }

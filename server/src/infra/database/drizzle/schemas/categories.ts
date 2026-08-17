@@ -18,6 +18,7 @@ export const categories = pgTable(
     color: char('color', { length: 7 }).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }),
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
   },
   table => [index('categories_owner_id_index').on(table.ownerId), index('categories_parent_id_index').on(table.parentId)],
 )

@@ -28,6 +28,7 @@ describe('CreateCategoryController', () => {
       color: '#E53935',
       createdAt: categoriesRepository.items[0].createdAt,
       updatedAt: null,
+      archivedAt: null,
     })
   })
 

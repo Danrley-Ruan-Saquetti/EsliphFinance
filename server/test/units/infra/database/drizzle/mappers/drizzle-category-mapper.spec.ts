@@ -15,6 +15,7 @@ function makeRecord(override: Partial<CategoryRecord> = {}): CategoryRecord {
     color: '#E53935',
     createdAt: new Date('2026-01-15T12:00:00.000Z'),
     updatedAt: null,
+    archivedAt: null,
     ...override,
   }
 }
@@ -34,6 +35,7 @@ describe('DrizzleCategoryMapper', () => {
     expect(category.color).toBe(record.color)
     expect(category.createdAt).toEqual(record.createdAt)
     expect(category.updatedAt).toBeNull()
+    expect(category.archivedAt).toBeNull()
   })
 
   it('deve converter o registro do banco com a natureza "Ambas" (RN030)', () => {
@@ -58,6 +60,15 @@ describe('DrizzleCategoryMapper', () => {
     expect(category.updatedAt).toEqual(updatedAt)
   })
 
+  it('deve converter o registro do banco com a categoria arquivada (RN034)', () => {
+    const archivedAt = new Date('2026-03-10T12:00:00.000Z')
+
+    const category = DrizzleCategoryMapper.toDomain(makeRecord({ archivedAt }))
+
+    expect(category.archivedAt).toEqual(archivedAt)
+    expect(category.isArchived).toBe(true)
+  })
+
   it('deve converter a entidade em registro de persistência', () => {
     const category = makeCategory()
 
@@ -73,6 +84,7 @@ describe('DrizzleCategoryMapper', () => {
       color: category.color,
       createdAt: category.createdAt,
       updatedAt: null,
+      archivedAt: null,
     })
   })
 

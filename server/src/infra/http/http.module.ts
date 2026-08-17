@@ -9,7 +9,10 @@ import { AccountsRepository } from '@domain/account/application/repositories/acc
 import { CreateAccountUseCase } from '@domain/account/application/use-cases/create-account'
 import { ListAccountsUseCase } from '@domain/account/application/use-cases/list-accounts'
 import { CategoriesRepository } from '@domain/category/application/repositories/categories-repository'
+import { ArchiveCategoryUseCase } from '@domain/category/application/use-cases/archive-category'
 import { CreateCategoryUseCase } from '@domain/category/application/use-cases/create-category'
+import { DeleteCategoryUseCase } from '@domain/category/application/use-cases/delete-category'
+import { UnarchiveCategoryUseCase } from '@domain/category/application/use-cases/unarchive-category'
 import { NotesRepository } from '@domain/example/application/repositories/notes-repository'
 import { CreateNoteUseCase } from '@domain/example/application/use-cases/create-note'
 import { GetNoteUseCase } from '@domain/example/application/use-cases/get-note'
@@ -45,6 +48,9 @@ import { ListAccountGroupsController } from '@infra/http/controllers/list-accoun
 import { ListAccountsController } from '@infra/http/controllers/list-accounts.controller'
 import { RefreshSessionController } from '@infra/http/controllers/refresh-session.controller'
 import { UpdateUserProfileController } from '@infra/http/controllers/update-user-profile.controller'
+import { ArchiveCategoryController } from '@infra/http/controllers/archive-category.controller'
+import { DeleteCategoryController } from '@infra/http/controllers/delete-category.controller'
+import { UnarchiveCategoryController } from '@infra/http/controllers/unarchive-category.controller'
 import { AllExceptionsFilter } from '@infra/http/filters/all-exceptions-filter'
 import { CorsMiddleware } from '@infra/http/middlewares/cors-middleware'
 import { HttpsRedirectMiddleware } from '@infra/http/middlewares/https-redirect-middleware'
@@ -69,6 +75,9 @@ import { SecurityHeadersMiddleware } from '@infra/http/middlewares/security-head
     CreateAccountController,
     ListAccountsController,
     CreateCategoryController,
+    ArchiveCategoryController,
+    UnarchiveCategoryController,
+    DeleteCategoryController,
   ],
   providers: [
     {
@@ -165,6 +174,21 @@ import { SecurityHeadersMiddleware } from '@infra/http/middlewares/security-head
     {
       provide: CreateCategoryUseCase,
       useFactory: (categoriesRepository: CategoriesRepository) => new CreateCategoryUseCase(categoriesRepository),
+      inject: [CategoriesRepository],
+    },
+    {
+      provide: ArchiveCategoryUseCase,
+      useFactory: (categoriesRepository: CategoriesRepository) => new ArchiveCategoryUseCase(categoriesRepository),
+      inject: [CategoriesRepository],
+    },
+    {
+      provide: UnarchiveCategoryUseCase,
+      useFactory: (categoriesRepository: CategoriesRepository) => new UnarchiveCategoryUseCase(categoriesRepository),
+      inject: [CategoriesRepository],
+    },
+    {
+      provide: DeleteCategoryUseCase,
+      useFactory: (categoriesRepository: CategoriesRepository) => new DeleteCategoryUseCase(categoriesRepository),
       inject: [CategoriesRepository],
     },
   ],

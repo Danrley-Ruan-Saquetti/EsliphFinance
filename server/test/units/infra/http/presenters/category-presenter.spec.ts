@@ -18,6 +18,7 @@ describe('CategoryPresenter', () => {
       color: category.color,
       createdAt: category.createdAt,
       updatedAt: null,
+      archivedAt: null,
     })
   })
 
@@ -32,5 +33,12 @@ describe('CategoryPresenter', () => {
     const category = makeCategory({ updatedAt })
 
     expect(CategoryPresenter.toHTTP(category).updatedAt).toEqual(updatedAt)
+  })
+
+  it('deve expor a data de arquivamento quando a categoria está arquivada (RN034)', () => {
+    const archivedAt = new Date('2026-03-10T12:00:00.000Z')
+    const category = makeCategory({ archivedAt })
+
+    expect(CategoryPresenter.toHTTP(category).archivedAt).toEqual(archivedAt)
   })
 })

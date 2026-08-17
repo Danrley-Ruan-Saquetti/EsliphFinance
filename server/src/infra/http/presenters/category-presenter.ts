@@ -11,6 +11,7 @@ export class CategoryPresenter {
       color: category.color,
       createdAt: category.createdAt,
       updatedAt: category.updatedAt ?? null,
+      archivedAt: category.archivedAt ?? null,
     }
   }
 }
