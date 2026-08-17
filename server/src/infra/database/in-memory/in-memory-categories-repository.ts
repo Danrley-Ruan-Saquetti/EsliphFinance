@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
 
-import { CategoriesRepository } from '@domain/category/application/repositories/categories-repository'
+import { CategoriesRepository, FindManyByOwnerIdOptions } from '@domain/category/application/repositories/categories-repository'
 import { Category } from '@domain/category/enterprise/entities/category'
 
 @Injectable()
@@ -37,6 +37,17 @@ export class InMemoryCategoriesRepository extends CategoriesRepository {
     const category = this.items.find(item => item.id.toString() === id)
 
     return Promise.resolve(category ?? null)
+  }
+
+  findManyByOwnerId(ownerId: string, options: FindManyByOwnerIdOptions = {}): Promise<Category[]> {
+    const found = this.items.filter(
+      item =>
+        item.ownerId.toString() === ownerId &&
+        (!options.nature || item.nature === options.nature || item.nature === Category.BOTH_NATURE) &&
+        (options.includeArchived || !item.isArchived),
+    )
+
+    return Promise.resolve(found)
   }
 
   hasSubcategories(parentId: string): Promise<boolean> {

@@ -41,4 +41,13 @@ describe('CategoryPresenter', () => {
 
     expect(CategoryPresenter.toHTTP(category).archivedAt).toEqual(archivedAt)
   })
+
+  it('deve expor a categoria raiz com as filhas aninhadas (RN031)', () => {
+    const parent = makeCategory({ name: 'Alimentação' })
+    const child = makeCategory({ name: 'Restaurante', parentId: parent.id })
+
+    const result = CategoryPresenter.toTreeHTTP({ category: parent, children: [child] })
+
+    expect(result).toEqual({ ...CategoryPresenter.toHTTP(parent), children: [CategoryPresenter.toHTTP(child)] })
+  })
 })

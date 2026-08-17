@@ -1,3 +1,4 @@
+import { CategoryTreeNode } from '@domain/category/application/use-cases/list-category-tree'
 import { Category } from '@domain/category/enterprise/entities/category'
 
 export class CategoryPresenter {
@@ -13,5 +14,9 @@ export class CategoryPresenter {
       updatedAt: category.updatedAt ?? null,
       archivedAt: category.archivedAt ?? null,
     }
+  }
+
+  static toTreeHTTP(node: CategoryTreeNode) {
+    return { ...CategoryPresenter.toHTTP(node.category), children: node.children.map(child => CategoryPresenter.toHTTP(child)) }
   }
 }

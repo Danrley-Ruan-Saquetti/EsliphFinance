@@ -12,6 +12,7 @@ import { CategoriesRepository } from '@domain/category/application/repositories/
 import { ArchiveCategoryUseCase } from '@domain/category/application/use-cases/archive-category'
 import { CreateCategoryUseCase } from '@domain/category/application/use-cases/create-category'
 import { DeleteCategoryUseCase } from '@domain/category/application/use-cases/delete-category'
+import { ListCategoryTreeUseCase } from '@domain/category/application/use-cases/list-category-tree'
 import { UnarchiveCategoryUseCase } from '@domain/category/application/use-cases/unarchive-category'
 import { NotesRepository } from '@domain/example/application/repositories/notes-repository'
 import { CreateNoteUseCase } from '@domain/example/application/use-cases/create-note'
@@ -50,6 +51,7 @@ import { RefreshSessionController } from '@infra/http/controllers/refresh-sessio
 import { UpdateUserProfileController } from '@infra/http/controllers/update-user-profile.controller'
 import { ArchiveCategoryController } from '@infra/http/controllers/archive-category.controller'
 import { DeleteCategoryController } from '@infra/http/controllers/delete-category.controller'
+import { ListCategoryTreeController } from '@infra/http/controllers/list-category-tree.controller'
 import { UnarchiveCategoryController } from '@infra/http/controllers/unarchive-category.controller'
 import { AllExceptionsFilter } from '@infra/http/filters/all-exceptions-filter'
 import { CorsMiddleware } from '@infra/http/middlewares/cors-middleware'
@@ -78,6 +80,7 @@ import { SecurityHeadersMiddleware } from '@infra/http/middlewares/security-head
     ArchiveCategoryController,
     UnarchiveCategoryController,
     DeleteCategoryController,
+    ListCategoryTreeController,
   ],
   providers: [
     {
@@ -189,6 +192,11 @@ import { SecurityHeadersMiddleware } from '@infra/http/middlewares/security-head
     {
       provide: DeleteCategoryUseCase,
       useFactory: (categoriesRepository: CategoriesRepository) => new DeleteCategoryUseCase(categoriesRepository),
+      inject: [CategoriesRepository],
+    },
+    {
+      provide: ListCategoryTreeUseCase,
+      useFactory: (categoriesRepository: CategoriesRepository) => new ListCategoryTreeUseCase(categoriesRepository),
       inject: [CategoriesRepository],
     },
   ],
