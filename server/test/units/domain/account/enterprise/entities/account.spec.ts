@@ -159,6 +159,69 @@ describe('Account', () => {
     expect(account.isArchived).toBe(true)
   })
 
+  it('deve alterar o nome, o grupo, o saldo inicial, o ícone e a cor da conta (RN018)', () => {
+    const newAccountGroupId = new UniqueEntityID()
+    const account = Account.create({ ownerId: new UniqueEntityID(), accountGroupId: new UniqueEntityID(), name: 'Carteira', color: '#1E88E5' })
+
+    account.update({
+      accountGroupId: newAccountGroupId,
+      name: 'Conta corrente',
+      initialBalance: Money.fromCents(50000),
+      icon: 'bank',
+      color: '#43A047',
+      creditCard: null,
+    })
+
+    expect(account.accountGroupId).toBe(newAccountGroupId)
+    expect(account.name).toBe('Conta corrente')
+    expect(account.initialBalance.amountInCents).toBe(50000)
+    expect(account.icon).toBe('bank')
+    expect(account.color).toBe('#43A047')
+    expect(account.creditCard).toBeNull()
+    expect(account.updatedAt).toBeInstanceOf(Date)
+  })
+
+  it('deve alterar o limite, o dia de fechamento e o dia de vencimento do cartão de crédito (RN019)', () => {
+    const account = Account.create({ ownerId: new UniqueEntityID(), accountGroupId: new UniqueEntityID(), name: 'Cartão', color: '#1E88E5' })
+    const newCreditCard = CreditCardSettings.create({ limit: Money.fromCents(700000), closingDay: 5, dueDay: 12 })
+
+    account.update({
+      accountGroupId: account.accountGroupId,
+      name: account.name,
+      initialBalance: Money.zero(),
+      icon: account.icon,
+      color: account.color,
+      creditCard: newCreditCard,
+    })
+
+    expect(account.creditCard).toBe(newCreditCard)
+    expect(account.initialBalance.amountInCents).toBe(0)
+  })
+
+  it('deve lançar InvariantError quando a atualização informar saldo inicial junto de cartão de crédito (RN022)', () => {
+    const account = Account.create({ ownerId: new UniqueEntityID(), accountGroupId: new UniqueEntityID(), name: 'Cartão', color: '#1E88E5' })
+    const creditCard = CreditCardSettings.create({ limit: Money.fromCents(700000), closingDay: 5, dueDay: 12 })
+
+    expect(() =>
+      account.update({
+        accountGroupId: account.accountGroupId,
+        name: account.name,
+        initialBalance: Money.fromCents(15000),
+        icon: account.icon,
+        color: account.color,
+        creditCard,
+      }),
+    ).toThrow(InvariantError)
+  })
+
+  it('deve lançar InvariantError quando a atualização informar o nome vazio (RN018)', () => {
+    const account = Account.create({ ownerId: new UniqueEntityID(), accountGroupId: new UniqueEntityID(), name: 'Carteira', color: '#1E88E5' })
+
+    expect(() =>
+      account.update({ accountGroupId: account.accountGroupId, name: '   ', initialBalance: Money.zero(), icon: account.icon, color: account.color, creditCard: null }),
+    ).toThrow(InvariantError)
+  })
+
   it('deve arquivar a conta (RN024, RN025)', () => {
     const account = Account.create({ ownerId: new UniqueEntityID(), accountGroupId: new UniqueEntityID(), name: 'Carteira', color: '#1E88E5' })
 

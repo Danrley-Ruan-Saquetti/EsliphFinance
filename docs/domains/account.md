@@ -8,40 +8,42 @@ A _Conta_ é o contêiner de dinheiro do usuário. Ela existe em duas naturezas 
 
 | Artefato | Caminho (a partir de `server/`) | O que só ele sabe |
 | -------- | ------------------------------- | ----------------- |
-| `Account` (agregado) | `src/domain/account/enterprise/entities/account.ts` | Formato de nome, ícone e cor; recusa saldo inicial junto de cartão; `isArchived` derivado de `archivedAt`. `archive()` e `unarchive()` são os únicos métodos de mutação — ambos reversíveis e passam por `touch()`, que atualiza `updatedAt`. |
+| `Account` (agregado) | `src/domain/account/enterprise/entities/account.ts` | Formato de nome, ícone e cor; recusa saldo inicial junto de cartão; `isArchived` derivado de `archivedAt`. `update(props)` reaplica as mesmas validações de `create` e troca nome, grupo, saldo inicial, ícone, cor e cartão de uma vez; `archive()` e `unarchive()` são reversíveis. Os três passam por `touch()`, que atualiza `updatedAt`. |
 | `CreditCardSettings` (VO) | `src/domain/account/enterprise/value-objects/credit-card-settings.ts` | Mantém limite, dia de fechamento e dia de vencimento como um bloco só: os três existem juntos ou nenhum existe (RN019). Limite precisa ser maior que zero. |
 | `BillingDay` (VO) | `src/domain/account/enterprise/value-objects/billing-day.ts` | Carrega a RN020 inteira: aceita 1 a 31 e `resolveForMonth(year, month)` ajusta para o último dia quando o mês não tem o dia configurado. Devolve data em UTC, para o dia não escorregar com fuso. |
 | `AccountsRepository` (porta) | `src/domain/account/application/repositories/accounts-repository.ts` | `create`, `save`, `delete`, `findById` e `findManyByOwnerId(ownerId, filters)`. A listagem devolve `AccountWithBalance` — o saldo vem do repositório, não da entidade, porque é agregação. |
 | `CreateAccountUseCase` | `src/domain/account/application/use-cases/create-account.ts` | Carrega o grupo antes de qualquer coisa e decide a compatibilidade tipo × campos. |
+| `UpdateAccountUseCase` | `src/domain/account/application/use-cases/update-account.ts` | Carrega a conta (dono conferido) e o grupo atual dela; só então carrega o grupo de destino informado no corpo. Recusa a troca quando o tipo do grupo de destino diverge do tipo do grupo atual, e reaplica a mesma checagem tipo × campos do cartão que o `CreateAccountUseCase` usa. Saldo inicial e ícone omitidos no corpo mantêm o valor atual da conta — não voltam ao default de criação. |
 | `ListAccountsUseCase` | `src/domain/account/application/use-cases/list-accounts.ts` | Separa saldo de limite disponível pelo `creditCard` da conta. Devolve `Either<never, ...>` — não tem caminho de erro. |
 | `ArchiveAccountUseCase` | `src/domain/account/application/use-cases/archive-account.ts` | Carrega a conta pelo dono, chama `Account.archive()` e persiste com `save`. Conta alheia ou inexistente é `ResourceNotFoundError` (RN010, RN011). |
 | `UnarchiveAccountUseCase` | `src/domain/account/application/use-cases/unarchive-account.ts` | Espelho do `ArchiveAccountUseCase`, chamando `Account.unarchive()`. |
 | `DeleteAccountUseCase` | `src/domain/account/application/use-cases/delete-account.ts` | Só confere a propriedade do registro e exclui — **não** verifica vínculo com transações, porque o contexto de _Transações_ ainda não existe (ver "Ainda não existe"). |
-| `InvalidAccountGroupTypeError` | `src/domain/account/application/use-cases/errors/invalid-account-group-type-error.ts` | `INVALID_ACCOUNT_GROUP_TYPE`, traduzido para **400**. |
+| `InvalidAccountGroupTypeError` | `src/domain/account/application/use-cases/errors/invalid-account-group-type-error.ts` | `INVALID_ACCOUNT_GROUP_TYPE`, traduzido para **400**. Reaproveitado por `CreateAccountUseCase` e `UpdateAccountUseCase`. |
 | Tabela `accounts` | `src/infra/database/drizzle/schemas/accounts.ts` | Colunas de cartão anuláveis; índices por dono e por grupo. |
-| `DrizzleAccountMapper` | `src/infra/database/drizzle/mappers/drizzle-account-mapper.ts` | Monta o `CreditCardSettings` só quando as três colunas existem; qualquer uma nula devolve `null`. |
+| `DrizzleAccountMapper` | `src/infra/database/drizzle/mappers/drizzle-account-mapper.ts` | Monta o `CreditCardSettings` só quando as três colunas existem; qualquer uma nula devolve `null`. `toPersistence` serve tanto o `insert` de `create` quanto o `update` de `save`. |
 | `DrizzleAccountsRepository` | `src/infra/database/drizzle/repositories/drizzle-accounts-repository.ts` | Todos os filtros em SQL; `innerJoin` com `account_groups` (é o que viabiliza filtrar por tipo); ordena por nome; `save` é um `update` por id, `delete` é um `delete` por id. |
-| `InMemoryAccountsRepository` | `src/infra/database/in-memory/in-memory-accounts-repository.ts` | **Recebe o `InMemoryAccountGroupsRepository` no construtor** — sem ele não dá para filtrar por tipo de grupo. Todo spec do contexto precisa montar os dois. |
+| `InMemoryAccountsRepository` | `src/infra/database/in-memory/in-memory-accounts-repository.ts` | **Recebe o `InMemoryAccountGroupsRepository` no construtor** — sem ele não dá para filtrar por tipo de grupo. Todo spec do contexto precisa montar os dois. `save` substitui o item pelo índice do `id`. |
 | `CreateAccountController` | `src/infra/http/controllers/create-account.controller.ts` | Schema Zod do corpo, incluindo o formato da cor e o intervalo dos dias. |
+| `UpdateAccountController` | `src/infra/http/controllers/update-account.controller.ts` | Mesmo schema Zod do corpo de `CreateAccountController`, mais o `id` da conta nos params. Devolve **200**, não 201. |
 | `ListAccountsController` | `src/infra/http/controllers/list-accounts.controller.ts` | Schema Zod da query com os três filtros. |
 | `ArchiveAccountController` | `src/infra/http/controllers/archive-account.controller.ts` | `PATCH /accounts/:id/archive`, devolve a conta no formato de `AccountPresenter.toHTTP`. |
 | `UnarchiveAccountController` | `src/infra/http/controllers/unarchive-account.controller.ts` | `PATCH /accounts/:id/unarchive`, espelho do controller de arquivamento. |
 | `DeleteAccountController` | `src/infra/http/controllers/delete-account.controller.ts` | `DELETE /accounts/:id`, responde 204 sem corpo. |
-| `AccountPresenter` | `src/infra/http/presenters/account-presenter.ts` | `toHTTP` (cadastro) e `toListHTTP` (listagem, com `balance` e `availableLimit`). |
+| `AccountPresenter` | `src/infra/http/presenters/account-presenter.ts` | `toHTTP` (cadastro e edição) e `toListHTTP` (listagem, com `balance` e `availableLimit`). |
 
 ## Regras que o código garante
 
 | RN | Onde é aplicada | Como falha |
 | -- | --------------- | ---------- |
-| RN018 | `Account.create` (nome, ícone, cor) + schema Zod de `CreateAccountController` | Nome vazio ou acima de 120 caracteres, ícone fora do kebab-case ou cor fora de `#RRGGBB` → `InvariantError` (422). Saldo inicial omitido assume zero; negativo é aceito, porque saldo devedor é estado real. |
-| RN019 | `CreateAccountUseCase` + `CreditCardSettings.create` | Grupo "Cartão de Crédito" sem `creditCard`, ou grupo "Padrão" com `creditCard` → `InvalidAccountGroupTypeError` (400). Limite ≤ 0 → `InvariantError` (422). |
+| RN018 | `Account.create` / `Account.update` (nome, ícone, cor) + schema Zod de `CreateAccountController` e `UpdateAccountController` | Nome vazio ou acima de 120 caracteres, ícone fora do kebab-case ou cor fora de `#RRGGBB` → `InvariantError` (422). Na criação, saldo inicial omitido assume zero; na edição, omitido mantém o saldo atual. Negativo é aceito nos dois casos, porque saldo devedor é estado real. |
+| RN019 | `CreateAccountUseCase` / `UpdateAccountUseCase` + `CreditCardSettings.create` | Grupo "Cartão de Crédito" sem `creditCard`, ou grupo "Padrão" com `creditCard` → `InvalidAccountGroupTypeError` (400). Limite ≤ 0 → `InvariantError` (422). Na edição, troca para um grupo de **tipo diferente** do grupo atual da conta também cai em `InvalidAccountGroupTypeError` (400), antes mesmo de olhar o corpo de `creditCard`. |
 | RN020 | `BillingDay.create` e `BillingDay.resolveForMonth` + schema Zod da rota | Dia fora de 1–31 → 422. O intervalo é conferido nos dois lugares de propósito: o Zod faz o erro sair com `details[].field` apontando `creditCard.closingDay`; o VO garante quem chega pelo mapper ou por um caso de uso futuro. |
 | RN021 | `DrizzleAccountsRepository.findManyByOwnerId` | **Parcial.** O saldo é agregado na consulta, mas hoje a agregação é só o `initial_balance` — _Transações_ ainda não existem como contexto. |
 | RN022 | `Account.validateInitialBalance` e `ListAccountsUseCase` | Saldo inicial diferente de zero junto de `creditCard` → `InvariantError` (422). Na listagem, conta de cartão devolve `balance: null`. |
 | RN023 | `ListAccountsUseCase` | **Parcial.** O `availableLimit` é hoje o limite integral: a dedução das faturas em aberto e dos lançamentos não faturados depende do contexto de _Faturas_. |
 | RN024 | `ArchiveAccountUseCase`, `DeleteAccountUseCase` | Arquivar é reversível via `UnarchiveAccountUseCase`. **Parcial na exclusão**: a conta é excluída sem checar vínculo com transações, porque o contexto de _Transações_ ainda não existe — ver "Ainda não existe". |
 | RN025 | `Account.archivedAt` / `isArchived`, `ArchiveAccountUseCase`, `UnarchiveAccountUseCase` e o filtro `archived` de `ListAccountsUseCase` | Conta arquivada some da listagem quando `archived=false` é passado; segue visível quando o filtro é omitido, preservando o histórico. |
-| RN010, RN011 | `CreateAccountUseCase` (grupo do dono), `findManyByOwnerId`, `ArchiveAccountUseCase`, `UnarchiveAccountUseCase`, `DeleteAccountUseCase` | Grupo ou conta inexistente **ou de outro usuário** → `ResourceNotFoundError` (404), indistinguíveis de propósito. O `ownerId` nunca vem do cliente: sai do `@CurrentUser()`. |
+| RN010, RN011 | `CreateAccountUseCase` (grupo do dono), `UpdateAccountUseCase` (conta e grupos do dono), `findManyByOwnerId`, `ArchiveAccountUseCase`, `UnarchiveAccountUseCase`, `DeleteAccountUseCase` | Grupo ou conta inexistente **ou de outro usuário** → `ResourceNotFoundError` (404), indistinguíveis de propósito. Na edição, conta inexistente ou de outro usuário responde o mesmo 404, antes mesmo de olhar o grupo. O `ownerId` nunca vem do cliente: sai do `@CurrentUser()`. |
 
 ## Fronteiras
 
@@ -71,6 +73,7 @@ Tabela `accounts`, criada pela migration `0005_create_accounts_table` e alterada
 | Rota | Controller | Caso de uso | Respostas |
 | ---- | ---------- | ----------- | --------- |
 | `POST /accounts` | `CreateAccountController` | `CreateAccountUseCase` | 201; 404 grupo inexistente ou alheio; 400 combinação tipo × campos; 422 validação e invariante |
+| `PUT /accounts/:id` | `UpdateAccountController` | `UpdateAccountUseCase` | 200; 404 conta inexistente ou alheia, ou grupo de destino inexistente ou alheio; 400 troca de grupo de tipo diferente ou combinação tipo × campos; 422 validação e invariante. Corpo idêntico ao de `POST /accounts` — **sempre o estado final**, não um diff: `accountGroupId` e `color` são obrigatórios, `initialBalance` e `icon` omitidos mantêm o valor atual da conta |
 | `GET /accounts` | `ListAccountsController` | `ListAccountsUseCase` | 200. Filtros opcionais e independentes: `accountGroupId`, `accountGroupType`, `archived`. **Omitir `archived` devolve arquivadas e ativas** |
 | `PATCH /accounts/:id/archive` | `ArchiveAccountController` | `ArchiveAccountUseCase` | 200 com a conta arquivada; 404 conta inexistente ou alheia |
 | `PATCH /accounts/:id/unarchive` | `UnarchiveAccountController` | `UnarchiveAccountUseCase` | 200 com a conta desarquivada; 404 conta inexistente ou alheia |
@@ -82,7 +85,7 @@ Conta de grupo "Padrão" responde `balance` preenchido e `creditCard: null`; con
 
 | Operação | RN | O que a destrava |
 | -------- | -- | ---------------- |
-| Consulta individual e edição | RN018 | Nada — é só implementar |
+| Consulta individual (`GET /accounts/:id`) | RN018 | Nada. A edição não precisou dela: `UpdateAccountUseCase` carrega a conta pelo `findById` já existente na porta, sem expor um endpoint de leitura própria |
 | Exclusão bloqueada por transações vinculadas | RN024 | Contexto de _Transações_. Hoje `DeleteAccountUseCase` exclui sem checar vínculo — como a tabela de transações não existe, toda conta está de fato sem vínculo, então a checagem seria sempre verdadeira e não foi implementada para não simular um contexto que ainda não existe. Quando _Transações_ nascer, o caso de uso ganha a mesma checagem de `DeleteCategoryUseCase.hasSubcategories`, mas perguntando por transações em vez de subcategorias |
 | Saldo consolidado exclui contas arquivadas (RN077) | RN077 | Endpoint de saldo consolidado ainda não existe — nenhum código deste domínio contraria a regra, só não há o que a aplica |
 | Saldo real (transações efetivadas) | RN021, RN050 | Contexto de _Transações_. A consulta já é o lugar certo: acrescentar `leftJoin` + `groupBy` no `DrizzleAccountsRepository` não muda o caso de uso |
