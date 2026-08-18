@@ -3,6 +3,7 @@ import { APP_FILTER } from '@nestjs/core'
 
 import { AccountGroupsRepository } from '@domain/account-group/application/repositories/account-groups-repository'
 import { CreateAccountGroupUseCase } from '@domain/account-group/application/use-cases/create-account-group'
+import { DeleteAccountGroupUseCase } from '@domain/account-group/application/use-cases/delete-account-group'
 import { GetAccountGroupUseCase } from '@domain/account-group/application/use-cases/get-account-group'
 import { ListAccountGroupsUseCase } from '@domain/account-group/application/use-cases/list-account-groups'
 import { AccountsRepository } from '@domain/account/application/repositories/accounts-repository'
@@ -43,6 +44,7 @@ import { CreateAccountController } from '@infra/http/controllers/create-account.
 import { CreateCategoryController } from '@infra/http/controllers/create-category.controller'
 import { CreateNoteController } from '@infra/http/controllers/create-note.controller'
 import { CreateUserController } from '@infra/http/controllers/create-user.controller'
+import { DeleteAccountGroupController } from '@infra/http/controllers/delete-account-group.controller'
 import { EndSessionController } from '@infra/http/controllers/end-session.controller'
 import { GetAccountGroupController } from '@infra/http/controllers/get-account-group.controller'
 import { GetNoteController } from '@infra/http/controllers/get-note.controller'
@@ -80,6 +82,7 @@ import { SecurityHeadersMiddleware } from '@infra/http/middlewares/security-head
     CreateAccountGroupController,
     ListAccountGroupsController,
     GetAccountGroupController,
+    DeleteAccountGroupController,
     CreateAccountController,
     ListAccountsController,
     ArchiveAccountController,
@@ -170,6 +173,11 @@ import { SecurityHeadersMiddleware } from '@infra/http/middlewares/security-head
     {
       provide: GetAccountGroupUseCase,
       useFactory: (accountGroupsRepository: AccountGroupsRepository) => new GetAccountGroupUseCase(accountGroupsRepository),
+      inject: [AccountGroupsRepository],
+    },
+    {
+      provide: DeleteAccountGroupUseCase,
+      useFactory: (accountGroupsRepository: AccountGroupsRepository) => new DeleteAccountGroupUseCase(accountGroupsRepository),
       inject: [AccountGroupsRepository],
     },
     {
