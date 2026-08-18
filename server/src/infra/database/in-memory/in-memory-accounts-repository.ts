@@ -19,6 +19,26 @@ export class InMemoryAccountsRepository extends AccountsRepository {
     return Promise.resolve()
   }
 
+  save(account: Account): Promise<void> {
+    const index = this.items.findIndex(item => item.id.equals(account.id))
+
+    if (index >= 0) {
+      this.items[index] = account
+    }
+
+    return Promise.resolve()
+  }
+
+  delete(id: string): Promise<void> {
+    const index = this.items.findIndex(item => item.id.toString() === id)
+
+    if (index >= 0) {
+      this.items.splice(index, 1)
+    }
+
+    return Promise.resolve()
+  }
+
   findById(id: string): Promise<Account | null> {
     const account = this.items.find(item => item.id.toString() === id)
 

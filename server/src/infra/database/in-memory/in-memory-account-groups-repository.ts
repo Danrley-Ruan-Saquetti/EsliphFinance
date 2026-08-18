@@ -47,6 +47,18 @@ export class InMemoryAccountGroupsRepository extends AccountGroupsRepository {
     return Promise.resolve(accountGroups.map(accountGroup => this.withAccountsCount(accountGroup)))
   }
 
+  delete(id: string): Promise<void> {
+    const index = this.items.findIndex(item => item.id.toString() === id)
+
+    if (index >= 0) {
+      this.items.splice(index, 1)
+    }
+
+    this.accountsCountByAccountGroupId.delete(id)
+
+    return Promise.resolve()
+  }
+
   private withAccountsCount(accountGroup: AccountGroup): AccountGroupWithAccountsCount {
     return { accountGroup, accountsCount: this.accountsCountByAccountGroupId.get(accountGroup.id.toString()) ?? 0 }
   }

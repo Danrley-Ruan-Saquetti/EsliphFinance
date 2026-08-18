@@ -122,4 +122,33 @@ export class Account extends AggregateRoot<AccountProps> {
   get isArchived(): boolean {
     return Boolean(this.props.archivedAt)
   }
+
+  update(props: { accountGroupId: UniqueEntityID; name: string; initialBalance: Money; icon: string; color: string; creditCard: CreditCardSettings | null }): void {
+    const name = Account.validateName(props.name)
+    const icon = Account.validateIcon(props.icon)
+    const color = Account.validateColor(props.color)
+    const initialBalance = Account.validateInitialBalance(props.initialBalance, props.creditCard)
+
+    this.props.accountGroupId = props.accountGroupId
+    this.props.name = name
+    this.props.icon = icon
+    this.props.color = color
+    this.props.creditCard = props.creditCard
+    this.props.initialBalance = initialBalance
+    this.touch()
+  }
+
+  archive(): void {
+    this.props.archivedAt = new Date()
+    this.touch()
+  }
+
+  unarchive(): void {
+    this.props.archivedAt = null
+    this.touch()
+  }
+
+  private touch(): void {
+    this.props.updatedAt = new Date()
+  }
 }

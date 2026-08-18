@@ -68,6 +68,10 @@ export class DrizzleAccountGroupsRepository extends AccountGroupsRepository {
     return records.map(record => this.toDomain(record))
   }
 
+  async delete(id: string): Promise<void> {
+    await this.drizzle.db.delete(accountGroups).where(eq(accountGroups.id, id))
+  }
+
   private toDomain({ accountGroup, accountsCount }: AccountGroupWithAccountsCountRecord): AccountGroupWithAccountsCount {
     return { accountGroup: DrizzleAccountGroupMapper.toDomain(accountGroup), accountsCount }
   }
