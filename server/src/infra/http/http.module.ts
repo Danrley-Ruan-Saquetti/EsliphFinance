@@ -6,6 +6,7 @@ import { CreateAccountGroupUseCase } from '@domain/account-group/application/use
 import { DeleteAccountGroupUseCase } from '@domain/account-group/application/use-cases/delete-account-group'
 import { GetAccountGroupUseCase } from '@domain/account-group/application/use-cases/get-account-group'
 import { ListAccountGroupsUseCase } from '@domain/account-group/application/use-cases/list-account-groups'
+import { UpdateAccountGroupUseCase } from '@domain/account-group/application/use-cases/update-account-group'
 import { AccountsRepository } from '@domain/account/application/repositories/accounts-repository'
 import { ArchiveAccountUseCase } from '@domain/account/application/use-cases/archive-account'
 import { CreateAccountUseCase } from '@domain/account/application/use-cases/create-account'
@@ -55,6 +56,7 @@ import { ListAccountGroupsController } from '@infra/http/controllers/list-accoun
 import { ListAccountsController } from '@infra/http/controllers/list-accounts.controller'
 import { UpdateAccountController } from '@infra/http/controllers/update-account.controller'
 import { RefreshSessionController } from '@infra/http/controllers/refresh-session.controller'
+import { UpdateAccountGroupController } from '@infra/http/controllers/update-account-group.controller'
 import { UpdateUserProfileController } from '@infra/http/controllers/update-user-profile.controller'
 import { ArchiveAccountController } from '@infra/http/controllers/archive-account.controller'
 import { ArchiveCategoryController } from '@infra/http/controllers/archive-category.controller'
@@ -84,6 +86,7 @@ import { SecurityHeadersMiddleware } from '@infra/http/middlewares/security-head
     CreateAccountGroupController,
     ListAccountGroupsController,
     GetAccountGroupController,
+    UpdateAccountGroupController,
     DeleteAccountGroupController,
     CreateAccountController,
     ListAccountsController,
@@ -176,6 +179,11 @@ import { SecurityHeadersMiddleware } from '@infra/http/middlewares/security-head
     {
       provide: GetAccountGroupUseCase,
       useFactory: (accountGroupsRepository: AccountGroupsRepository) => new GetAccountGroupUseCase(accountGroupsRepository),
+      inject: [AccountGroupsRepository],
+    },
+    {
+      provide: UpdateAccountGroupUseCase,
+      useFactory: (accountGroupsRepository: AccountGroupsRepository) => new UpdateAccountGroupUseCase(accountGroupsRepository),
       inject: [AccountGroupsRepository],
     },
     {

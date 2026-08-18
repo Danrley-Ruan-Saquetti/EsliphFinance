@@ -27,6 +27,13 @@ export class DrizzleAccountGroupsRepository extends AccountGroupsRepository {
     await this.drizzle.db.insert(accountGroups).values(DrizzleAccountGroupMapper.toPersistence(accountGroup))
   }
 
+  async save(accountGroup: AccountGroup): Promise<void> {
+    await this.drizzle.db
+      .update(accountGroups)
+      .set(DrizzleAccountGroupMapper.toPersistence(accountGroup))
+      .where(eq(accountGroups.id, accountGroup.id.toString()))
+  }
+
   async findById(id: string): Promise<AccountGroupWithAccountsCount | null> {
     const [record] = await this.drizzle.db
       .select({ accountGroup: accountGroups, accountsCount: count(accounts.id) })

@@ -64,4 +64,18 @@ export class AccountGroup extends AggregateRoot<AccountGroupProps> {
   get updatedAt(): Date | null | undefined {
     return this.props.updatedAt
   }
+
+  changeName(name: string): void {
+    this.props.name = AccountGroup.validateName(name)
+    this.touch()
+  }
+
+  changeType(type: AccountGroupType): void {
+    this.props.type = AccountGroup.validateType(type)
+    this.touch()
+  }
+
+  private touch(): void {
+    this.props.updatedAt = new Date()
+  }
 }
