@@ -4,7 +4,7 @@ import helmet from 'helmet'
 
 import { EnvService } from '@infra/env/env.service'
 
-const NO_SOURCE = '\'none\''
+const NO_SOURCE = "'none'"
 
 type StrictTransportSecurity = { maxAge: number; includeSubDomains: boolean; preload: boolean }
 

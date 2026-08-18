@@ -33,6 +33,18 @@ postgresql://postgres:postgres@database:5432/esliph_finance
 
 As credenciais vêm de variáveis interpoladas (`POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `POSTGRES_PORT`) com defaults de desenvolvimento, então o ambiente sobe sem configuração nenhuma. Para sobrescrever, copie `.env.example` para `.env` — o Compose lê esse arquivo automaticamente.
 
+Nenhum serviço fixa `container_name`: quem batiza os containers é o Compose, a partir do nome do projeto (`esliph-finance-database-1`). Isso é o que permite **um stack por cópia de trabalho**. O nome do projeto é `esliph-finance${STACK_SUFFIX:-}`, e como o Compose prefixa volumes e redes com ele, definir `STACK_SUFFIX` no `.env` de um worktree dá a ele um banco, um volume e uma rede próprios:
+
+```sh
+# server/.env de um worktree
+STACK_SUFFIX="-scrum-46"   # projeto esliph-finance-scrum-46, volume ..._postgres-data
+POSTGRES_PORT="5441"       # a porta publicada precisa ser única entre stacks simultâneos
+```
+
+Sem `STACK_SUFFIX` o nome continua sendo `esliph-finance` e nada muda. **Worktree sem `.env` próprio compartilha o banco da raiz** — e como cada spec e2e trunca as tabelas com `RESTART IDENTITY CASCADE`, duas suítes simultâneas derrubam os dados uma da outra. Referir-se ao banco pelo serviço (`docker compose exec database`) continua funcionando em qualquer stack; é por isso que `db-cli`, `db-dump` e `db-restore` não precisaram mudar.
+
+`make db-studio` é o único alvo que publica porta fixa (`STUDIO_PORT`, padrão `4983`); para abrir dois ao mesmo tempo, passe `make db-studio STUDIO_PORT=4984`.
+
 ## Execução — sempre via Docker + Makefile
 
 **Nunca rodar `npm`/`node`/`npx` direto na máquina host.** Tudo executa dentro do container `workspace`, e todo comando é centralizado no `Makefile`.

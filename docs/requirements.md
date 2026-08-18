@@ -77,6 +77,8 @@
 -   RN033 - A subcategoria deve possuir **natureza** compatível com a **categoria** à qual está vinculada.
 -   RN034 - A _Categoria_ não pode ser excluída quando possuir _Transações_ ou subcategorias vinculadas, podendo ser arquivada.
 -   RN035 - A _Categoria_ arquivada não deve ser exibida para seleção em novos lançamentos, preservando o histórico existente.
+-   RN083 - A _Categoria_ arquivada pode ser desarquivada, voltando a ser exibida para seleção em novos lançamentos.
+-   RN084 - A subcategoria de uma _Categoria_ arquivada não deve ser exibida para seleção em novos lançamentos, ainda que não esteja arquivada.
 
 ## Tags
 

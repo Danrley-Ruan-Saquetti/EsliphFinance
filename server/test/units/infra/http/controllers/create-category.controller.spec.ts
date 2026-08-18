@@ -21,12 +21,14 @@ describe('CreateCategoryController', () => {
 
     expect(response.category).toEqual({
       id: categoriesRepository.items[0].id.toString(),
+      parentId: null,
       name: 'Alimentação',
       nature: 'EXPENSE',
       icon: 'restaurant',
       color: '#E53935',
       createdAt: categoriesRepository.items[0].createdAt,
       updatedAt: null,
+      archivedAt: null,
     })
   })
 

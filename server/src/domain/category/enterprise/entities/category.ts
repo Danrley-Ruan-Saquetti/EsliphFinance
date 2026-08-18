@@ -6,12 +6,14 @@ import { CATEGORY_NATURES, CategoryNature } from '@domain/category/enterprise/va
 
 export interface CategoryProps {
   ownerId: UniqueEntityID
+  parentId?: UniqueEntityID | null
   name: string
   nature: CategoryNature
   icon: string
   color: string
   createdAt: Date
   updatedAt?: Date | null
+  archivedAt?: Date | null
 }
 
 export class Category extends AggregateRoot<CategoryProps> {
@@ -80,6 +82,10 @@ export class Category extends AggregateRoot<CategoryProps> {
     return this.props.ownerId
   }
 
+  get parentId(): UniqueEntityID | null {
+    return this.props.parentId ?? null
+  }
+
   get name(): string {
     return this.props.name
   }
@@ -102,5 +108,27 @@ export class Category extends AggregateRoot<CategoryProps> {
 
   get updatedAt(): Date | null | undefined {
     return this.props.updatedAt
+  }
+
+  get archivedAt(): Date | null | undefined {
+    return this.props.archivedAt
+  }
+
+  get isArchived(): boolean {
+    return Boolean(this.props.archivedAt)
+  }
+
+  archive(): void {
+    this.props.archivedAt = new Date()
+    this.touch()
+  }
+
+  unarchive(): void {
+    this.props.archivedAt = null
+    this.touch()
+  }
+
+  private touch(): void {
+    this.props.updatedAt = new Date()
   }
 }

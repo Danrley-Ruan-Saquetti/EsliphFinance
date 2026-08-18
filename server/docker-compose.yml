@@ -1,9 +1,12 @@
-name: esliph-finance
+# O sufixo isola o stack por cópia de trabalho: cada worktree define o seu
+# STACK_SUFFIX no .env e ganha containers, volume e rede próprios, porque o
+# Compose prefixa uns e outros com o nome do projeto. Sem a variável, o nome
+# continua sendo esliph-finance e nada muda para quem trabalha só na raiz.
+name: esliph-finance${STACK_SUFFIX:-}
 
 services:
   workspace:
     image: node:22-bookworm
-    container_name: workspace
     working_dir: /workspace
     stdin_open: true
     tty: true
@@ -47,7 +50,6 @@ services:
 
   database:
     image: postgres:17-alpine
-    container_name: database
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}

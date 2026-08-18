@@ -7,6 +7,10 @@ NAME ?=
 ARGS ?=
 DUMP ?= .tmp/backup.sql
 
+# Porta publicada pelo Drizzle Studio. É o único alvo que publica porta fixa, então
+# worktrees que abram o Studio ao mesmo tempo precisam de valores diferentes.
+STUDIO_PORT ?= 4983
+
 help:
 	@echo "Dependências"
 	@echo "  make deps                 Instala as dependências (npm install)"
@@ -55,7 +59,8 @@ help:
 	@echo "  make db-generate NAME=<nome>  Gera uma migration a partir do schema"
 	@echo "  make db-migrate           Aplica as migrations pendentes"
 	@echo "  make db-check             Verifica conflitos entre as migrations"
-	@echo "  make db-studio            Abre o Drizzle Studio em http://localhost:4983"
+	@echo "  make db-studio            Abre o Drizzle Studio em http://localhost:$(STUDIO_PORT)"
+	@echo "                            Use STUDIO_PORT=<porta> para abrir mais de um ao mesmo tempo"
 .PHONY: help
 
 # --- Dependências ---------------------------------------------------------
@@ -216,5 +221,5 @@ db-check:
 .PHONY: db-check
 
 db-studio:
-	docker compose run --rm --publish 4983:4983 workspace npm run db:studio
+	docker compose run --rm --publish $(STUDIO_PORT):4983 workspace npm run db:studio
 .PHONY: db-studio

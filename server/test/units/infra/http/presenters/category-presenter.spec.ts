@@ -11,12 +11,14 @@ describe('CategoryPresenter', () => {
 
     expect(result).toEqual({
       id: category.id.toString(),
+      parentId: null,
       name: category.name,
       nature: category.nature,
       icon: category.icon,
       color: category.color,
       createdAt: category.createdAt,
       updatedAt: null,
+      archivedAt: null,
     })
   })
 
@@ -31,5 +33,21 @@ describe('CategoryPresenter', () => {
     const category = makeCategory({ updatedAt })
 
     expect(CategoryPresenter.toHTTP(category).updatedAt).toEqual(updatedAt)
+  })
+
+  it('deve expor a data de arquivamento quando a categoria está arquivada (RN034)', () => {
+    const archivedAt = new Date('2026-03-10T12:00:00.000Z')
+    const category = makeCategory({ archivedAt })
+
+    expect(CategoryPresenter.toHTTP(category).archivedAt).toEqual(archivedAt)
+  })
+
+  it('deve expor a categoria raiz com as filhas aninhadas (RN031)', () => {
+    const parent = makeCategory({ name: 'Alimentação' })
+    const child = makeCategory({ name: 'Restaurante', parentId: parent.id })
+
+    const result = CategoryPresenter.toTreeHTTP({ category: parent, children: [child] })
+
+    expect(result).toEqual({ ...CategoryPresenter.toHTTP(parent), children: [CategoryPresenter.toHTTP(child)] })
   })
 })
