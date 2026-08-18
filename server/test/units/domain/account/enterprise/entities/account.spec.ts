@@ -221,4 +221,25 @@ describe('Account', () => {
       account.update({ accountGroupId: account.accountGroupId, name: '   ', initialBalance: Money.zero(), icon: account.icon, color: account.color, creditCard: null }),
     ).toThrow(InvariantError)
   })
+
+  it('deve arquivar a conta (RN024, RN025)', () => {
+    const account = Account.create({ ownerId: new UniqueEntityID(), accountGroupId: new UniqueEntityID(), name: 'Carteira', color: '#1E88E5' })
+
+    account.archive()
+
+    expect(account.isArchived).toBe(true)
+    expect(account.archivedAt).toBeInstanceOf(Date)
+    expect(account.updatedAt).toBeInstanceOf(Date)
+  })
+
+  it('deve desarquivar a conta, revertendo o arquivamento (RN024, RN025)', () => {
+    const account = Account.create({ ownerId: new UniqueEntityID(), accountGroupId: new UniqueEntityID(), name: 'Carteira', color: '#1E88E5' })
+
+    account.archive()
+    account.unarchive()
+
+    expect(account.isArchived).toBe(false)
+    expect(account.archivedAt).toBeNull()
+    expect(account.updatedAt).toBeInstanceOf(Date)
+  })
 })

@@ -138,6 +138,16 @@ export class Account extends AggregateRoot<AccountProps> {
     this.touch()
   }
 
+  archive(): void {
+    this.props.archivedAt = new Date()
+    this.touch()
+  }
+
+  unarchive(): void {
+    this.props.archivedAt = null
+    this.touch()
+  }
+
   private touch(): void {
     this.props.updatedAt = new Date()
   }

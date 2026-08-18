@@ -3,11 +3,15 @@ import { APP_FILTER } from '@nestjs/core'
 
 import { AccountGroupsRepository } from '@domain/account-group/application/repositories/account-groups-repository'
 import { CreateAccountGroupUseCase } from '@domain/account-group/application/use-cases/create-account-group'
+import { DeleteAccountGroupUseCase } from '@domain/account-group/application/use-cases/delete-account-group'
 import { GetAccountGroupUseCase } from '@domain/account-group/application/use-cases/get-account-group'
 import { ListAccountGroupsUseCase } from '@domain/account-group/application/use-cases/list-account-groups'
 import { AccountsRepository } from '@domain/account/application/repositories/accounts-repository'
+import { ArchiveAccountUseCase } from '@domain/account/application/use-cases/archive-account'
 import { CreateAccountUseCase } from '@domain/account/application/use-cases/create-account'
+import { DeleteAccountUseCase } from '@domain/account/application/use-cases/delete-account'
 import { ListAccountsUseCase } from '@domain/account/application/use-cases/list-accounts'
+import { UnarchiveAccountUseCase } from '@domain/account/application/use-cases/unarchive-account'
 import { UpdateAccountUseCase } from '@domain/account/application/use-cases/update-account'
 import { CategoriesRepository } from '@domain/category/application/repositories/categories-repository'
 import { ArchiveCategoryUseCase } from '@domain/category/application/use-cases/archive-category'
@@ -41,6 +45,7 @@ import { CreateAccountController } from '@infra/http/controllers/create-account.
 import { CreateCategoryController } from '@infra/http/controllers/create-category.controller'
 import { CreateNoteController } from '@infra/http/controllers/create-note.controller'
 import { CreateUserController } from '@infra/http/controllers/create-user.controller'
+import { DeleteAccountGroupController } from '@infra/http/controllers/delete-account-group.controller'
 import { EndSessionController } from '@infra/http/controllers/end-session.controller'
 import { GetAccountGroupController } from '@infra/http/controllers/get-account-group.controller'
 import { GetNoteController } from '@infra/http/controllers/get-note.controller'
@@ -51,9 +56,12 @@ import { ListAccountsController } from '@infra/http/controllers/list-accounts.co
 import { UpdateAccountController } from '@infra/http/controllers/update-account.controller'
 import { RefreshSessionController } from '@infra/http/controllers/refresh-session.controller'
 import { UpdateUserProfileController } from '@infra/http/controllers/update-user-profile.controller'
+import { ArchiveAccountController } from '@infra/http/controllers/archive-account.controller'
 import { ArchiveCategoryController } from '@infra/http/controllers/archive-category.controller'
+import { DeleteAccountController } from '@infra/http/controllers/delete-account.controller'
 import { DeleteCategoryController } from '@infra/http/controllers/delete-category.controller'
 import { ListCategoryTreeController } from '@infra/http/controllers/list-category-tree.controller'
+import { UnarchiveAccountController } from '@infra/http/controllers/unarchive-account.controller'
 import { UnarchiveCategoryController } from '@infra/http/controllers/unarchive-category.controller'
 import { AllExceptionsFilter } from '@infra/http/filters/all-exceptions-filter'
 import { CorsMiddleware } from '@infra/http/middlewares/cors-middleware'
@@ -76,9 +84,13 @@ import { SecurityHeadersMiddleware } from '@infra/http/middlewares/security-head
     CreateAccountGroupController,
     ListAccountGroupsController,
     GetAccountGroupController,
+    DeleteAccountGroupController,
     CreateAccountController,
     ListAccountsController,
     UpdateAccountController,
+    ArchiveAccountController,
+    UnarchiveAccountController,
+    DeleteAccountController,
     CreateCategoryController,
     ArchiveCategoryController,
     UnarchiveCategoryController,
@@ -167,6 +179,11 @@ import { SecurityHeadersMiddleware } from '@infra/http/middlewares/security-head
       inject: [AccountGroupsRepository],
     },
     {
+      provide: DeleteAccountGroupUseCase,
+      useFactory: (accountGroupsRepository: AccountGroupsRepository) => new DeleteAccountGroupUseCase(accountGroupsRepository),
+      inject: [AccountGroupsRepository],
+    },
+    {
       provide: CreateAccountUseCase,
       useFactory: (accountsRepository: AccountsRepository, accountGroupsRepository: AccountGroupsRepository) =>
         new CreateAccountUseCase(accountsRepository, accountGroupsRepository),
@@ -182,6 +199,21 @@ import { SecurityHeadersMiddleware } from '@infra/http/middlewares/security-head
       useFactory: (accountsRepository: AccountsRepository, accountGroupsRepository: AccountGroupsRepository) =>
         new UpdateAccountUseCase(accountsRepository, accountGroupsRepository),
       inject: [AccountsRepository, AccountGroupsRepository],
+    },
+    {
+      provide: ArchiveAccountUseCase,
+      useFactory: (accountsRepository: AccountsRepository) => new ArchiveAccountUseCase(accountsRepository),
+      inject: [AccountsRepository],
+    },
+    {
+      provide: UnarchiveAccountUseCase,
+      useFactory: (accountsRepository: AccountsRepository) => new UnarchiveAccountUseCase(accountsRepository),
+      inject: [AccountsRepository],
+    },
+    {
+      provide: DeleteAccountUseCase,
+      useFactory: (accountsRepository: AccountsRepository) => new DeleteAccountUseCase(accountsRepository),
+      inject: [AccountsRepository],
     },
     {
       provide: CreateCategoryUseCase,

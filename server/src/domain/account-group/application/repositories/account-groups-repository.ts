@@ -16,4 +16,6 @@ export abstract class AccountGroupsRepository {
   abstract findById(id: string): Promise<AccountGroupWithAccountsCount | null>
 
   abstract findManyByOwnerId(ownerId: string, filters?: FindManyAccountGroupsFilters): Promise<AccountGroupWithAccountsCount[]>
+
+  abstract delete(id: string): Promise<void>
 }
