@@ -24,6 +24,14 @@ export class DrizzleAccountsRepository extends AccountsRepository {
     await this.drizzle.db.insert(accounts).values(DrizzleAccountMapper.toPersistence(account))
   }
 
+  async save(account: Account): Promise<void> {
+    await this.drizzle.db.update(accounts).set(DrizzleAccountMapper.toPersistence(account)).where(eq(accounts.id, account.id.toString()))
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.drizzle.db.delete(accounts).where(eq(accounts.id, id))
+  }
+
   async findById(id: string): Promise<Account | null> {
     const [record] = await this.drizzle.db.select().from(accounts).where(eq(accounts.id, id)).limit(1)
 

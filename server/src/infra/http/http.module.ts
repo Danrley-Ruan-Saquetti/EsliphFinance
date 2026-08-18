@@ -6,8 +6,11 @@ import { CreateAccountGroupUseCase } from '@domain/account-group/application/use
 import { GetAccountGroupUseCase } from '@domain/account-group/application/use-cases/get-account-group'
 import { ListAccountGroupsUseCase } from '@domain/account-group/application/use-cases/list-account-groups'
 import { AccountsRepository } from '@domain/account/application/repositories/accounts-repository'
+import { ArchiveAccountUseCase } from '@domain/account/application/use-cases/archive-account'
 import { CreateAccountUseCase } from '@domain/account/application/use-cases/create-account'
+import { DeleteAccountUseCase } from '@domain/account/application/use-cases/delete-account'
 import { ListAccountsUseCase } from '@domain/account/application/use-cases/list-accounts'
+import { UnarchiveAccountUseCase } from '@domain/account/application/use-cases/unarchive-account'
 import { CategoriesRepository } from '@domain/category/application/repositories/categories-repository'
 import { ArchiveCategoryUseCase } from '@domain/category/application/use-cases/archive-category'
 import { CreateCategoryUseCase } from '@domain/category/application/use-cases/create-category'
@@ -49,9 +52,12 @@ import { ListAccountGroupsController } from '@infra/http/controllers/list-accoun
 import { ListAccountsController } from '@infra/http/controllers/list-accounts.controller'
 import { RefreshSessionController } from '@infra/http/controllers/refresh-session.controller'
 import { UpdateUserProfileController } from '@infra/http/controllers/update-user-profile.controller'
+import { ArchiveAccountController } from '@infra/http/controllers/archive-account.controller'
 import { ArchiveCategoryController } from '@infra/http/controllers/archive-category.controller'
+import { DeleteAccountController } from '@infra/http/controllers/delete-account.controller'
 import { DeleteCategoryController } from '@infra/http/controllers/delete-category.controller'
 import { ListCategoryTreeController } from '@infra/http/controllers/list-category-tree.controller'
+import { UnarchiveAccountController } from '@infra/http/controllers/unarchive-account.controller'
 import { UnarchiveCategoryController } from '@infra/http/controllers/unarchive-category.controller'
 import { AllExceptionsFilter } from '@infra/http/filters/all-exceptions-filter'
 import { CorsMiddleware } from '@infra/http/middlewares/cors-middleware'
@@ -76,6 +82,9 @@ import { SecurityHeadersMiddleware } from '@infra/http/middlewares/security-head
     GetAccountGroupController,
     CreateAccountController,
     ListAccountsController,
+    ArchiveAccountController,
+    UnarchiveAccountController,
+    DeleteAccountController,
     CreateCategoryController,
     ArchiveCategoryController,
     UnarchiveCategoryController,
@@ -172,6 +181,21 @@ import { SecurityHeadersMiddleware } from '@infra/http/middlewares/security-head
     {
       provide: ListAccountsUseCase,
       useFactory: (accountsRepository: AccountsRepository) => new ListAccountsUseCase(accountsRepository),
+      inject: [AccountsRepository],
+    },
+    {
+      provide: ArchiveAccountUseCase,
+      useFactory: (accountsRepository: AccountsRepository) => new ArchiveAccountUseCase(accountsRepository),
+      inject: [AccountsRepository],
+    },
+    {
+      provide: UnarchiveAccountUseCase,
+      useFactory: (accountsRepository: AccountsRepository) => new UnarchiveAccountUseCase(accountsRepository),
+      inject: [AccountsRepository],
+    },
+    {
+      provide: DeleteAccountUseCase,
+      useFactory: (accountsRepository: AccountsRepository) => new DeleteAccountUseCase(accountsRepository),
       inject: [AccountsRepository],
     },
     {
