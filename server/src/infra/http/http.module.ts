@@ -8,6 +8,7 @@ import { ListAccountGroupsUseCase } from '@domain/account-group/application/use-
 import { AccountsRepository } from '@domain/account/application/repositories/accounts-repository'
 import { CreateAccountUseCase } from '@domain/account/application/use-cases/create-account'
 import { ListAccountsUseCase } from '@domain/account/application/use-cases/list-accounts'
+import { UpdateAccountUseCase } from '@domain/account/application/use-cases/update-account'
 import { CategoriesRepository } from '@domain/category/application/repositories/categories-repository'
 import { ArchiveCategoryUseCase } from '@domain/category/application/use-cases/archive-category'
 import { CreateCategoryUseCase } from '@domain/category/application/use-cases/create-category'
@@ -47,6 +48,7 @@ import { GetUserProfileController } from '@infra/http/controllers/get-user-profi
 import { HealthController } from '@infra/http/controllers/health.controller'
 import { ListAccountGroupsController } from '@infra/http/controllers/list-account-groups.controller'
 import { ListAccountsController } from '@infra/http/controllers/list-accounts.controller'
+import { UpdateAccountController } from '@infra/http/controllers/update-account.controller'
 import { RefreshSessionController } from '@infra/http/controllers/refresh-session.controller'
 import { UpdateUserProfileController } from '@infra/http/controllers/update-user-profile.controller'
 import { ArchiveCategoryController } from '@infra/http/controllers/archive-category.controller'
@@ -76,6 +78,7 @@ import { SecurityHeadersMiddleware } from '@infra/http/middlewares/security-head
     GetAccountGroupController,
     CreateAccountController,
     ListAccountsController,
+    UpdateAccountController,
     CreateCategoryController,
     ArchiveCategoryController,
     UnarchiveCategoryController,
@@ -173,6 +176,12 @@ import { SecurityHeadersMiddleware } from '@infra/http/middlewares/security-head
       provide: ListAccountsUseCase,
       useFactory: (accountsRepository: AccountsRepository) => new ListAccountsUseCase(accountsRepository),
       inject: [AccountsRepository],
+    },
+    {
+      provide: UpdateAccountUseCase,
+      useFactory: (accountsRepository: AccountsRepository, accountGroupsRepository: AccountGroupsRepository) =>
+        new UpdateAccountUseCase(accountsRepository, accountGroupsRepository),
+      inject: [AccountsRepository, AccountGroupsRepository],
     },
     {
       provide: CreateCategoryUseCase,
