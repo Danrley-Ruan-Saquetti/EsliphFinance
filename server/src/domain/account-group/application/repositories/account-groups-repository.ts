@@ -13,6 +13,8 @@ export interface FindManyAccountGroupsFilters {
 export abstract class AccountGroupsRepository {
   abstract create(accountGroup: AccountGroup): Promise<void>
 
+  abstract save(accountGroup: AccountGroup): Promise<void>
+
   abstract findById(id: string): Promise<AccountGroupWithAccountsCount | null>
 
   abstract findManyByOwnerId(ownerId: string, filters?: FindManyAccountGroupsFilters): Promise<AccountGroupWithAccountsCount[]>

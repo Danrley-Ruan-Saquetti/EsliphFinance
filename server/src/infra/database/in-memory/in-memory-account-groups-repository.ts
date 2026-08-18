@@ -18,6 +18,16 @@ export class InMemoryAccountGroupsRepository extends AccountGroupsRepository {
     return Promise.resolve()
   }
 
+  save(accountGroup: AccountGroup): Promise<void> {
+    const index = this.items.findIndex(item => item.id.equals(accountGroup.id))
+
+    if (index >= 0) {
+      this.items[index] = accountGroup
+    }
+
+    return Promise.resolve()
+  }
+
   findById(id: string): Promise<AccountGroupWithAccountsCount | null> {
     const accountGroup = this.items.find(item => item.id.toString() === id)
 

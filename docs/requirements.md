@@ -50,6 +50,7 @@
 -   RN015 - Os _Grupos de Contas_ podem ser do **tipo** "Padrão" ou "Cartão de Crédito".
 -   RN016 - O cadastro do _Grupo de Contas_ deve conter o **nome** e o **tipo** (Default: Padrão).
 -   RN017 - O _Grupo de Contas_ não pode ser excluído quando possuir _Contas_ vinculadas.
+-   RN085 - O _Grupo de Contas_ não pode ter o **tipo** alterado quando possuir _Contas_ vinculadas.
 
 ## Contas
 
