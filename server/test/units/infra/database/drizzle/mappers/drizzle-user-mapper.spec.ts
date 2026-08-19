@@ -10,6 +10,7 @@ const record: UserRecord = {
   name: 'Fulano de Tal',
   email: 'fulano@exemplo.com',
   passwordHash: 'hash-da-senha',
+  defaultTransactionStatus: 'PLANNED',
   createdAt: new Date(2026, 0, 1),
   updatedAt: new Date(2026, 0, 2),
   deletedAt: new Date(2026, 0, 3),
@@ -23,6 +24,7 @@ describe('DrizzleUserMapper', () => {
     expect(user.name).toBe(record.name)
     expect(user.email.value).toBe(record.email)
     expect(user.passwordHash).toBe(record.passwordHash)
+    expect(user.defaultTransactionStatus).toBe(record.defaultTransactionStatus)
     expect(user.createdAt).toBe(record.createdAt)
     expect(user.updatedAt).toBe(record.updatedAt)
     expect(user.deletedAt).toBe(record.deletedAt)
@@ -36,6 +38,12 @@ describe('DrizzleUserMapper', () => {
     expect(user.isDeleted).toBe(false)
   })
 
+  it('deve traduzir o registro do banco sem preferência de situação padrão de transação (RN049)', () => {
+    const user = DrizzleUserMapper.toDomain({ ...record, defaultTransactionStatus: null })
+
+    expect(user.defaultTransactionStatus).toBeNull()
+  })
+
   it('deve traduzir a entidade para o registro do banco', () => {
     const id = new UniqueEntityID()
     const user = makeUser(
@@ -43,6 +51,7 @@ describe('DrizzleUserMapper', () => {
         name: 'Fulano de Tal',
         email: Email.create('fulano@exemplo.com'),
         passwordHash: 'hash-da-senha',
+        defaultTransactionStatus: 'PLANNED',
         createdAt: new Date(2026, 0, 1),
         updatedAt: new Date(2026, 0, 2),
         deletedAt: new Date(2026, 0, 3),
@@ -60,5 +69,13 @@ describe('DrizzleUserMapper', () => {
 
     expect(persisted.updatedAt).toBeNull()
     expect(persisted.deletedAt).toBeNull()
+  })
+
+  it('deve traduzir a entidade sem preferência de situação padrão de transação para coluna nula (RN049)', () => {
+    const user = makeUser()
+
+    const persisted = DrizzleUserMapper.toPersistence(user)
+
+    expect(persisted.defaultTransactionStatus).toBeNull()
   })
 })

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { UniqueEntityID } from '@core/entities/unique-entity-id'
 import { InvariantError } from '@core/errors/invariant-error'
@@ -12,13 +12,16 @@ import { InMemoryAccountGroupsRepository } from '@infra/database/in-memory/in-me
 import { InMemoryAccountsRepository } from '@infra/database/in-memory/in-memory-accounts-repository'
 import { InMemoryCategoriesRepository } from '@infra/database/in-memory/in-memory-categories-repository'
 import { InMemoryTransactionsRepository } from '@infra/database/in-memory/in-memory-transactions-repository'
+import { InMemoryUsersRepository } from '@infra/database/in-memory/in-memory-users-repository'
 import { makeAccount } from '@tests/factories/make-account'
 import { makeCategory } from '@tests/factories/make-category'
+import { makeUser } from '@tests/factories/make-user'
 
 let transactionsRepository: InMemoryTransactionsRepository
 let accountsRepository: InMemoryAccountsRepository
 let accountGroupsRepository: InMemoryAccountGroupsRepository
 let categoriesRepository: InMemoryCategoriesRepository
+let usersRepository: InMemoryUsersRepository
 let sut: CreateTransactionUseCase
 
 describe('Registrar transação', () => {
@@ -27,7 +30,12 @@ describe('Registrar transação', () => {
     accountGroupsRepository = new InMemoryAccountGroupsRepository()
     accountsRepository = new InMemoryAccountsRepository(accountGroupsRepository)
     categoriesRepository = new InMemoryCategoriesRepository()
-    sut = new CreateTransactionUseCase(transactionsRepository, accountsRepository, categoriesRepository)
+    usersRepository = new InMemoryUsersRepository()
+    sut = new CreateTransactionUseCase(transactionsRepository, accountsRepository, categoriesRepository, usersRepository)
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   it('deve registrar a transação de despesa e persisti-la no repositório (RN039, RN040)', async () => {
@@ -319,5 +327,142 @@ describe('Registrar transação', () => {
     ).rejects.toThrow(InvariantError)
 
     expect(transactionsRepository.items).toHaveLength(0)
+  })
+
+  describe('situação padrão (RN049)', () => {
+    beforeEach(() => {
+      vi.useFakeTimers()
+      vi.setSystemTime(new Date('2026-06-15T12:00:00.000Z'))
+    })
+
+    it('deve criar a transação como "Prevista" quando a data é futura e não há status nem preferência informados (RN049)', async () => {
+      const ownerId = new UniqueEntityID().toString()
+      const account = makeAccount({ ownerId: new UniqueEntityID(ownerId) })
+      const category = makeCategory({ ownerId: new UniqueEntityID(ownerId), nature: 'EXPENSE' })
+
+      await accountsRepository.create(account)
+      await categoriesRepository.create(category)
+
+      const result = await sut.execute({
+        ownerId,
+        accountId: account.id.toString(),
+        categoryId: category.id.toString(),
+        type: 'EXPENSE',
+        date: new Date('2026-06-16T00:00:00.000Z'),
+        amount: Money.fromCents(1000),
+      })
+
+      expect(result.isRight()).toBe(true)
+      expect(transactionsRepository.items[0].status).toBe('PLANNED')
+    })
+
+    it('deve criar a transação como "Efetivada" quando a data é hoje e não há status nem preferência informados (RN049)', async () => {
+      const ownerId = new UniqueEntityID().toString()
+      const account = makeAccount({ ownerId: new UniqueEntityID(ownerId) })
+      const category = makeCategory({ ownerId: new UniqueEntityID(ownerId), nature: 'EXPENSE' })
+
+      await accountsRepository.create(account)
+      await categoriesRepository.create(category)
+
+      const result = await sut.execute({
+        ownerId,
+        accountId: account.id.toString(),
+        categoryId: category.id.toString(),
+        type: 'EXPENSE',
+        date: new Date('2026-06-15T23:59:00.000Z'),
+        amount: Money.fromCents(1000),
+      })
+
+      expect(result.isRight()).toBe(true)
+      expect(transactionsRepository.items[0].status).toBe('SETTLED')
+    })
+
+    it('deve criar a transação como "Efetivada" quando a data é anterior a hoje e não há status nem preferência informados (RN049)', async () => {
+      const ownerId = new UniqueEntityID().toString()
+      const account = makeAccount({ ownerId: new UniqueEntityID(ownerId) })
+      const category = makeCategory({ ownerId: new UniqueEntityID(ownerId), nature: 'EXPENSE' })
+
+      await accountsRepository.create(account)
+      await categoriesRepository.create(category)
+
+      const result = await sut.execute({
+        ownerId,
+        accountId: account.id.toString(),
+        categoryId: category.id.toString(),
+        type: 'EXPENSE',
+        date: new Date('2026-06-14T00:00:00.000Z'),
+        amount: Money.fromCents(1000),
+      })
+
+      expect(result.isRight()).toBe(true)
+      expect(transactionsRepository.items[0].status).toBe('SETTLED')
+    })
+
+    it('deve usar a preferência do usuário para efetivar uma transação de data futura quando o status não é informado (RN049)', async () => {
+      const owner = makeUser({ defaultTransactionStatus: 'SETTLED' })
+      const account = makeAccount({ ownerId: owner.id })
+      const category = makeCategory({ ownerId: owner.id, nature: 'EXPENSE' })
+
+      await usersRepository.create(owner)
+      await accountsRepository.create(account)
+      await categoriesRepository.create(category)
+
+      const result = await sut.execute({
+        ownerId: owner.id.toString(),
+        accountId: account.id.toString(),
+        categoryId: category.id.toString(),
+        type: 'EXPENSE',
+        date: new Date('2026-06-16T00:00:00.000Z'),
+        amount: Money.fromCents(1000),
+      })
+
+      expect(result.isRight()).toBe(true)
+      expect(transactionsRepository.items[0].status).toBe('SETTLED')
+    })
+
+    it('deve usar a preferência do usuário para prever uma transação de data passada quando o status não é informado (RN049)', async () => {
+      const owner = makeUser({ defaultTransactionStatus: 'PLANNED' })
+      const account = makeAccount({ ownerId: owner.id })
+      const category = makeCategory({ ownerId: owner.id, nature: 'EXPENSE' })
+
+      await usersRepository.create(owner)
+      await accountsRepository.create(account)
+      await categoriesRepository.create(category)
+
+      const result = await sut.execute({
+        ownerId: owner.id.toString(),
+        accountId: account.id.toString(),
+        categoryId: category.id.toString(),
+        type: 'EXPENSE',
+        date: new Date('2026-06-14T00:00:00.000Z'),
+        amount: Money.fromCents(1000),
+      })
+
+      expect(result.isRight()).toBe(true)
+      expect(transactionsRepository.items[0].status).toBe('PLANNED')
+    })
+
+    it('deve usar o status informado explicitamente mesmo quando diverge da preferência do usuário e da data (RN049)', async () => {
+      const owner = makeUser({ defaultTransactionStatus: 'SETTLED' })
+      const account = makeAccount({ ownerId: owner.id })
+      const category = makeCategory({ ownerId: owner.id, nature: 'EXPENSE' })
+
+      await usersRepository.create(owner)
+      await accountsRepository.create(account)
+      await categoriesRepository.create(category)
+
+      const result = await sut.execute({
+        ownerId: owner.id.toString(),
+        accountId: account.id.toString(),
+        categoryId: category.id.toString(),
+        type: 'EXPENSE',
+        status: 'PLANNED',
+        date: new Date('2026-06-14T00:00:00.000Z'),
+        amount: Money.fromCents(1000),
+      })
+
+      expect(result.isRight()).toBe(true)
+      expect(transactionsRepository.items[0].status).toBe('PLANNED')
+    })
   })
 })

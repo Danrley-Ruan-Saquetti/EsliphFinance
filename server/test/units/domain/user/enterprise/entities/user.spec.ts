@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { UniqueEntityID } from '@core/entities/unique-entity-id'
 import { InvariantError } from '@core/errors/invariant-error'
 import { User } from '@domain/user/enterprise/entities/user'
+import { DefaultTransactionStatus } from '@domain/user/enterprise/value-objects/default-transaction-status'
 import { Email } from '@domain/user/enterprise/value-objects/email'
 
 const email = Email.create('fulano@exemplo.com')
@@ -108,5 +109,40 @@ describe('User', () => {
     user.changeEmail(Email.create('atualizado@exemplo.com'))
 
     expect(user.passwordHash).toBe('hash-da-senha')
+  })
+
+  it('deve criar o usuário sem preferência de situação padrão de transação quando não informada (RN049)', () => {
+    const user = User.create({ name: 'Fulano de Tal', email, passwordHash: 'hash-da-senha' })
+
+    expect(user.defaultTransactionStatus).toBeNull()
+  })
+
+  it('deve criar o usuário com a preferência de situação padrão de transação informada (RN049)', () => {
+    const user = User.create({ name: 'Fulano de Tal', email, passwordHash: 'hash-da-senha', defaultTransactionStatus: 'PLANNED' })
+
+    expect(user.defaultTransactionStatus).toBe('PLANNED')
+  })
+
+  it('deve lançar InvariantError quando a preferência de situação padrão de transação estiver fora do domínio permitido (RN049)', () => {
+    expect(() =>
+      User.create({ name: 'Fulano de Tal', email, passwordHash: 'hash-da-senha', defaultTransactionStatus: 'INVALID' as DefaultTransactionStatus }),
+    ).toThrow(InvariantError)
+  })
+
+  it('deve alterar a preferência de situação padrão de transação e registrar a data de atualização (RN049)', () => {
+    const user = User.create({ name: 'Fulano de Tal', email, passwordHash: 'hash-da-senha' })
+
+    user.changeDefaultTransactionStatus('SETTLED')
+
+    expect(user.defaultTransactionStatus).toBe('SETTLED')
+    expect(user.updatedAt).toBeInstanceOf(Date)
+  })
+
+  it('deve limpar a preferência de situação padrão de transação quando alterada para null (RN049)', () => {
+    const user = User.create({ name: 'Fulano de Tal', email, passwordHash: 'hash-da-senha', defaultTransactionStatus: 'PLANNED' })
+
+    user.changeDefaultTransactionStatus(null)
+
+    expect(user.defaultTransactionStatus).toBeNull()
   })
 })

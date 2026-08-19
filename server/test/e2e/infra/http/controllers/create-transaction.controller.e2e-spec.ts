@@ -107,6 +107,16 @@ describe('Registrar transação (e2e)', () => {
     )
   })
 
+  it('POST /transactions registra a transação sem status informado, derivando a situação pela data (RN049)', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/transactions')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ accountId, categoryId: expenseCategoryId, type: 'EXPENSE', date: '2000-01-10', amount: 1000 })
+
+    expect(response.statusCode).toBe(201)
+    expect(response.body.transaction.status).toBe('SETTLED')
+  })
+
   it('POST /transactions registra a transação de receita (RN039)', async () => {
     const response = await request(app.getHttpServer())
       .post('/transactions')

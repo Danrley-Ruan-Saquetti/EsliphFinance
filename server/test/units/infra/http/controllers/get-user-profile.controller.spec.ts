@@ -28,6 +28,7 @@ describe('GetUserProfileController', () => {
       id: user.id.toString(),
       name: 'Fulano de Tal',
       email: 'fulano@exemplo.com',
+      defaultTransactionStatus: null,
       createdAt: user.createdAt,
       updatedAt: null,
     })

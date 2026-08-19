@@ -11,13 +11,14 @@ import { CategoryNatureMismatchError } from '@domain/transaction/application/use
 import { ResourceArchivedError } from '@domain/transaction/application/use-cases/errors/resource-archived-error'
 import { Transaction } from '@domain/transaction/enterprise/entities/transaction'
 import { TransactionStatus } from '@domain/transaction/enterprise/value-objects/transaction-status'
+import { UsersRepository } from '@domain/user/application/repositories/users-repository'
 
 export interface CreateTransactionRequest {
   ownerId: string
   accountId: string
   categoryId: string
   type: 'INCOME' | 'EXPENSE'
-  status: TransactionStatus
+  status?: TransactionStatus
   date: Date
   amount: Money
   description?: string | null
@@ -30,6 +31,7 @@ export class CreateTransactionUseCase implements UseCase<CreateTransactionReques
     private readonly transactionsRepository: TransactionsRepository,
     private readonly accountsRepository: AccountsRepository,
     private readonly categoriesRepository: CategoriesRepository,
+    private readonly usersRepository: UsersRepository,
   ) {}
 
   async execute({ ownerId, accountId, categoryId, type, status, date, amount, description }: CreateTransactionRequest): Promise<CreateTransactionResponse> {
@@ -54,12 +56,14 @@ export class CreateTransactionUseCase implements UseCase<CreateTransactionReques
       return left(new CategoryNatureMismatchError())
     }
 
+    const resolvedStatus = status ?? (await this.resolveDefaultStatus(ownerId, date))
+
     const transaction = Transaction.create({
       ownerId: new UniqueEntityID(ownerId),
       accountId: new UniqueEntityID(accountId),
       categoryId: new UniqueEntityID(categoryId),
       type,
-      status,
+      status: resolvedStatus,
       date,
       amount,
       description,
@@ -72,5 +76,23 @@ export class CreateTransactionUseCase implements UseCase<CreateTransactionReques
 
   private isNatureCompatible(nature: Category['nature'], type: CreateTransactionRequest['type']): boolean {
     return nature === Category.BOTH_NATURE || nature === type
+  }
+
+  private async resolveDefaultStatus(ownerId: string, date: Date): Promise<TransactionStatus> {
+    const owner = await this.usersRepository.findById(ownerId)
+
+    if (owner?.defaultTransactionStatus) {
+      return owner.defaultTransactionStatus
+    }
+
+    return this.isFutureDate(date) ? Transaction.PLANNED_STATUS : Transaction.SETTLED_STATUS
+  }
+
+  private isFutureDate(date: Date): boolean {
+    const today = new Date()
+    const todayAtMidnightUTC = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())
+    const dateAtMidnightUTC = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
+
+    return dateAtMidnightUTC > todayAtMidnightUTC
   }
 }

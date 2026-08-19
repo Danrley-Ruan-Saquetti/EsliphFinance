@@ -6,6 +6,7 @@ export class UserPresenter {
       id: user.id.toString(),
       name: user.name,
       email: user.email.value,
+      defaultTransactionStatus: user.defaultTransactionStatus,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt ?? null,
     }

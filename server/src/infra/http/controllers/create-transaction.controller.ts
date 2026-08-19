@@ -15,7 +15,7 @@ const createTransactionBodySchema = z.object({
   accountId: z.uuid(),
   categoryId: z.uuid(),
   type: z.enum(CREATABLE_TRANSACTION_TYPES),
-  status: z.enum(TRANSACTION_STATUSES),
+  status: z.enum(TRANSACTION_STATUSES).optional(),
   date: z.coerce.date(),
   amount: moneySchema,
   description: z.string().trim().min(1).optional(),

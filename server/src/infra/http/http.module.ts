@@ -254,9 +254,13 @@ import { SecurityHeadersMiddleware } from '@infra/http/middlewares/security-head
     },
     {
       provide: CreateTransactionUseCase,
-      useFactory: (transactionsRepository: TransactionsRepository, accountsRepository: AccountsRepository, categoriesRepository: CategoriesRepository) =>
-        new CreateTransactionUseCase(transactionsRepository, accountsRepository, categoriesRepository),
-      inject: [TransactionsRepository, AccountsRepository, CategoriesRepository],
+      useFactory: (
+        transactionsRepository: TransactionsRepository,
+        accountsRepository: AccountsRepository,
+        categoriesRepository: CategoriesRepository,
+        usersRepository: UsersRepository,
+      ) => new CreateTransactionUseCase(transactionsRepository, accountsRepository, categoriesRepository, usersRepository),
+      inject: [TransactionsRepository, AccountsRepository, CategoriesRepository, UsersRepository],
     },
   ],
 })
