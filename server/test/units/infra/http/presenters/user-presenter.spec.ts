@@ -14,6 +14,7 @@ describe('UserPresenter', () => {
       id: user.id.toString(),
       name: user.name,
       email: 'fulano@exemplo.com',
+      defaultTransactionStatus: null,
       createdAt: user.createdAt,
       updatedAt: null,
     })
@@ -25,5 +26,11 @@ describe('UserPresenter', () => {
     const user = makeUser({ updatedAt })
 
     expect(UserPresenter.toHTTP(user).updatedAt).toBe(updatedAt)
+  })
+
+  it('deve expor a preferência de situação padrão de transação quando configurada (RN049)', () => {
+    const user = makeUser({ defaultTransactionStatus: 'PLANNED' })
+
+    expect(UserPresenter.toHTTP(user).defaultTransactionStatus).toBe('PLANNED')
   })
 })

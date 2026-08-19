@@ -78,6 +78,20 @@
       "when": 1786992484162,
       "tag": "0010_add-category-archived-at",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1787139239842,
+      "tag": "0011_create_transactions_table",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1787143076157,
+      "tag": "0012_add-user-default-transaction-status",
+      "breakpoints": true
     }
   ]
 }

@@ -5,6 +5,7 @@ import { ResourceNotFoundError } from '@core/errors/resource-not-found-error'
 import { ArchiveAccountUseCase } from '@domain/account/application/use-cases/archive-account'
 import { InMemoryAccountGroupsRepository } from '@infra/database/in-memory/in-memory-account-groups-repository'
 import { InMemoryAccountsRepository } from '@infra/database/in-memory/in-memory-accounts-repository'
+import { InMemoryTransactionsRepository } from '@infra/database/in-memory/in-memory-transactions-repository'
 import { ArchiveAccountController } from '@infra/http/controllers/archive-account.controller'
 import { makeAccount } from '@tests/factories/make-account'
 
@@ -13,7 +14,7 @@ let sut: ArchiveAccountController
 
 describe('ArchiveAccountController', () => {
   beforeEach(() => {
-    accountsRepository = new InMemoryAccountsRepository(new InMemoryAccountGroupsRepository())
+    accountsRepository = new InMemoryAccountsRepository(new InMemoryAccountGroupsRepository(), new InMemoryTransactionsRepository())
     sut = new ArchiveAccountController(new ArchiveAccountUseCase(accountsRepository))
   })
 

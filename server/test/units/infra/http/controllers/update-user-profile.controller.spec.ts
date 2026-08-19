@@ -29,10 +29,24 @@ describe('UpdateUserProfileController', () => {
       id: user.id.toString(),
       name: 'Fulano Atualizado',
       email: 'atualizado@exemplo.com',
+      defaultTransactionStatus: null,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     })
     expect(JSON.stringify(response)).not.toContain('hash-da-senha')
+  })
+
+  it('deve definir a preferência de situação padrão de transação informada no corpo (RN049)', async () => {
+    const user = makeUser()
+
+    await usersRepository.create(user)
+
+    const response = await sut.handle(
+      { id: user.id.toString() },
+      { name: 'Fulano Atualizado', email: 'atualizado@exemplo.com', defaultTransactionStatus: 'SETTLED' },
+    )
+
+    expect(response.user.defaultTransactionStatus).toBe('SETTLED')
   })
 
   it('deve lançar EmailAlreadyInUseError quando o e-mail pertence a outro usuário (RN002)', async () => {

@@ -23,6 +23,10 @@ import { UnarchiveCategoryUseCase } from '@domain/category/application/use-cases
 import { NotesRepository } from '@domain/example/application/repositories/notes-repository'
 import { CreateNoteUseCase } from '@domain/example/application/use-cases/create-note'
 import { GetNoteUseCase } from '@domain/example/application/use-cases/get-note'
+import { TransactionsRepository } from '@domain/transaction/application/repositories/transactions-repository'
+import { CreateTransactionUseCase } from '@domain/transaction/application/use-cases/create-transaction'
+import { RevertTransactionUseCase } from '@domain/transaction/application/use-cases/revert-transaction'
+import { SettleTransactionUseCase } from '@domain/transaction/application/use-cases/settle-transaction'
 import { RefreshTokensRepository } from '@domain/user/application/repositories/refresh-tokens-repository'
 import { UsersRepository } from '@domain/user/application/repositories/users-repository'
 import { AccessTokenGenerator } from '@domain/user/application/services/access-token-generator'
@@ -45,7 +49,10 @@ import { CreateAccountGroupController } from '@infra/http/controllers/create-acc
 import { CreateAccountController } from '@infra/http/controllers/create-account.controller'
 import { CreateCategoryController } from '@infra/http/controllers/create-category.controller'
 import { CreateNoteController } from '@infra/http/controllers/create-note.controller'
+import { CreateTransactionController } from '@infra/http/controllers/create-transaction.controller'
 import { CreateUserController } from '@infra/http/controllers/create-user.controller'
+import { RevertTransactionController } from '@infra/http/controllers/revert-transaction.controller'
+import { SettleTransactionController } from '@infra/http/controllers/settle-transaction.controller'
 import { DeleteAccountGroupController } from '@infra/http/controllers/delete-account-group.controller'
 import { EndSessionController } from '@infra/http/controllers/end-session.controller'
 import { GetAccountGroupController } from '@infra/http/controllers/get-account-group.controller'
@@ -99,6 +106,9 @@ import { SecurityHeadersMiddleware } from '@infra/http/middlewares/security-head
     UnarchiveCategoryController,
     DeleteCategoryController,
     ListCategoryTreeController,
+    CreateTransactionController,
+    SettleTransactionController,
+    RevertTransactionController,
   ],
   providers: [
     {
@@ -247,6 +257,26 @@ import { SecurityHeadersMiddleware } from '@infra/http/middlewares/security-head
       provide: ListCategoryTreeUseCase,
       useFactory: (categoriesRepository: CategoriesRepository) => new ListCategoryTreeUseCase(categoriesRepository),
       inject: [CategoriesRepository],
+    },
+    {
+      provide: CreateTransactionUseCase,
+      useFactory: (
+        transactionsRepository: TransactionsRepository,
+        accountsRepository: AccountsRepository,
+        categoriesRepository: CategoriesRepository,
+        usersRepository: UsersRepository,
+      ) => new CreateTransactionUseCase(transactionsRepository, accountsRepository, categoriesRepository, usersRepository),
+      inject: [TransactionsRepository, AccountsRepository, CategoriesRepository, UsersRepository],
+    },
+    {
+      provide: SettleTransactionUseCase,
+      useFactory: (transactionsRepository: TransactionsRepository) => new SettleTransactionUseCase(transactionsRepository),
+      inject: [TransactionsRepository],
+    },
+    {
+      provide: RevertTransactionUseCase,
+      useFactory: (transactionsRepository: TransactionsRepository) => new RevertTransactionUseCase(transactionsRepository),
+      inject: [TransactionsRepository],
     },
   ],
 })

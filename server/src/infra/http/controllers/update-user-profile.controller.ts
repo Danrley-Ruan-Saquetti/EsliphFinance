@@ -3,6 +3,7 @@ import { z } from 'zod'
 
 import { UpdateUserProfileUseCase } from '@domain/user/application/use-cases/update-user-profile'
 import { User } from '@domain/user/enterprise/entities/user'
+import { DEFAULT_TRANSACTION_STATUSES } from '@domain/user/enterprise/value-objects/default-transaction-status'
 import { Email } from '@domain/user/enterprise/value-objects/email'
 import type { AuthenticatedUser } from '@infra/auth/authenticated-user'
 import { CurrentUser } from '@infra/auth/current-user-decorator'
@@ -12,6 +13,7 @@ import { UserPresenter } from '@infra/http/presenters/user-presenter'
 const updateUserProfileBodySchema = z.object({
   name: z.string().min(1).max(User.NAME_MAX_LENGTH),
   email: z.email().max(Email.MAX_LENGTH),
+  defaultTransactionStatus: z.enum(DEFAULT_TRANSACTION_STATUSES).nullable().optional(),
 })
 
 type UpdateUserProfileBody = z.infer<typeof updateUserProfileBodySchema>

@@ -150,4 +150,35 @@ describe('Atualizar perfil do usuário', () => {
 
     await expect(sut.execute(request)).rejects.toBeInstanceOf(InvariantError)
   })
+
+  it('deve definir a preferência de situação padrão de transação quando informada (RN049)', async () => {
+    const user = makeUser()
+
+    await usersRepository.create(user)
+
+    const result = await sut.execute({ userId: user.id.toString(), name: user.name, email: user.email.value, defaultTransactionStatus: 'PLANNED' })
+
+    expect(result.isRight()).toBe(true)
+    expect(usersRepository.items[0].defaultTransactionStatus).toBe('PLANNED')
+  })
+
+  it('deve preservar a preferência de situação padrão de transação quando não informada (RN049)', async () => {
+    const user = makeUser({ defaultTransactionStatus: 'SETTLED' })
+
+    await usersRepository.create(user)
+
+    await sut.execute({ userId: user.id.toString(), name: 'Fulano Atualizado', email: 'atualizado@exemplo.com' })
+
+    expect(usersRepository.items[0].defaultTransactionStatus).toBe('SETTLED')
+  })
+
+  it('deve limpar a preferência de situação padrão de transação quando informada como null (RN049)', async () => {
+    const user = makeUser({ defaultTransactionStatus: 'SETTLED' })
+
+    await usersRepository.create(user)
+
+    await sut.execute({ userId: user.id.toString(), name: user.name, email: user.email.value, defaultTransactionStatus: null })
+
+    expect(usersRepository.items[0].defaultTransactionStatus).toBeNull()
+  })
 })
