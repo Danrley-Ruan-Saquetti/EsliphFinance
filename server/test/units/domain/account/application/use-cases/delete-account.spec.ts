@@ -5,6 +5,7 @@ import { ResourceNotFoundError } from '@core/errors/resource-not-found-error'
 import { DeleteAccountUseCase } from '@domain/account/application/use-cases/delete-account'
 import { InMemoryAccountGroupsRepository } from '@infra/database/in-memory/in-memory-account-groups-repository'
 import { InMemoryAccountsRepository } from '@infra/database/in-memory/in-memory-accounts-repository'
+import { InMemoryTransactionsRepository } from '@infra/database/in-memory/in-memory-transactions-repository'
 import { makeAccount } from '@tests/factories/make-account'
 
 let accountsRepository: InMemoryAccountsRepository
@@ -12,7 +13,7 @@ let sut: DeleteAccountUseCase
 
 describe('Excluir conta', () => {
   beforeEach(() => {
-    accountsRepository = new InMemoryAccountsRepository(new InMemoryAccountGroupsRepository())
+    accountsRepository = new InMemoryAccountsRepository(new InMemoryAccountGroupsRepository(), new InMemoryTransactionsRepository())
     sut = new DeleteAccountUseCase(accountsRepository)
   })
 

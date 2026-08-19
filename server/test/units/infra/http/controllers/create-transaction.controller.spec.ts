@@ -22,7 +22,7 @@ let sut: CreateTransactionController
 describe('CreateTransactionController', () => {
   beforeEach(() => {
     transactionsRepository = new InMemoryTransactionsRepository()
-    accountsRepository = new InMemoryAccountsRepository(new InMemoryAccountGroupsRepository())
+    accountsRepository = new InMemoryAccountsRepository(new InMemoryAccountGroupsRepository(), transactionsRepository)
     categoriesRepository = new InMemoryCategoriesRepository()
     usersRepository = new InMemoryUsersRepository()
     sut = new CreateTransactionController(new CreateTransactionUseCase(transactionsRepository, accountsRepository, categoriesRepository, usersRepository))

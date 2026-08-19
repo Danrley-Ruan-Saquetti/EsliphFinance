@@ -7,6 +7,7 @@ import { UpdateAccountUseCase } from '@domain/account/application/use-cases/upda
 import { InvalidAccountGroupTypeError } from '@domain/account/application/use-cases/errors/invalid-account-group-type-error'
 import { InMemoryAccountGroupsRepository } from '@infra/database/in-memory/in-memory-account-groups-repository'
 import { InMemoryAccountsRepository } from '@infra/database/in-memory/in-memory-accounts-repository'
+import { InMemoryTransactionsRepository } from '@infra/database/in-memory/in-memory-transactions-repository'
 import { UpdateAccountController } from '@infra/http/controllers/update-account.controller'
 import { makeAccount } from '@tests/factories/make-account'
 import { makeAccountGroup } from '@tests/factories/make-account-group'
@@ -18,7 +19,7 @@ let sut: UpdateAccountController
 describe('UpdateAccountController', () => {
   beforeEach(() => {
     accountGroupsRepository = new InMemoryAccountGroupsRepository()
-    accountsRepository = new InMemoryAccountsRepository(accountGroupsRepository)
+    accountsRepository = new InMemoryAccountsRepository(accountGroupsRepository, new InMemoryTransactionsRepository())
     sut = new UpdateAccountController(new UpdateAccountUseCase(accountsRepository, accountGroupsRepository))
   })
 

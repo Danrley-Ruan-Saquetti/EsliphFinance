@@ -119,4 +119,23 @@ export class Transaction extends AggregateRoot<TransactionProps> {
   get updatedAt(): Date | null | undefined {
     return this.props.updatedAt
   }
+
+  settle(date?: Date): void {
+    this.props.status = Transaction.SETTLED_STATUS
+
+    if (date) {
+      this.props.date = date
+    }
+
+    this.touch()
+  }
+
+  revert(): void {
+    this.props.status = Transaction.PLANNED_STATUS
+    this.touch()
+  }
+
+  private touch(): void {
+    this.props.updatedAt = new Date()
+  }
 }

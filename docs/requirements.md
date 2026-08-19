@@ -102,6 +102,9 @@
 -   RN049 - A _Transação_ com **data** futura é criada como "Prevista" e a _Transação_ com **data** igual ou anterior à atual é criada como "Efetivada", podendo o padrão ser configurado pelo usuário.
 -   RN050 - Apenas as _Transações_ "Efetivadas" compõem o **saldo** da _Conta_; as _Transações_ "Previstas" compõem o **saldo projetado**.
 -   RN051 - A _Transação_ pode conter **anexos**.
+-   RN086 - A efetivação da _Transação_ só é permitida quando a sua **situação** for "Prevista", sendo rejeitada quando já estiver "Efetivada".
+-   RN087 - A reversão da _Transação_ só é permitida quando a sua **situação** for "Efetivada", sendo rejeitada quando já estiver "Prevista".
+-   RN088 - A efetivação da _Transação_ permite informar a **data** em que ela efetivamente ocorreu, atualizando a **data** da _Transação_.
 
 ## Faturas de Cartão de Crédito
 

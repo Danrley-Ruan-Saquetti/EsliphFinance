@@ -5,6 +5,7 @@ import { ResourceNotFoundError } from '@core/errors/resource-not-found-error'
 import { UnarchiveAccountUseCase } from '@domain/account/application/use-cases/unarchive-account'
 import { InMemoryAccountGroupsRepository } from '@infra/database/in-memory/in-memory-account-groups-repository'
 import { InMemoryAccountsRepository } from '@infra/database/in-memory/in-memory-accounts-repository'
+import { InMemoryTransactionsRepository } from '@infra/database/in-memory/in-memory-transactions-repository'
 import { UnarchiveAccountController } from '@infra/http/controllers/unarchive-account.controller'
 import { makeAccount } from '@tests/factories/make-account'
 
@@ -13,7 +14,7 @@ let sut: UnarchiveAccountController
 
 describe('UnarchiveAccountController', () => {
   beforeEach(() => {
-    accountsRepository = new InMemoryAccountsRepository(new InMemoryAccountGroupsRepository())
+    accountsRepository = new InMemoryAccountsRepository(new InMemoryAccountGroupsRepository(), new InMemoryTransactionsRepository())
     sut = new UnarchiveAccountController(new UnarchiveAccountUseCase(accountsRepository))
   })
 

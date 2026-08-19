@@ -10,6 +10,7 @@ const HTTP_STATUS_BY_ERROR_CODE: Record<string, HttpStatus | undefined> = {
   NOT_ALLOWED: HttpStatus.FORBIDDEN,
   INSECURE_TRANSPORT: HttpStatus.FORBIDDEN,
   EMAIL_ALREADY_IN_USE: HttpStatus.CONFLICT,
+  TRANSACTION_STATUS_CONFLICT: HttpStatus.CONFLICT,
 }
 
 export function httpStatusByErrorCode(code: string): HttpStatus {
