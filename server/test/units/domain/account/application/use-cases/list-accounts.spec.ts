@@ -8,10 +8,13 @@ import { ListAccountsUseCase } from '@domain/account/application/use-cases/list-
 import { CreditCardSettings } from '@domain/account/enterprise/value-objects/credit-card-settings'
 import { InMemoryAccountGroupsRepository } from '@infra/database/in-memory/in-memory-account-groups-repository'
 import { InMemoryAccountsRepository } from '@infra/database/in-memory/in-memory-accounts-repository'
+import { InMemoryTransactionsRepository } from '@infra/database/in-memory/in-memory-transactions-repository'
 import { makeAccount } from '@tests/factories/make-account'
 import { makeAccountGroup } from '@tests/factories/make-account-group'
+import { makeTransaction } from '@tests/factories/make-transaction'
 
 let accountGroupsRepository: InMemoryAccountGroupsRepository
+let transactionsRepository: InMemoryTransactionsRepository
 let accountsRepository: InMemoryAccountsRepository
 let sut: ListAccountsUseCase
 
@@ -26,7 +29,8 @@ async function createAccountGroup(ownerId: UniqueEntityID, type: AccountGroupTyp
 describe('Listar contas', () => {
   beforeEach(() => {
     accountGroupsRepository = new InMemoryAccountGroupsRepository()
-    accountsRepository = new InMemoryAccountsRepository(accountGroupsRepository)
+    transactionsRepository = new InMemoryTransactionsRepository()
+    accountsRepository = new InMemoryAccountsRepository(accountGroupsRepository, transactionsRepository)
     sut = new ListAccountsUseCase(accountsRepository)
   })
 
@@ -71,6 +75,59 @@ describe('Listar contas', () => {
     expect(result.isRight()).toBe(true)
     if (result.isRight()) {
       expect(result.value.accounts[0].balance?.amountInCents).toBe(-25050)
+    }
+  })
+
+  it('deve somar as transações efetivadas ao saldo inicial (RN021, RN050)', async () => {
+    const ownerId = new UniqueEntityID()
+    const accountGroup = await createAccountGroup(ownerId)
+    const account = makeAccount({ ownerId, accountGroupId: accountGroup.id, initialBalance: Money.fromCents(10000) })
+
+    await accountsRepository.create(account)
+    await transactionsRepository.create(makeTransaction({ ownerId, accountId: account.id, type: 'INCOME', status: 'SETTLED', amount: Money.fromCents(5000) }))
+    await transactionsRepository.create(makeTransaction({ ownerId, accountId: account.id, type: 'EXPENSE', status: 'SETTLED', amount: Money.fromCents(2000) }))
+
+    const result = await sut.execute({ ownerId: ownerId.toString() })
+
+    expect(result.isRight()).toBe(true)
+    if (result.isRight()) {
+      expect(result.value.accounts[0].balance?.amountInCents).toBe(13000)
+    }
+  })
+
+  it('não deve considerar transações previstas no saldo (RN050)', async () => {
+    const ownerId = new UniqueEntityID()
+    const accountGroup = await createAccountGroup(ownerId)
+    const account = makeAccount({ ownerId, accountGroupId: accountGroup.id, initialBalance: Money.fromCents(10000) })
+
+    await accountsRepository.create(account)
+    await transactionsRepository.create(makeTransaction({ ownerId, accountId: account.id, type: 'INCOME', status: 'PLANNED', amount: Money.fromCents(5000) }))
+
+    const result = await sut.execute({ ownerId: ownerId.toString() })
+
+    expect(result.isRight()).toBe(true)
+    if (result.isRight()) {
+      expect(result.value.accounts[0].balance?.amountInCents).toBe(10000)
+    }
+  })
+
+  it('não deve considerar transações efetivadas de outra conta no saldo', async () => {
+    const ownerId = new UniqueEntityID()
+    const accountGroup = await createAccountGroup(ownerId)
+    const account = makeAccount({ ownerId, accountGroupId: accountGroup.id, initialBalance: Money.fromCents(10000) })
+    const anotherAccount = makeAccount({ ownerId, accountGroupId: accountGroup.id })
+
+    await accountsRepository.create(account)
+    await accountsRepository.create(anotherAccount)
+    await transactionsRepository.create(makeTransaction({ ownerId, accountId: anotherAccount.id, type: 'INCOME', status: 'SETTLED', amount: Money.fromCents(5000) }))
+
+    const result = await sut.execute({ ownerId: ownerId.toString() })
+
+    expect(result.isRight()).toBe(true)
+    if (result.isRight()) {
+      const listedAccount = result.value.accounts.find(({ account: found }) => found.id.equals(account.id))
+
+      expect(listedAccount?.balance?.amountInCents).toBe(10000)
     }
   })
 

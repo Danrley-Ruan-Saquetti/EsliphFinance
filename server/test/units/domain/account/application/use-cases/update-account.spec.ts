@@ -9,6 +9,7 @@ import { InvalidAccountGroupTypeError } from '@domain/account/application/use-ca
 import { CreditCardSettings } from '@domain/account/enterprise/value-objects/credit-card-settings'
 import { InMemoryAccountGroupsRepository } from '@infra/database/in-memory/in-memory-account-groups-repository'
 import { InMemoryAccountsRepository } from '@infra/database/in-memory/in-memory-accounts-repository'
+import { InMemoryTransactionsRepository } from '@infra/database/in-memory/in-memory-transactions-repository'
 import { makeAccount } from '@tests/factories/make-account'
 import { makeAccountGroup } from '@tests/factories/make-account-group'
 
@@ -19,7 +20,7 @@ let sut: UpdateAccountUseCase
 describe('Editar conta', () => {
   beforeEach(() => {
     accountGroupsRepository = new InMemoryAccountGroupsRepository()
-    accountsRepository = new InMemoryAccountsRepository(accountGroupsRepository)
+    accountsRepository = new InMemoryAccountsRepository(accountGroupsRepository, new InMemoryTransactionsRepository())
     sut = new UpdateAccountUseCase(accountsRepository, accountGroupsRepository)
   })
 

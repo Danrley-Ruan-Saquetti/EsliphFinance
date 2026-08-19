@@ -223,4 +223,104 @@ describe('Transaction', () => {
     expect(transaction.createdAt).toEqual(createdAt)
     expect(transaction.updatedAt).toEqual(updatedAt)
   })
+
+  it('deve efetivar a transação prevista (RN048)', () => {
+    const transaction = Transaction.create({
+      ownerId: new UniqueEntityID(),
+      accountId: new UniqueEntityID(),
+      categoryId: new UniqueEntityID(),
+      type: 'EXPENSE',
+      status: 'PLANNED',
+      date: new Date('2026-01-10T00:00:00.000Z'),
+      amount: Money.fromCents(1000),
+    })
+
+    transaction.settle()
+
+    expect(transaction.status).toBe('SETTLED')
+  })
+
+  it('deve manter a data original quando a efetivação não informar uma nova data (RN088)', () => {
+    const originalDate = new Date('2026-01-10T00:00:00.000Z')
+
+    const transaction = Transaction.create({
+      ownerId: new UniqueEntityID(),
+      accountId: new UniqueEntityID(),
+      categoryId: new UniqueEntityID(),
+      type: 'EXPENSE',
+      status: 'PLANNED',
+      date: originalDate,
+      amount: Money.fromCents(1000),
+    })
+
+    transaction.settle()
+
+    expect(transaction.date).toEqual(originalDate)
+  })
+
+  it('deve atualizar a data da transação quando a efetivação informar a data em que ela ocorreu (RN088)', () => {
+    const settledAtDate = new Date('2026-01-12T00:00:00.000Z')
+
+    const transaction = Transaction.create({
+      ownerId: new UniqueEntityID(),
+      accountId: new UniqueEntityID(),
+      categoryId: new UniqueEntityID(),
+      type: 'EXPENSE',
+      status: 'PLANNED',
+      date: new Date('2026-01-10T00:00:00.000Z'),
+      amount: Money.fromCents(1000),
+    })
+
+    transaction.settle(settledAtDate)
+
+    expect(transaction.date).toEqual(settledAtDate)
+  })
+
+  it('deve atualizar updatedAt ao efetivar a transação', () => {
+    const transaction = Transaction.create({
+      ownerId: new UniqueEntityID(),
+      accountId: new UniqueEntityID(),
+      categoryId: new UniqueEntityID(),
+      type: 'EXPENSE',
+      status: 'PLANNED',
+      date: new Date(),
+      amount: Money.fromCents(1000),
+    })
+
+    transaction.settle()
+
+    expect(transaction.updatedAt).toBeInstanceOf(Date)
+  })
+
+  it('deve reverter a transação efetivada para prevista (RN048)', () => {
+    const transaction = Transaction.create({
+      ownerId: new UniqueEntityID(),
+      accountId: new UniqueEntityID(),
+      categoryId: new UniqueEntityID(),
+      type: 'EXPENSE',
+      status: 'SETTLED',
+      date: new Date(),
+      amount: Money.fromCents(1000),
+    })
+
+    transaction.revert()
+
+    expect(transaction.status).toBe('PLANNED')
+  })
+
+  it('deve atualizar updatedAt ao reverter a transação', () => {
+    const transaction = Transaction.create({
+      ownerId: new UniqueEntityID(),
+      accountId: new UniqueEntityID(),
+      categoryId: new UniqueEntityID(),
+      type: 'EXPENSE',
+      status: 'SETTLED',
+      date: new Date(),
+      amount: Money.fromCents(1000),
+    })
+
+    transaction.revert()
+
+    expect(transaction.updatedAt).toBeInstanceOf(Date)
+  })
 })
