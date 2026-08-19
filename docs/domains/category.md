@@ -38,9 +38,9 @@ Hoje o contexto tem o cadastro raiz (SCRUM-45), o vínculo de subcategoria (SCRU
 | RN031 | `CreateCategoryUseCase` (campo `parentId` opcional) + coluna `parent_id` | Só se aplica quando `parentId` é informado; sem ele o comportamento é o do SCRUM-45 |
 | RN032 | `validateSubcategoryHierarchy` | Pai que já é subcategoria (`parent.parentId` preenchido) → `left(InvalidCategoryHierarchyError)`, HTTP 400. Auto-referência e "pai que já tem filhas não pode virar subcategoria" ficam para o SCRUM-47, que introduz mover uma categoria existente |
 | RN033 | `validateSubcategoryHierarchy` | Pai com natureza `INCOME` ou `EXPENSE` e filha de natureza diferente → `left(IncompatibleCategoryNatureError)`, HTTP 400; pai `BOTH` aceita qualquer natureza de filha |
-| RN034 | `DeleteCategoryUseCase` (`hasSubcategories`) | Categoria com subcategoria vinculada → `left(NotAllowedError)`, HTTP 403, mensagem orienta a arquivar. **Vínculo com _Transações_ não é verificado** — o domínio não existe; falta destravar quando ele existir. |
+| RN034 | `DeleteCategoryUseCase` (`hasSubcategories`) | Categoria com subcategoria vinculada → `left(NotAllowedError)`, HTTP 403, mensagem orienta a arquivar. **Vínculo com _Transações_ ainda não é verificado** — o domínio já existe, mas `CategoriesRepository` não tem método equivalente a `hasSubcategories` para transações; falta ligar. |
 | RN031 (listagem) | `ListCategoryTreeUseCase` | Monta a árvore de 2 níveis a partir de `findManyByOwnerId`: raízes são as categorias sem `parentId`, filhas são as que apontam para uma raiz presente no array |
-| RN035, RN084 | `CategoriesRepository.findManyByOwnerId` (filtro `archived_at IS NULL`) + `ListCategoryTreeUseCase` (árvore) | Por padrão `includeArchived` é `false`, então categorias arquivadas somem da consulta; a subcategoria de um pai arquivado (RN084) nunca precisa checar o próprio `archivedAt` — ela só aparece se a raiz que ela referencia sobreviveu ao mesmo filtro, senão fica órfã e é descartada na montagem da árvore |
+| RN035, RN084 | `CategoriesRepository.findManyByOwnerId` (filtro `archived_at IS NULL`) + `ListCategoryTreeUseCase` (árvore) | Por padrão `includeArchived` é `false`, então categorias arquivadas somem da consulta; a subcategoria de um pai arquivado (RN084) nunca precisa checar o próprio `archivedAt` — ela só aparece se a raiz que ela referencia sobreviveu ao mesmo filtro, senão fica órfã e é descartada na montagem da árvore. Também aplicada fora deste domínio, por [`CreateTransactionUseCase`](transaction.md) (`category.isArchived`), que rejeita a categoria arquivada em novos lançamentos. |
 | RN083 | `ArchiveCategoryUseCase` / `UnarchiveCategoryUseCase` | `archive()`/`unarchive()` na entidade, idempotentes; dono verificado antes (RN010, RN011) |
 | RN010, RN011 | `CreateCategoryUseCase` | O `ownerId` nunca vem do cliente: sai do `@CurrentUser()` e é aplicado depois do corpo (`{ ...body, ownerId: currentUser.id }`), então `ownerId` forjado no JSON é ignorado |
 
@@ -50,7 +50,7 @@ Hoje o contexto tem o cadastro raiz (SCRUM-45), o vínculo de subcategoria (SCRU
 | ------- | ------- | ---------------- | ---------- |
 | [Usuários](user.md) | Categoria → Usuário | `Category.ownerId`, vindo do token; FK `categories.owner_id` | RN010, RN011 |
 | Categoria → Categoria | Subcategoria → Categoria | `parent_id` na mesma tabela (FK auto-referenciada), validado em `validateSubcategoryHierarchy` | RN031, RN032, RN033 |
-| Transações _(não existe)_ | Transação → Categoria | Vai comparar a natureza com o tipo da transação e completar o bloqueio de exclusão da categoria (hoje `DeleteCategoryUseCase` só verifica subcategoria vinculada) | RN034, RN042 |
+| [Transações](transaction.md) | Transação → Categoria | `CreateTransactionUseCase` injeta `CategoriesRepository` para checar dono, arquivamento e comparar a natureza com o tipo da transação; ainda não completa o bloqueio de exclusão da categoria (`DeleteCategoryUseCase` continua só verificando subcategoria vinculada) | RN010, RN011, RN034, RN035, RN042 |
 
 Hoje o contexto não importa nem é importado por nenhum outro domínio — é a fatia mais isolada do backend.
 

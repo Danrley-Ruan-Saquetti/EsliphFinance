@@ -42,7 +42,7 @@ A _Conta_ é o contêiner de dinheiro do usuário. Ela existe em duas naturezas 
 | RN022 | `Account.validateInitialBalance` e `ListAccountsUseCase` | Saldo inicial diferente de zero junto de `creditCard` → `InvariantError` (422). Na listagem, conta de cartão devolve `balance: null`. |
 | RN023 | `ListAccountsUseCase` | **Parcial.** O `availableLimit` é hoje o limite integral: a dedução das faturas em aberto e dos lançamentos não faturados depende do contexto de _Faturas_. |
 | RN024 | `ArchiveAccountUseCase`, `DeleteAccountUseCase` | Arquivar é reversível via `UnarchiveAccountUseCase`. **Parcial na exclusão**: a conta é excluída sem checar vínculo com transações, porque o contexto de _Transações_ ainda não existe — ver "Ainda não existe". |
-| RN025 | `Account.archivedAt` / `isArchived`, `ArchiveAccountUseCase`, `UnarchiveAccountUseCase` e o filtro `archived` de `ListAccountsUseCase` | Conta arquivada some da listagem quando `archived=false` é passado; segue visível quando o filtro é omitido, preservando o histórico. |
+| RN025 | `Account.archivedAt` / `isArchived`, `ArchiveAccountUseCase`, `UnarchiveAccountUseCase` e o filtro `archived` de `ListAccountsUseCase` | Conta arquivada some da listagem quando `archived=false` é passado; segue visível quando o filtro é omitido, preservando o histórico. Também aplicada fora deste domínio, por [`CreateTransactionUseCase`](transaction.md) (`account.isArchived`), que rejeita a conta arquivada em novos lançamentos. |
 | RN010, RN011 | `CreateAccountUseCase` (grupo do dono), `UpdateAccountUseCase` (conta e grupos do dono), `findManyByOwnerId`, `ArchiveAccountUseCase`, `UnarchiveAccountUseCase`, `DeleteAccountUseCase` | Grupo ou conta inexistente **ou de outro usuário** → `ResourceNotFoundError` (404), indistinguíveis de propósito. Na edição, conta inexistente ou de outro usuário responde o mesmo 404, antes mesmo de olhar o grupo. O `ownerId` nunca vem do cliente: sai do `@CurrentUser()`. |
 
 ## Fronteiras
@@ -51,7 +51,7 @@ A _Conta_ é o contêiner de dinheiro do usuário. Ela existe em duas naturezas 
 | ------- | ------- | ---------------- | ---------- |
 | [Grupos de Contas](account-group.md) | Conta → Grupo | `CreateAccountUseCase` injeta `AccountGroupsRepository` para ler o tipo; `Account.accountGroupId`; `FindManyAccountsFilters.accountGroupType` importa `AccountGroupType`; FK `accounts.account_group_id`; `innerJoin` na listagem | RN015, RN018, RN019 |
 | [Usuários](user.md) | Conta → Usuário | `Account.ownerId`, vindo do token; FK `accounts.owner_id` | RN010, RN011 |
-| Transações _(não existe)_ | Transação → Conta | Vai somar no saldo agregado da consulta de listagem | RN021, RN050 |
+| [Transações](transaction.md) | Transação → Conta | `CreateTransactionUseCase` injeta `AccountsRepository` para checar dono e arquivamento antes de registrar o lançamento; ainda não soma no saldo agregado da consulta de listagem | RN010, RN011, RN021, RN025, RN050 |
 | Faturas _(não existe)_ | Fatura → Conta | Vai deduzir do `availableLimit` | RN023, RN052 |
 
 A dependência é de mão única: o contexto de Grupos de Contas não conhece `Account` no domínio. O `accountsCount` que ele expõe é contado na infraestrutura, por join — ver [Grupos de Contas](account-group.md).
@@ -86,9 +86,9 @@ Conta de grupo "Padrão" responde `balance` preenchido e `creditCard: null`; con
 | Operação | RN | O que a destrava |
 | -------- | -- | ---------------- |
 | Consulta individual (`GET /accounts/:id`) | RN018 | Nada. A edição não precisou dela: `UpdateAccountUseCase` carrega a conta pelo `findById` já existente na porta, sem expor um endpoint de leitura própria |
-| Exclusão bloqueada por transações vinculadas | RN024 | Contexto de _Transações_. Hoje `DeleteAccountUseCase` exclui sem checar vínculo — como a tabela de transações não existe, toda conta está de fato sem vínculo, então a checagem seria sempre verdadeira e não foi implementada para não simular um contexto que ainda não existe. Quando _Transações_ nascer, o caso de uso ganha a mesma checagem de `DeleteCategoryUseCase.hasSubcategories`, mas perguntando por transações em vez de subcategorias |
+| Exclusão bloqueada por transações vinculadas | RN024 | O contexto de _Transações_ já existe, mas `DeleteAccountUseCase` ainda não confere vínculo. Falta só ligar: o caso de uso ganha a mesma checagem de `DeleteCategoryUseCase.hasSubcategories`, mas perguntando ao `TransactionsRepository` por transações em vez de subcategorias — método que a porta também não tem ainda, porque hoje ela só expõe `create` |
 | Saldo consolidado exclui contas arquivadas (RN077) | RN077 | Endpoint de saldo consolidado ainda não existe — nenhum código deste domínio contraria a regra, só não há o que a aplica |
-| Saldo real (transações efetivadas) | RN021, RN050 | Contexto de _Transações_. A consulta já é o lugar certo: acrescentar `leftJoin` + `groupBy` no `DrizzleAccountsRepository` não muda o caso de uso |
+| Saldo real (transações efetivadas) | RN021, RN050 | Depende de RN049/RN050 (SCRUM-54) para "Efetivada" ter sentido como filtro. A consulta já é o lugar certo: acrescentar `leftJoin` + `groupBy` no `DrizzleAccountsRepository` sobre `transactions` não muda o caso de uso |
 | Limite disponível real | RN023 | Contexto de _Faturas_ |
 
 ## Onde tocar

@@ -15,7 +15,7 @@ API do EsliphFinance. Este documento cobre apenas o backend; o contexto geral do
 | Ambiente         | Docker + Docker Compose            |
 | Comandos         | Makefile                           |
 
-> Estado atual do repositório: a fundação arquitetural está implementada (camadas, `core/`, pipe de validação, padrão `Either`, aliases), a persistência com Drizzle e o pipeline de migrations estão no ar, e há um **módulo de exemplo** em `src/domain/example` servindo de referência de estrutura — ele não faz parte do domínio real. Os contextos reais implementados são `src/domain/user` (RF001, RF002), `src/domain/account-group` (RF003), `src/domain/account` (RF004) e `src/domain/category` (RF006); **o que existe em cada um, o que ainda falta e como eles se ligam está em [`../docs/domains/`](../docs/domains/README.md)**, um arquivo por contexto, e **o que sustenta todos eles está em [`../docs/architecture/`](../docs/architecture/README.md)**, um arquivo por eixo transversal.
+> Estado atual do repositório: a fundação arquitetural está implementada (camadas, `core/`, pipe de validação, padrão `Either`, aliases), a persistência com Drizzle e o pipeline de migrations estão no ar, e há um **módulo de exemplo** em `src/domain/example` servindo de referência de estrutura — ele não faz parte do domínio real. Os contextos reais implementados são `src/domain/user` (RF001, RF002), `src/domain/account-group` (RF003), `src/domain/account` (RF004), `src/domain/category` (RF006) e `src/domain/transaction` (RF008); **o que existe em cada um, o que ainda falta e como eles se ligam está em [`../docs/domains/`](../docs/domains/README.md)**, um arquivo por contexto, e **o que sustenta todos eles está em [`../docs/architecture/`](../docs/architecture/README.md)**, um arquivo por eixo transversal.
 
 ## Ambiente Docker
 
@@ -225,7 +225,7 @@ Identificador, nome de arquivo e `code` de erro são em inglês; **toda mensagem
 
 ## Domínios
 
-O que cada contexto de `src/domain` tem construído — os arquivos que compõem a fatia, as regras que cada um garante, as fronteiras com os vizinhos e o que ainda não existe — está em [`../docs/domains/`](../docs/domains/README.md), um arquivo por contexto: [usuários](../docs/domains/user.md), [grupos de contas](../docs/domains/account-group.md), [contas](../docs/domains/account.md) e [categorias](../docs/domains/category.md).
+O que cada contexto de `src/domain` tem construído — os arquivos que compõem a fatia, as regras que cada um garante, as fronteiras com os vizinhos e o que ainda não existe — está em [`../docs/domains/`](../docs/domains/README.md), um arquivo por contexto: [usuários](../docs/domains/user.md), [grupos de contas](../docs/domains/account-group.md), [contas](../docs/domains/account.md), [categorias](../docs/domains/category.md) e [transações](../docs/domains/transaction.md).
 
 Ao mexer em um domínio, leia o documento dele **antes** de varrer `src/`, e atualize-o no mesmo passo do código — é a skill `domain-architect` que responde por esses arquivos.
 

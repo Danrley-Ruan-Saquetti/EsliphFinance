@@ -4,6 +4,7 @@ import { AccountGroupsRepository } from '@domain/account-group/application/repos
 import { AccountsRepository } from '@domain/account/application/repositories/accounts-repository'
 import { CategoriesRepository } from '@domain/category/application/repositories/categories-repository'
 import { NotesRepository } from '@domain/example/application/repositories/notes-repository'
+import { TransactionsRepository } from '@domain/transaction/application/repositories/transactions-repository'
 import { RefreshTokensRepository } from '@domain/user/application/repositories/refresh-tokens-repository'
 import { UsersRepository } from '@domain/user/application/repositories/users-repository'
 import { DrizzleService } from '@infra/database/drizzle/drizzle.service'
@@ -12,6 +13,7 @@ import { DrizzleAccountsRepository } from '@infra/database/drizzle/repositories/
 import { DrizzleCategoriesRepository } from '@infra/database/drizzle/repositories/drizzle-categories-repository'
 import { DrizzleNotesRepository } from '@infra/database/drizzle/repositories/drizzle-notes-repository'
 import { DrizzleRefreshTokensRepository } from '@infra/database/drizzle/repositories/drizzle-refresh-tokens-repository'
+import { DrizzleTransactionsRepository } from '@infra/database/drizzle/repositories/drizzle-transactions-repository'
 import { DrizzleUsersRepository } from '@infra/database/drizzle/repositories/drizzle-users-repository'
 import { EnvModule } from '@infra/env/env.module'
 
@@ -25,7 +27,17 @@ import { EnvModule } from '@infra/env/env.module'
     { provide: AccountGroupsRepository, useClass: DrizzleAccountGroupsRepository },
     { provide: AccountsRepository, useClass: DrizzleAccountsRepository },
     { provide: CategoriesRepository, useClass: DrizzleCategoriesRepository },
+    { provide: TransactionsRepository, useClass: DrizzleTransactionsRepository },
   ],
-  exports: [DrizzleService, NotesRepository, UsersRepository, RefreshTokensRepository, AccountGroupsRepository, AccountsRepository, CategoriesRepository],
+  exports: [
+    DrizzleService,
+    NotesRepository,
+    UsersRepository,
+    RefreshTokensRepository,
+    AccountGroupsRepository,
+    AccountsRepository,
+    CategoriesRepository,
+    TransactionsRepository,
+  ],
 })
 export class DatabaseModule {}
