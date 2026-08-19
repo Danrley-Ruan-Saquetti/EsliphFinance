@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common'
+import { eq } from 'drizzle-orm'
 
 import { TransactionsRepository } from '@domain/transaction/application/repositories/transactions-repository'
 import { Transaction } from '@domain/transaction/enterprise/entities/transaction'
@@ -14,5 +15,19 @@ export class DrizzleTransactionsRepository extends TransactionsRepository {
 
   async create(transaction: Transaction): Promise<void> {
     await this.drizzle.db.insert(transactions).values(DrizzleTransactionMapper.toPersistence(transaction))
+  }
+
+  async save(transaction: Transaction): Promise<void> {
+    await this.drizzle.db.update(transactions).set(DrizzleTransactionMapper.toPersistence(transaction)).where(eq(transactions.id, transaction.id.toString()))
+  }
+
+  async findById(id: string): Promise<Transaction | null> {
+    const [record] = await this.drizzle.db.select().from(transactions).where(eq(transactions.id, id)).limit(1)
+
+    if (!record) {
+      return null
+    }
+
+    return DrizzleTransactionMapper.toDomain(record)
   }
 }

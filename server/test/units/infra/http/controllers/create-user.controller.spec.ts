@@ -24,6 +24,7 @@ describe('CreateUserController', () => {
       id: usersRepository.items[0].id.toString(),
       name: 'Fulano de Tal',
       email: 'fulano@exemplo.com',
+      defaultTransactionStatus: null,
       createdAt: usersRepository.items[0].createdAt,
       updatedAt: null,
     })

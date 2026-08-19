@@ -8,6 +8,7 @@ import { CreateAccountUseCase } from '@domain/account/application/use-cases/crea
 import { InvalidAccountGroupTypeError } from '@domain/account/application/use-cases/errors/invalid-account-group-type-error'
 import { InMemoryAccountGroupsRepository } from '@infra/database/in-memory/in-memory-account-groups-repository'
 import { InMemoryAccountsRepository } from '@infra/database/in-memory/in-memory-accounts-repository'
+import { InMemoryTransactionsRepository } from '@infra/database/in-memory/in-memory-transactions-repository'
 import { makeAccountGroup } from '@tests/factories/make-account-group'
 
 let accountsRepository: InMemoryAccountsRepository
@@ -17,7 +18,7 @@ let sut: CreateAccountUseCase
 describe('Criar conta', () => {
   beforeEach(() => {
     accountGroupsRepository = new InMemoryAccountGroupsRepository()
-    accountsRepository = new InMemoryAccountsRepository(accountGroupsRepository)
+    accountsRepository = new InMemoryAccountsRepository(accountGroupsRepository, new InMemoryTransactionsRepository())
     sut = new CreateAccountUseCase(accountsRepository, accountGroupsRepository)
   })
 

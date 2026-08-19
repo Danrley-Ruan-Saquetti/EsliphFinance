@@ -1,6 +1,6 @@
 # Usuários
 
-> **Contexto** `server/src/domain/user` · **Requisitos** RF001, RF002 · RN001–RN014 · RNF005, RNF006
+> **Contexto** `server/src/domain/user` · **Requisitos** RF001, RF002 · RN001–RN014, RN049 · RNF005, RNF006
 
 O contexto do _Usuário_ guarda a identidade e a sessão. Ele é a raiz de todos os outros: RN010 diz que todo registro do sistema pertence a um usuário, então toda tabela tem `owner_id` apontando para cá e todo caso de uso recebe o dono vindo do token.
 
@@ -10,7 +10,8 @@ São **dois agregados**, e a separação é deliberada: `User` é a identidade; 
 
 | Artefato | Caminho (a partir de `server/`) | O que só ele sabe |
 | -------- | ------------------------------- | ----------------- |
-| `User` (agregado) | `src/domain/user/enterprise/entities/user.ts` | Nome não vazio de até 120 caracteres; `isDeleted` derivado de `deletedAt`; `changeName` e `changeEmail` atualizam `updatedAt`. Guarda o **hash** da senha, nunca a senha. |
+| `User` (agregado) | `src/domain/user/enterprise/entities/user.ts` | Nome não vazio de até 120 caracteres; `isDeleted` derivado de `deletedAt`; `changeName`, `changeEmail` e `changeDefaultTransactionStatus` atualizam `updatedAt`. Guarda o **hash** da senha, nunca a senha. `defaultTransactionStatus` (RN049) é nullable — `null` significa "sem preferência", e é o próprio `Transaction` (domínio vizinho) quem decide o que fazer na ausência dela |
+| `DefaultTransactionStatus` (VO) | `src/domain/user/enterprise/value-objects/default-transaction-status.ts` | União de tipos sobre `DEFAULT_TRANSACTION_STATUSES` (`'PLANNED'`, `'SETTLED'`). Literais iguais aos de `TransactionStatus` em `transaction.md`, mas **não importados de lá** — este contexto não conhece nenhum outro (ver "Fronteiras"), mesmo padrão de duplicação deliberada que `CategoryNature` já usa para os literais de `TransactionType` |
 | `RefreshToken` (agregado) | `src/domain/user/enterprise/entities/refresh-token.ts` | `issue({ userId, tokenHash, expiresInSeconds })` calcula a expiração — é por aqui que login e renovação emitem. `create` fica para reconstruir do banco. `isUsable` = nem revogado, nem vencido. `revoke()` é idempotente. |
 | `Email` (VO) | `src/domain/user/enterprise/value-objects/email.ts` | Normaliza para minúsculas sem espaços e valida formato e tamanho. `Email.normalize` é usado no login para buscar pelo mesmo formato que foi gravado. |
 | `Password` (VO) | `src/domain/user/enterprise/value-objects/password.ts` | Mínimo de 8 caracteres (RN003). Existe só para validar na entrada — **não** é persistido nem atravessa a entidade. |
@@ -42,6 +43,7 @@ São **dois agregados**, e a separação é deliberada: `User` é a identidade; 
 | RN010, RN011 | Perfil sempre pelo token; `EndSessionUseCase` confere o dono do token de renovação | Registro alheio é indistinguível de inexistente. O token de outro usuário não é revogado e a resposta não revela que ele existe |
 | RN012, RN013 | **Não implementadas**, mas `deletedAt`, `isDeleted` e a coluna já existem; `GetUserProfileUseCase` e `UpdateUserProfileUseCase` já tratam usuário excluído como inexistente (404) | — |
 | RN014 | `DrizzleUsersRepository.findByEmail`, que não filtra excluídos | O e-mail de um usuário excluído continua ocupado |
+| RN049 | `User.defaultTransactionStatus`, `User.changeDefaultTransactionStatus`, schema Zod de `UpdateUserProfileController` | A metade "preferência do usuário" da regra mora aqui; a metade "regra de data" mora em `transaction.md` (`CreateTransactionUseCase`). Valor fora de `DEFAULT_TRANSACTION_STATUSES` → `InvariantError` (422). No `PUT /users/me`, o campo é opcional e de três estados: ausente preserva o valor atual, `null` limpa a preferência, um valor a define — por isso `UpdateUserProfileUseCase` só chama `changeDefaultTransactionStatus` quando a chave está presente no request (`!== undefined`), nunca incondicionalmente |
 | RNF006 | `BcryptHasher` | A senha nunca é gravada nem logada em texto |
 
 **Token de renovação:** valor aleatório opaco de 32 bytes em `base64url` — **não** é JWT, porque precisa ser invalidável a qualquer momento (RN007, RN008, RN009, RN013), e um JWT autocontido não permite isso. O que vai para a tabela é o **SHA-256 do token**, nunca o valor entregue ao cliente; a busca posterior usa o mesmo hash.
@@ -52,6 +54,7 @@ São **dois agregados**, e a separação é deliberada: `User` é a identidade; 
 | ------- | ------- | ---------------- | ---------- |
 | Todos os demais | Domínio → Usuário | `ownerId` em todo agregado e FK `owner_id` em toda tabela. O identificador chega ao caso de uso pelo `@CurrentUser()`, nunca pelo corpo ou pela URL | RN010, RN011 |
 | [Grupos de Contas](account-group.md), [Contas](account.md) | → Usuário | FKs `account_groups.owner_id` e `accounts.owner_id` | RN010 |
+| [Transações](transaction.md) | → Usuário | `CreateTransactionUseCase` injeta `UsersRepository` e lê `User.defaultTransactionStatus` quando `status` não vem no corpo do `POST /transactions` | RN049 |
 
 O `JwtAuthGuard` global, o `@Public()` e o `@CurrentUser()` consomem a porta `AccessTokenVerifier` deste contexto, mas são política de infraestrutura que vale para o repositório inteiro — estão descritos em [`../architecture/security.md`](../architecture/security.md), não aqui.
 
@@ -59,12 +62,13 @@ Este contexto não conhece nenhum outro: as setas apontam todas para dentro dele
 
 ## Persistência
 
-Migrations `0001_create_users_table` e `0002_create_refresh_tokens_table`.
+Migrations `0001_create_users_table`, `0002_create_refresh_tokens_table` e `0012_add-user-default-transaction-status`.
 
 | Tabela | Coluna | Observação |
 | ------ | ------ | ---------- |
 | `users` | `email` | `varchar(254)`, **único** — a unicidade da RN002 é garantida também no banco |
 | | `password_hash` | `varchar(255)` |
+| | `default_transaction_status` | Enum próprio `user_default_transaction_status` (`PLANNED`, `SETTLED`), nullable — **não** reaproveita o enum `transaction_status` de `transactions.ts`, para o schema deste contexto não importar do de Transação (mesma independência de domínio, aplicada à camada Drizzle) |
 | | `deleted_at` | Nulo significa ativo; a exclusão lógica ainda não escreve aqui |
 | `refresh_tokens` | `token_hash` | `varchar(64)` **único** — SHA-256 em hexadecimal. O token em texto não existe no banco |
 | | `user_id` | FK para `users`, indexada |
@@ -81,7 +85,7 @@ Migrations `0001_create_users_table` e `0002_create_refresh_tokens_table`.
 | `GET /users/me` | não | `GetUserProfileUseCase` | 200; 404 inexistente ou excluído |
 | `PUT /users/me` | não | `UpdateUserProfileUseCase` | 200; 409 e-mail de outro usuário; 404; 422 |
 
-Não existe rota de perfil por identificador — os dois endpoints de perfil trabalham sempre sobre o usuário do token. A atualização substitui `name` e `email`, ambos obrigatórios, e **não** altera a senha: RN009 tem fluxo próprio.
+Não existe rota de perfil por identificador — os dois endpoints de perfil trabalham sempre sobre o usuário do token. A atualização substitui `name` e `email`, ambos obrigatórios, e **não** altera a senha: RN009 tem fluxo próprio. `defaultTransactionStatus` (RN049) é o único campo de três estados do corpo do `PUT /users/me`: ausente preserva o valor atual, `null` limpa a preferência, um valor a define — decisão para reaproveitar a rota existente em vez de criar uma rota de preferências própria, já que é o único campo de preferência do usuário hoje. `UserPresenter` sempre expõe `defaultTransactionStatus` (`null` quando não configurada), então a preferência é consultável tanto por `GET /users/me` quanto pela resposta do próprio `PUT`.
 
 O cliente precisa guardar o token de renovação devolvido a cada renovação, porque o anterior deixa de valer no mesmo instante (RN007).
 
@@ -99,5 +103,7 @@ O cliente precisa guardar o token de renovação devolvido a cada renovação, p
 **Mexer na sessão** → comece pela entidade `RefreshToken`: `isUsable`, `revoke()` e o cálculo da expiração moram lá. Emissão de token novo passa sempre por `RefreshToken.issue`, nunca por `create` com data calculada à mão.
 
 **Trocar algoritmo de hash ou de assinatura** → a porta em `application/services/` não muda; troque a implementação em `src/infra/cryptography/` e o binding no `CryptographyModule`. Nenhum caso de uso é tocado — é exatamente para isso que as portas existem.
+
+**Preferência nova do usuário** (`defaultTransactionStatus` é a primeira) → mesma receita de "Campo novo no usuário", mas se a preferência puder ser explicitamente limpa (voltar a "sem preferência"), o campo no `UpdateUserProfileRequest` precisa dos três estados — ausente/`null`/valor —, e o schema Zod do controller usa `.nullable().optional()`. O caso de uso só chama o `change*` da entidade quando a chave está presente (`!== undefined`); chamar incondicionalmente apagaria a preferência em todo `PUT /users/me` que não a reenviasse. Reaproveitar `PUT /users/me` em vez de criar uma rota de preferências dedicada só se sustenta enquanto for um campo isolado — se aparecer uma segunda preferência não relacionada, reconsidere com o `platform-architect` se ainda faz sentido crescer o mesmo endpoint.
 
 **Regra de sessão nova** (revogar todas as sessões, por exemplo) → método novo na porta `RefreshTokensRepository` → implementar nos **dois** repositórios → caso de uso → controller → `HttpModule`.

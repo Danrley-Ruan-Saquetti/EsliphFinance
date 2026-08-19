@@ -8,6 +8,7 @@ import { InMemoryAccountGroupsRepository } from '@infra/database/in-memory/in-me
 import { InMemoryAccountsRepository } from '@infra/database/in-memory/in-memory-accounts-repository'
 import { InMemoryCategoriesRepository } from '@infra/database/in-memory/in-memory-categories-repository'
 import { InMemoryTransactionsRepository } from '@infra/database/in-memory/in-memory-transactions-repository'
+import { InMemoryUsersRepository } from '@infra/database/in-memory/in-memory-users-repository'
 import { CreateTransactionController } from '@infra/http/controllers/create-transaction.controller'
 import { makeAccount } from '@tests/factories/make-account'
 import { makeCategory } from '@tests/factories/make-category'
@@ -15,14 +16,16 @@ import { makeCategory } from '@tests/factories/make-category'
 let transactionsRepository: InMemoryTransactionsRepository
 let accountsRepository: InMemoryAccountsRepository
 let categoriesRepository: InMemoryCategoriesRepository
+let usersRepository: InMemoryUsersRepository
 let sut: CreateTransactionController
 
 describe('CreateTransactionController', () => {
   beforeEach(() => {
     transactionsRepository = new InMemoryTransactionsRepository()
-    accountsRepository = new InMemoryAccountsRepository(new InMemoryAccountGroupsRepository())
+    accountsRepository = new InMemoryAccountsRepository(new InMemoryAccountGroupsRepository(), transactionsRepository)
     categoriesRepository = new InMemoryCategoriesRepository()
-    sut = new CreateTransactionController(new CreateTransactionUseCase(transactionsRepository, accountsRepository, categoriesRepository))
+    usersRepository = new InMemoryUsersRepository()
+    sut = new CreateTransactionController(new CreateTransactionUseCase(transactionsRepository, accountsRepository, categoriesRepository, usersRepository))
   })
 
   it('deve devolver a transação criada no formato de resposta', async () => {
@@ -103,6 +106,25 @@ describe('CreateTransactionController', () => {
     await sut.handle(currentUser, forgedBody)
 
     expect(transactionsRepository.items[0].ownerId.toString()).toBe(currentUser.id)
+  })
+
+  it('deve aceitar a criação sem status informado, derivando a situação pela data (RN049)', async () => {
+    const currentUser = { id: new UniqueEntityID().toString() }
+    const account = makeAccount({ ownerId: new UniqueEntityID(currentUser.id) })
+    const category = makeCategory({ ownerId: new UniqueEntityID(currentUser.id), nature: 'EXPENSE' })
+
+    await accountsRepository.create(account)
+    await categoriesRepository.create(category)
+
+    const response = await sut.handle(currentUser, {
+      accountId: account.id.toString(),
+      categoryId: category.id.toString(),
+      type: 'EXPENSE',
+      date: new Date('2000-01-10T00:00:00.000Z'),
+      amount: Money.fromCents(5000),
+    })
+
+    expect(response.transaction.status).toBe('SETTLED')
   })
 
   it('deve lançar CategoryNatureMismatchError quando a categoria for incompatível com o tipo (RN042)', async () => {

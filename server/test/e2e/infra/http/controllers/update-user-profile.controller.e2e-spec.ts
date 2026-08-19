@@ -46,6 +46,20 @@ describe('Atualizar perfil do usuário (e2e)', () => {
     expect(response.body.user.passwordHash).toBeUndefined()
   })
 
+  it('PUT /users/me define a preferência de situação padrão de transação e ela fica consultável (RN049)', async () => {
+    const updateResponse = await request(app.getHttpServer())
+      .put('/users/me')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ name: 'Fulano Atualizado', email: 'atualizado@exemplo.com', defaultTransactionStatus: 'PLANNED' })
+
+    expect(updateResponse.statusCode).toBe(200)
+    expect(updateResponse.body.user.defaultTransactionStatus).toBe('PLANNED')
+
+    const profileResponse = await request(app.getHttpServer()).get('/users/me').set('Authorization', `Bearer ${accessToken}`)
+
+    expect(profileResponse.body.user.defaultTransactionStatus).toBe('PLANNED')
+  })
+
   it('PUT /users/me rejeita o e-mail já utilizado por outro usuário com 409', async () => {
     const response = await request(app.getHttpServer())
       .put('/users/me')
