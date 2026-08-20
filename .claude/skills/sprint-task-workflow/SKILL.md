@@ -25,7 +25,7 @@ Não decide nada de produto — isso é sempre `business-analyst`/`domain-archit
 | Subida do stack | Automática: `make deps` + `make up` + `make db-migrate` fazem parte da criação do worktree |
 | Orquestração da paralelização | Subagentes autônomos (`Agent` tool), um por task — cada um roda o ciclo completo (jira-ticket-context → tech-lead → code-reviewer → PR) dentro do próprio worktree |
 | Entrada da paralelização | Só lista explícita de números de ticket — nunca infere do backlog |
-| Teto de paralelismo | 4 tasks simultâneas — mesmo intervalo de porta (5441–5444) já usado como referência; N>4 é recusado com aviso |
+| Teto de paralelismo | 4 tasks por leva do Fluxo 4 — não um teto global de porta: com worktrees já vivos fora da leva, as portas alocadas podem cair fora de 5441–5444; N>4 é recusado com aviso |
 | Checagem de domínio sobreposto | Avisa se duas tasks da leva caírem no mesmo contexto de `docs/domains/` e confirma pontualmente antes de seguir com aquele par — não bloqueia as demais |
 | Report da paralelização | Por task, assim que o subagente correspondente termina — a sessão orquestradora não espera as N |
 | Tipo de subagente | `Agent` com `subagent_type: "general-purpose"` — nunca `fork`, porque cada task precisa de contexto próprio, não do histórico da conversa que disparou a leva |
@@ -35,7 +35,7 @@ Não decide nada de produto — isso é sempre `business-analyst`/`domain-archit
 
 Gatilho: "começa a SCRUM-60", "cria o worktree pra próxima task da sprint".
 
-Todo caminho usado nesta skill é relativo à raiz do repositório. Antes de rodar qualquer comando deste fluxo, resolva (ou dê `cd` para) a raiz — `git rev-parse --path-format=absolute --git-common-dir` devolve o `.git` comum, e o diretório pai dele é a raiz — o que é especialmente importante quando a sessão já está dentro de outro worktree.
+Todo caminho usado nesta skill é relativo à raiz do repositório. Antes de rodar qualquer comando de qualquer fluxo desta skill, resolva (ou dê `cd` para) a raiz — `git rev-parse --path-format=absolute --git-common-dir` devolve o `.git` comum, e o diretório pai dele é a raiz — o que é especialmente importante quando a sessão já está dentro de outro worktree.
 
 ### Passo 1 — Resolver a issue
 
@@ -266,11 +266,13 @@ O `status.name` precisa ser `"To Do"`. Um ticket que já estiver `"In Progress"`
 
 ### Passo 2 — Ler as N issues e checar domínio sobreposto
 
+Reaproveite o payload já obtido no Passo 1 (`getJiraIssue` por ticket) quando possível, em vez de buscar a issue de novo do zero.
+
 Antes de criar qualquer worktree, invoque a skill `jira-ticket-context` (via `Skill`) para cada ticket restante da leva, sequencialmente — são só chamadas MCP de leitura. Cada resultado dá o slug do branch (do `summary`) e o cruzamento de RNs/critérios de aceite com `docs/requirements.md`, exatamente como o Fluxo 1, Passo 2 faz para uma task.
 
-Use esse mesmo resultado para inferir o contexto de domínio de cada task (comparando o `summary`/descrição contra os nomes de contexto em `docs/domains/` — hoje `user`, `account-group`, `account`, `category`, `transaction`). Se duas ou mais tasks da leva caírem no mesmo contexto, avise a colisão e peça confirmação pontual antes de seguir com aquele par especificamente — as tasks sem colisão não esperam por essa confirmação.
+Use esse mesmo resultado para inferir o contexto de domínio de cada task (comparando o `summary`/descrição contra os nomes de contexto em `docs/domains/` — hoje `user`, `account-group`, `account`, `category`, `transaction`). Se duas ou mais tasks da leva caírem no mesmo contexto, avise a colisão e peça confirmação pontual antes de seguir com aquele par especificamente — as tasks sem colisão não esperam por essa confirmação. O risco de domínio sobreposto não é só colisão de dados (isso o isolamento por `STACK_SUFFIX`/porta já resolve): é migration/schema conflitante — duas tasks criando migrations Drizzle diferentes sobre a mesma tabela — ou uma branch que só compila se a outra já existir. Se for esse o caso, o caminho correto é empilhar as duas tasks (uma branch nascendo da outra), não usar o Fluxo 4 para esse par.
 
-### Passo 3 — Alocar as N portas de uma vez
+### Passo 3 — Alocar as N portas e criar os N worktrees
 
 Calcule, na própria sessão orquestradora, as N menores portas livres a partir de 5441 entre os worktrees **vivos** (mesma consulta do Fluxo 1, Passo 4):
 
@@ -288,6 +290,8 @@ Para cada task, crie o worktree (mesmo padrão do Fluxo 1, Passo 3):
 git fetch origin develop
 git worktree add .claude/worktrees/scrum-<N>-<slug> -b feat/scrum-<N>-<slug> develop
 ```
+
+Task de correção usa `fix/` no lugar de `feat/`, mesmo padrão de worktree.
 
 E escreva o `server/.env` de cada um (copiando de `server/.env.example` como base):
 
@@ -314,24 +318,25 @@ mcp__atlassian__transitionJiraIssue
 
 ### Passo 5 — Subir os N stacks
 
-Via `stack-runner`, um `make -C <worktree>/server deps && up && db-migrate` por worktree, disparado **em paralelo** (uma chamada de shell por worktree na mesma mensagem) — cada stack usa porta, `STACK_SUFFIX` e volume próprios, então não há disputa de recurso entre eles:
+Via `stack-runner`. Dentro de um worktree, as três etapas são **sequenciais** — `db-migrate` depende do `database` já saudável, que só `up` garante — então encadeie com `&&` num único comando por worktree. O paralelismo é **entre worktrees**, não dentro de um: dispare uma chamada de shell por worktree na mesma mensagem, cada uma com as três etapas encadeadas — cada stack usa porta, `STACK_SUFFIX` e volume próprios, então não há disputa de recurso entre eles:
 
 ```sh
-make -C .claude/worktrees/scrum-<N1>-<slug1>/server deps
-make -C .claude/worktrees/scrum-<N1>-<slug1>/server up
+make -C .claude/worktrees/scrum-<N1>-<slug1>/server deps && \
+make -C .claude/worktrees/scrum-<N1>-<slug1>/server up && \
 make -C .claude/worktrees/scrum-<N1>-<slug1>/server db-migrate
 ```
 
-(repita para cada worktree da leva, em chamadas paralelas)
+(repita para cada worktree da leva, em chamadas paralelas — uma chamada de shell por worktree, nunca dividindo as três etapas de um mesmo worktree entre chamadas paralelas)
 
 ### Passo 6 — Disparar os N subagentes em uma única mensagem paralela
 
 Uma chamada `Agent` por task, todas na mesma mensagem — paralelas de fato, não sequenciais. `subagent_type: "general-purpose"`, nunca `fork`. Cada prompt é autocontido e inclui:
 
+- O `SCRUM-<N>` da task e o `summary` da issue — necessários para o Fluxo 2 (título do PR, transição Jira).
 - Caminho do worktree e nome do branch já criados no Passo 3.
 - Porta alocada.
 - O resumo de RNs/critérios de aceite que a `jira-ticket-context` já trouxe no Passo 2 — o subagente **não** reinvoca `jira-ticket-context`, parte direto do roteiro da `tech-lead` a partir de onde ela normalmente entra.
-- Instrução explícita de rodar `make check`/`make test-e2e` em **foreground** dentro do próprio subagente, nunca aguardando notificação de um monitor próprio — serial, nunca via `check-dispatcher`: a task já é um dos N subagentes da leva, e disparar mais três dentro dela multiplicaria o fan-out.
+- Instrução explícita de rodar `make check` em **foreground** dentro do próprio subagente, nunca aguardando notificação de um monitor próprio — serial, nunca via `check-dispatcher`: a task já é um dos N subagentes da leva, e disparar mais três dentro dela multiplicaria o fan-out.
 - Instrução de, ao fechar limpo (checklist "O fechamento" da `tech-lead`), executar o Fluxo 2 já existente por conta própria: push, `gh pr create`, transição Jira In Progress → In Review, comentário com o link do PR.
 - Instrução de, se travar em algo que precise de decisão humana (critério sem RN correspondente, ambiguidade de regra), escalar como a `tech-lead`/`business-analyst` já fariam numa sessão solo, e reportar o bloqueio como resultado — não travar silenciosamente.
 
@@ -344,7 +349,9 @@ A sessão orquestradora não aguarda as N tasks para reportar; cada notificaçã
 - **Duas ou mais tasks ao mesmo tempo**: o caminho suportado é o **Fluxo 4** — cada worktree com `STACK_SUFFIX`/`POSTGRES_PORT` próprios não compartilha banco, então não há colisão de dados entre stacks corretamente isolados. Fora do Fluxo 4 (worktrees criados manualmente, sem `.env` próprio), o aviso original continua valendo: tasks sequenciais ou da mesma entidade devem ser empilhadas, uma de cada vez — um worktree sem `STACK_SUFFIX` cai de volta no banco da raiz, e como cada spec e2e trunca as tabelas com `RESTART IDENTITY CASCADE`, duas suítes simultâneas nesse cenário derrubam os dados uma da outra.
 - **N > 4 no Fluxo 4**: recusa, não trunca silenciosamente a leva para os 4 primeiros.
 - **Ticket já em progresso dentro da leva do Fluxo 4**: sai da leva com aviso, as demais seguem.
-- **Domínio sobreposto entre duas tasks da leva do Fluxo 4**: avisa e confirma pontualmente, não aborta as tasks sem colisão.
+- **Domínio sobreposto entre duas tasks da leva do Fluxo 4**: avisa e confirma pontualmente, não aborta as tasks sem colisão. O risco real não é colisão de dados (isso o isolamento de stack já resolve) — é migration/schema conflitante (migrations Drizzle diferentes sobre a mesma tabela) ou branch que só compila se a outra já existir; nesse caso o caminho correto é empilhar as duas tasks, não usar o Fluxo 4 para esse par.
+- **Porta ou branch já em uso por um worktree vivo fora da leva**: `git worktree add -b feat/scrum-<N>-<slug>` falha se o branch já existir (ex.: a mesma SCRUM sendo trabalhada fora desta leva, pelo Fluxo 1 normal) — pula essa task específica com aviso, sem abortar a leva.
+- **`make db-studio` entre dois worktrees da leva**: é o único alvo que publica porta fixa (padrão 4983, ver `server/CLAUDE.md`) — dois worktrees da leva não conseguem abri-lo simultaneamente sem `STUDIO_PORT=` diferente por worktree.
 - **Um subagente do Fluxo 4 trava ou bloqueia**: os demais seguem independentes; o bloqueio é reportado como resultado daquela task, não propagado às outras.
 - **Issue já em `In Progress` ou `In Review`** ao tentar começar (Fluxo 1, Passo 2): avisa em vez de seguir.
 - **`gh pr view` falha ou o PR não existe** (Fluxo 3, Passo 2): reporta o erro, não tenta adivinhar o estado.
