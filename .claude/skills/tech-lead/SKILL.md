@@ -1,6 +1,6 @@
 ---
 name: tech-lead
-description: O tech lead do EsliphFinance — dono da ORDEM em que uma alteração atravessa o repositório, do requisito ao commit, e de quais skills entram em cada passo. Use SEMPRE que a tarefa for uma unidade de trabalho inteira: "implementa a feature X", "adiciona o campo Y na conta", "cria o CRUD de categorias", "corrige esse bug", "faz a listagem de transações", "refatora esse caso de uso". Use também quando a dúvida for de sequência e não de conteúdo — "por onde eu começo", "o que mais essa mudança precisa tocar", "já posso commitar?", "o que falta para fechar isso", "isso está pronto?" — e sempre antes de dar uma tarefa por concluída, porque o fechamento (documento de domínio atualizado, `make check` verde, revisão, commit) é a parte que mais escapa e a única cujo esquecimento não quebra nada. Não substitui nenhuma skill especialista: ela aciona a `business-analyst`, `domain-architect`, `platform-architect`, `clean-code`, `spec-writer`, `code-reviewer` e `stack-runner` no momento certo, e não decide nada que seja delas. Não serve para retoque de uma linha ("arruma esse import", "renomeia essa variável") nem para pergunta pontual sobre um assunto que já tem dono — nesses casos vá direto à skill dona.
+description: O tech lead do EsliphFinance — dono da ORDEM em que uma alteração atravessa o repositório, do requisito ao commit, e de quais skills entram em cada passo. Use SEMPRE que a tarefa for uma unidade de trabalho inteira: "implementa a feature X", "adiciona o campo Y na conta", "cria o CRUD de categorias", "corrige esse bug", "faz a listagem de transações", "refatora esse caso de uso". Use também quando a dúvida for de sequência e não de conteúdo — "por onde eu começo", "o que mais essa mudança precisa tocar", "já posso commitar?", "o que falta para fechar isso", "isso está pronto?" — e sempre antes de dar uma tarefa por concluída, porque o fechamento (documento de domínio atualizado, `make check` verde, revisão, commit) é a parte que mais escapa e a única cujo esquecimento não quebra nada. Não substitui nenhuma skill especialista: ela aciona a `jira-ticket-context`, `business-analyst`, `domain-architect`, `platform-architect`, `clean-code`, `spec-writer`, `code-reviewer` e `stack-runner` no momento certo, e não decide nada que seja delas. Não serve para retoque de uma linha ("arruma esse import", "renomeia essa variável") nem para pergunta pontual sobre um assunto que já tem dono — nesses casos vá direto à skill dona.
 ---
 
 # Tech Lead — EsliphFinance
@@ -47,6 +47,7 @@ Cada passo nomeia o dono e o portão que precisa fechar antes do próximo começ
 
 | # | Passo | Dono | Portão de saída |
 | - | ----- | ---- | --------------- |
+| 0 | Se o branch atual seguir `scrum-NN`, buscar a issue Jira de origem antes de tudo. | `jira-ticket-context` | RNs e critério de aceite do ticket trazidos para a conversa |
 | 1 | Localizar a RN que rege o comportamento. Se não existir, decidir e registrar — nunca inventar em silêncio. Se estiver em `docs/open-decisions.md` como **DA0xx**, **pare aqui**: sem regra, não se implementa. | `business-analyst` | A RN existe, é citável e cobre o caso |
 | 2 | Ler o mapa do domínio antes de varrer `src/`. Se o contexto ainda não tem arquivo em `docs/domains/`, ele nasce agora. | `domain-architect` | Sei quais arquivos a fatia toca e onde cada regra mora |
 | 3 | Se a mudança atravessa domínios (módulo, provider, guard, pipe, presenter genérico, variável de ambiente), ler o eixo correspondente. | `platform-architect` | Sei qual padrão vou seguir |
@@ -61,7 +62,7 @@ Cada passo nomeia o dono e o portão que precisa fechar antes do próximo começ
 | 12 | E2E enxuto: só a conversa HTTP ↔ Nest ↔ banco. Nenhuma regra aqui. | `spec-writer` | Uma rota, o caminho feliz, o essencial de erro |
 | 13 | `make -C server check` — typecheck, lint, unitários e e2e. | `stack-runner` | Verde. Se os e2e forem os primeiros depois de uma migration nova, `db-migrate` antes |
 | 14 | **Atualizar `docs/domains/` e/ou `docs/architecture/`** — mapa de arquivos, regras, fronteiras, contrato HTTP, o que saiu de "Ainda não existe". | `domain-architect` / `platform-architect` | O documento descreve o que passou a existir |
-| 15 | Revisar o diff inteiro, documento incluído. | `code-reviewer` | Nenhum achado de especificação, camada ou propriedade em aberto |
+| 15 | Revisar o diff inteiro, documento incluído — pelo **agent** `code-reviewer` (`Agent`, `subagent_type: code-reviewer`), em contexto isolado do que gerou o código, não pela skill inline. | `code-reviewer` (agent) | Nenhum achado de especificação, camada ou propriedade em aberto |
 | 16 | Commit. | você, [em duas linhas](#o-commit) | Mensagem no padrão do repositório |
 
 **A ordem 5 → 6 → 7 não é arbitrária**: o mapper depende do schema, e a porta do repositório é o que o caso de uso consome. É a mesma ordem que `docs/domains/account.md` registra em "Onde tocar", e vale seguir a documentada em vez de inventar outra.
@@ -69,6 +70,8 @@ Cada passo nomeia o dono e o portão que precisa fechar antes do próximo começ
 **O passo 14 é o que você existe para não deixar cair.** Ele é o único cujo esquecimento não quebra absolutamente nada — e por isso é o que sempre é esquecido. Um mapa que mente é pior que mapa nenhum, porque a próxima tarefa confia nele e decide errado com confiança.
 
 Se o passo 15 produzir achado, a correção volta ao passo dono do assunto e o `check` roda de novo. Revisão que gera commit sem reexecutar a verificação desperdiça a própria revisão.
+
+O passo 15 usa o **agent**, não a skill `code-reviewer`, porque quem acabou de escrever o diff tende a revisá-lo com o mesmo raciocínio que o gerou — a skill continua valendo para "revisa isso" pedido durante a conversa, quando um achado do eixo 1 precisa virar discussão ali mesmo.
 
 ## Roteiros derivados
 
@@ -125,7 +128,7 @@ A parte mais valiosa desta skill, porque é onde a tarefa costuma ser dada por p
 - [ ] In-memory e Drizzle honram a mesma porta
 - [ ] Factories acompanharam o campo novo
 - [ ] Nenhum comentário nos arquivos tocados, inclusive longe da linha alterada
-- [ ] O diff passou pela `code-reviewer` e não sobrou achado de especificação, camada ou propriedade
+- [ ] O diff passou pelo agent `code-reviewer` (contexto isolado) e não sobrou achado de especificação, camada ou propriedade
 - [ ] Commit no padrão do repositório
 
 Item que não se aplica se diz em voz alta ("não entrou variável de ambiente"), não se apaga da lista em silêncio — a diferença entre conferido e esquecido é justamente essa.

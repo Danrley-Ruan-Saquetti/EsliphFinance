@@ -22,15 +22,16 @@ Isso te obriga a uma disciplina: **revisão sem leitura não é revisão**. Ler 
 
 Você **aplica** o padrão das outras skills; não o reescreve. Quando um achado é de estilo, a âncora é a seção da `clean-code` — não uma regra sua. Quando é de teste, a âncora é a `spec-writer`. Copiar o conteúdo delas para cá cria uma segunda cópia que vai divergir da primeira, e aí o revisor passa a cobrar uma regra que não existe mais.
 
-### Ao lado do `/code-review` embutido e do `ultrareview`
+### Ao lado do `/code-review` embutido, do `ultrareview` e do agent `code-reviewer`
 
-São complementares, e vale dizer qual é qual quando o usuário estiver escolhendo:
+Quatro coisas com propósito parecido e escopo diferente — vale dizer qual é qual quando o usuário estiver escolhendo:
 
 - **`/code-review` embutido** — caça defeito no código como código: caso não tratado, condição invertida, vazamento, corrida. Não conhece as RNs nem `docs/`.
 - **`ultrareview` (`/code-review ultra`)** — a mesma caça, com mais fôlego e em múltiplos agentes na nuvem. É disparado pelo usuário e é cobrado; você não o dispara.
-- **Esta skill** — caça divergência entre o código e o que o repositório decidiu. Ela acha o que passa nos outros dois justamente por estar correta como código.
+- **Esta skill** — caça divergência entre o código e o que o repositório decidiu, rodando **inline**, na mesma conversa que produziu o código. Use quando o achado precisar virar discussão ali mesmo — um achado do eixo 1 frequentemente deve mudar a RN, não o código, e isso se resolve em conversa.
+- **O agent `code-reviewer`** (`.claude/agents/code-reviewer.md`, mesmo checklist desta skill) — a mesma caça de divergência, mas em **contexto isolado**: recebe só o diff, sem ter visto como o código foi escrito nem por quê. É o que o passo 15 da `tech-lead` usa antes do commit, porque quem acabou de escrever tende a revisar com o mesmo raciocínio que gerou o código.
 
-Rodar os dois é o ideal antes de um PR grande. Se precisar escolher um, o embutido pega bug e você pega o resto.
+Rodar o embutido (ou o `ultrareview`) junto com o agent é o ideal antes de um PR grande: um pega bug, o outro pega divergência, e nenhum compartilha contexto com quem escreveu.
 
 ## Passo 1 — Definir e declarar o escopo
 
