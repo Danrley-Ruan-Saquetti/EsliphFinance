@@ -219,3 +219,27 @@ O branch remoto o próprio GitHub apaga no merge, se essa opção estiver ligada
 ### Passo 5 — Reportar
 
 Diga o que foi feito. A porta que a task usava fica livre para o próximo Fluxo 1, Passo 4.
+
+## Casos de borda
+
+- **Duas tasks "ao mesmo tempo"**: a skill não impede, mas repete o aviso já registrado em memória — tasks sequenciais ou da mesma entidade devem ser empilhadas, uma de cada vez, não paralelizadas: stacks simultâneos com e2e truncando tabelas (`RESTART IDENTITY CASCADE`) derrubam os dados um do outro.
+- **Issue já em `In Progress` ou `In Review`** ao tentar começar (Fluxo 1, Passo 2): avisa em vez de seguir.
+- **`gh pr view` falha ou o PR não existe** (Fluxo 3, Passo 1): reporta o erro, não tenta adivinhar o estado.
+
+## Fora de escopo
+
+- `mobile/` — fora enquanto não for reescrito.
+- Merge do PR — sempre humano.
+- Observação em background de merge no GitHub (webhook, polling) — o encerramento é sempre um comando explícito.
+- Criação ou edição de issues no Jira — a skill só transiciona status e comenta o link do PR; criar ou detalhar uma issue continua manual ou por outra via.
+
+## Checklist
+
+- [ ] A issue foi resolvida por número ou confirmada por busca — nunca adivinhada entre várias
+- [ ] Branch e worktree seguem a nomenclatura fixa (`feat`/`fix`/`chore`)
+- [ ] A porta alocada não colide com nenhum worktree que aparece em `git worktree list`
+- [ ] `make up` + `make db-migrate` rodaram antes de entregar para a `tech-lead`
+- [ ] Toda transição de Jira resolveu o id pelo nome, nunca hardcoded
+- [ ] O PR só abre depois do checklist do passo 16 da `tech-lead` fechar limpo
+- [ ] O encerramento só mexe em algo depois de confirmar `MERGED` via `gh pr view`
+- [ ] `make down` roda antes de `git worktree remove`, nunca depois
