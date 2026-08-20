@@ -25,6 +25,7 @@
 -   RNF005 - A autenticação deve ser realizada por meio de token JWT.
 -   RNF006 - As senhas devem ser armazenadas com algoritmo de hash irreversível.
 -   RNF007 - A comunicação entre o aplicativo e o backend deve ocorrer por HTTPS.
+-   RNF008 - Operações que afetam o saldo de mais de uma _Conta_ simultaneamente devem ser atômicas, garantindo que nenhuma _Conta_ fique com o saldo inconsistente em caso de falha.
 
 # Regras de Negócio
 
