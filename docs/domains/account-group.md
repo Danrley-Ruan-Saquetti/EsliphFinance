@@ -41,6 +41,7 @@ O termo _Conta_ substituiu _Ativo_ na SCRUM-88 — `Asset` ficou reservado ao in
 | Domínio | Direção | Ponto de contato | O que rege |
 | ------- | ------- | ---------------- | ---------- |
 | [Contas](account.md) | Conta → Grupo | `CreateAccountUseCase` injeta esta porta para ler o tipo; `AccountGroupType` é importado pelo filtro de listagem de contas; FK `accounts.account_group_id` | RN015, RN018, RN019 |
+| [Transações](transaction.md) | Transação → Grupo | `CreateTransferUseCase` injeta esta porta para exigir que a conta de origem e a de destino de uma transferência pertençam a um grupo do tipo "Padrão" (SCRUM-53) | RN045 |
 | [Usuários](user.md) | Grupo → Usuário | `AccountGroup.ownerId`, vindo do token; FK `account_groups.owner_id` | RN010, RN011 |
 
 No **domínio**, este contexto não conhece `Account` — a dependência é de mão única. O acoplamento existe só na infraestrutura: o `DrizzleAccountGroupsRepository` faz join com a tabela `accounts` para contar, e o `InMemoryAccountsRepository` recebe o `InMemoryAccountGroupsRepository` no construtor para resolver o filtro por tipo. Esse segundo ponto é o que costuma surpreender em spec.

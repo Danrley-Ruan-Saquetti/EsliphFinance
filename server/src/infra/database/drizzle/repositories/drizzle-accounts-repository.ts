@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import { and, asc, eq, isNotNull, isNull, sql } from 'drizzle-orm'
+import { and, asc, eq, isNotNull, isNull, or, sql } from 'drizzle-orm'
 
 import { Money } from '@core/value-objects/money'
 import { AccountWithBalance, AccountsRepository, FindManyAccountsFilters } from '@domain/account/application/repositories/accounts-repository'
@@ -15,7 +15,15 @@ interface AccountWithBalanceRecord {
   balanceInCents: string
 }
 
-const settledTransactionsBalance = sql<string>`coalesce(sum(case when ${transactions.status} = 'SETTLED' then case when ${transactions.type} = 'INCOME' then ${transactions.amount} when ${transactions.type} = 'EXPENSE' then -${transactions.amount} else 0 end else 0 end), 0)`
+const settledTransactionsBalance = sql<string>`coalesce(sum(case when ${transactions.status} = 'SETTLED' then
+  case
+    when ${transactions.type} = 'INCOME' and ${transactions.accountId} = ${accounts.id} then ${transactions.amount}
+    when ${transactions.type} = 'EXPENSE' and ${transactions.accountId} = ${accounts.id} then -${transactions.amount}
+    when ${transactions.type} = 'TRANSFER' and ${transactions.destinationAccountId} = ${accounts.id} then ${transactions.amount}
+    when ${transactions.type} = 'TRANSFER' and ${transactions.sourceAccountId} = ${accounts.id} then -${transactions.amount}
+    else 0
+  end
+else 0 end), 0)`
 
 @Injectable()
 export class DrizzleAccountsRepository extends AccountsRepository {
@@ -62,7 +70,10 @@ export class DrizzleAccountsRepository extends AccountsRepository {
       .select({ account: accounts, balanceInCents: sql<string>`${accounts.initialBalance} + ${settledTransactionsBalance}` })
       .from(accounts)
       .innerJoin(accountGroups, eq(accountGroups.id, accounts.accountGroupId))
-      .leftJoin(transactions, eq(transactions.accountId, accounts.id))
+      .leftJoin(
+        transactions,
+        or(eq(transactions.accountId, accounts.id), eq(transactions.sourceAccountId, accounts.id), eq(transactions.destinationAccountId, accounts.id)),
+      )
       .where(and(...conditions))
       .groupBy(accounts.id)
       .orderBy(asc(accounts.name))

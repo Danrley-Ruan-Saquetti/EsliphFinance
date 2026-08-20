@@ -10,6 +10,8 @@ function makeRecord(override: Partial<TransactionRecord> = {}): TransactionRecor
     ownerId: new UniqueEntityID().toString(),
     accountId: new UniqueEntityID().toString(),
     categoryId: new UniqueEntityID().toString(),
+    sourceAccountId: null,
+    destinationAccountId: null,
     type: 'EXPENSE',
     status: 'SETTLED',
     date: new Date('2026-01-10T00:00:00.000Z'),
@@ -29,7 +31,7 @@ describe('DrizzleTransactionMapper', () => {
 
     expect(transaction.id.toString()).toBe(record.id)
     expect(transaction.ownerId.toString()).toBe(record.ownerId)
-    expect(transaction.accountId.toString()).toBe(record.accountId)
+    expect(transaction.accountId?.toString()).toBe(record.accountId)
     expect(transaction.categoryId?.toString()).toBe(record.categoryId)
     expect(transaction.type).toBe(record.type)
     expect(transaction.status).toBe(record.status)
@@ -41,9 +43,30 @@ describe('DrizzleTransactionMapper', () => {
   })
 
   it('deve converter o registro do banco sem categoria (RN043)', () => {
-    const transaction = DrizzleTransactionMapper.toDomain(makeRecord({ categoryId: null, type: 'TRANSFER' }))
+    const transaction = DrizzleTransactionMapper.toDomain(
+      makeRecord({
+        accountId: null,
+        categoryId: null,
+        sourceAccountId: new UniqueEntityID().toString(),
+        destinationAccountId: new UniqueEntityID().toString(),
+        type: 'TRANSFER',
+      }),
+    )
 
     expect(transaction.categoryId).toBeNull()
+  })
+
+  it('deve converter o registro do banco de transferência com conta de origem e conta de destino (RN044)', () => {
+    const sourceAccountId = new UniqueEntityID().toString()
+    const destinationAccountId = new UniqueEntityID().toString()
+
+    const transaction = DrizzleTransactionMapper.toDomain(
+      makeRecord({ accountId: null, categoryId: null, sourceAccountId, destinationAccountId, type: 'TRANSFER' }),
+    )
+
+    expect(transaction.accountId).toBeNull()
+    expect(transaction.sourceAccountId?.toString()).toBe(sourceAccountId)
+    expect(transaction.destinationAccountId?.toString()).toBe(destinationAccountId)
   })
 
   it('deve converter o registro do banco com data de atualização preenchida', () => {
@@ -62,8 +85,10 @@ describe('DrizzleTransactionMapper', () => {
     expect(record).toEqual({
       id: transaction.id.toString(),
       ownerId: transaction.ownerId.toString(),
-      accountId: transaction.accountId.toString(),
+      accountId: transaction.accountId?.toString() ?? null,
       categoryId: transaction.categoryId?.toString() ?? null,
+      sourceAccountId: transaction.sourceAccountId?.toString() ?? null,
+      destinationAccountId: transaction.destinationAccountId?.toString() ?? null,
       type: transaction.type,
       status: transaction.status,
       date: transaction.date,

@@ -52,6 +52,8 @@ describe('CreateTransactionController', () => {
       id: transactionsRepository.items[0].id.toString(),
       accountId: account.id.toString(),
       categoryId: category.id.toString(),
+      sourceAccountId: null,
+      destinationAccountId: null,
       type: 'EXPENSE',
       status: 'SETTLED',
       date,

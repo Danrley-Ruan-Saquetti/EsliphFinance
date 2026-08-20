@@ -8,6 +8,8 @@ export function makeTransaction(override: Partial<TransactionProps> = {}, id?: U
       ownerId: new UniqueEntityID(),
       accountId: new UniqueEntityID(),
       categoryId: new UniqueEntityID(),
+      sourceAccountId: null,
+      destinationAccountId: null,
       type: 'EXPENSE',
       status: 'SETTLED',
       date: new Date(),

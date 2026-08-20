@@ -8,8 +8,10 @@ import { TRANSACTION_TYPES, TransactionType } from '@domain/transaction/enterpri
 
 export interface TransactionProps {
   ownerId: UniqueEntityID
-  accountId: UniqueEntityID
+  accountId: UniqueEntityID | null
   categoryId: UniqueEntityID | null
+  sourceAccountId: UniqueEntityID | null
+  destinationAccountId: UniqueEntityID | null
   type: TransactionType
   status: TransactionStatus
   date: Date
@@ -32,9 +34,13 @@ export class Transaction extends AggregateRoot<TransactionProps> {
     const status = Transaction.validateStatus(props.status)
     const amount = Transaction.validateAmount(props.amount)
     const categoryId = Transaction.validateCategory(type, props.categoryId)
+    const { accountId, sourceAccountId, destinationAccountId } = Transaction.validateAccounts(type, props.accountId, props.sourceAccountId, props.destinationAccountId)
     const description = Transaction.normalizeDescription(props.description)
 
-    return new Transaction({ ...props, type, status, amount, categoryId, description, createdAt: props.createdAt ?? new Date() }, id)
+    return new Transaction(
+      { ...props, type, status, amount, categoryId, accountId, sourceAccountId, destinationAccountId, description, createdAt: props.createdAt ?? new Date() },
+      id,
+    )
   }
 
   private static validateType(type: TransactionType): TransactionType {
@@ -74,6 +80,36 @@ export class Transaction extends AggregateRoot<TransactionProps> {
     return categoryId ?? null
   }
 
+  private static validateAccounts(
+    type: TransactionType,
+    accountId: UniqueEntityID | null,
+    sourceAccountId: UniqueEntityID | null,
+    destinationAccountId: UniqueEntityID | null,
+  ): { accountId: UniqueEntityID | null; sourceAccountId: UniqueEntityID | null; destinationAccountId: UniqueEntityID | null } {
+    const isTransfer = type === Transaction.TRANSFER_TYPE
+
+    if (isTransfer) {
+      if (accountId) {
+        throw new InvariantError('A transação de transferência não possui conta, apenas conta de origem e conta de destino')
+      }
+      if (!sourceAccountId || !destinationAccountId) {
+        throw new InvariantError('A transação de transferência exige a conta de origem e a conta de destino')
+      }
+      if (sourceAccountId.equals(destinationAccountId)) {
+        throw new InvariantError('A conta de origem e a conta de destino da transferência não podem ser a mesma')
+      }
+    } else {
+      if (!accountId) {
+        throw new InvariantError('A conta é obrigatória para transações de receita ou despesa')
+      }
+      if (sourceAccountId || destinationAccountId) {
+        throw new InvariantError('A conta de origem e a conta de destino só podem ser informadas em transações de transferência')
+      }
+    }
+
+    return { accountId, sourceAccountId, destinationAccountId }
+  }
+
   private static normalizeDescription(description?: string | null): string | null {
     const normalized = description?.trim()
 
@@ -84,12 +120,20 @@ export class Transaction extends AggregateRoot<TransactionProps> {
     return this.props.ownerId
   }
 
-  get accountId(): UniqueEntityID {
+  get accountId(): UniqueEntityID | null {
     return this.props.accountId
   }
 
   get categoryId(): UniqueEntityID | null {
     return this.props.categoryId
+  }
+
+  get sourceAccountId(): UniqueEntityID | null {
+    return this.props.sourceAccountId
+  }
+
+  get destinationAccountId(): UniqueEntityID | null {
+    return this.props.destinationAccountId
   }
 
   get type(): TransactionType {
