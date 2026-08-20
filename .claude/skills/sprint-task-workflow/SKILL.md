@@ -1,6 +1,6 @@
 ---
 name: sprint-task-workflow
-description: O orquestrador do ciclo de uma task de sprint do EsliphFinance — cria o worktree isolado, sobe um stack Docker próprio, move a issue no Jira e abre o PR ao final, amarrando o que a `jira-ticket-context`, a `tech-lead`, a `stack-runner` e o agent `code-reviewer` já fazem, sem duplicar nenhuma delas. Use SEMPRE para começar uma task nova da sprint — "começa a SCRUM-60", "cria o worktree pra próxima task", "bora implementar a scrum-53" — e para encerrar uma já mergeada — "encerra a scrum-52", "o PR da scrum-54 já foi mergeado, fecha isso". Cobre só `server/`; `mobile/` está fora porque será reescrito do zero. Não decide regra de negócio (`business-analyst`) nem implementa código (`tech-lead` e as skills que ela aciona) — só decide quando cada uma entra, e nunca mergeia um PR sozinha.
+description: O orquestrador do ciclo de uma task de sprint do EsliphFinance — cria o worktree isolado, sobe um stack Docker próprio, move a issue no Jira e abre o PR ao final, amarrando o que a `jira-ticket-context`, a `tech-lead`, a `stack-runner` e o agent `code-reviewer` já fazem, sem duplicar nenhuma delas. Use SEMPRE para começar uma task nova da sprint — "começa a SCRUM-60", "cria o worktree pra próxima task", "bora implementar a scrum-53" —, para encerrar uma já mergeada — "encerra a scrum-52", "o PR da scrum-54 já foi mergeado, fecha isso" — e para rodar várias tasks independentes ao mesmo tempo, cada uma isolada no próprio worktree e stack — "paraleliza SCRUM-60, SCRUM-64 e SCRUM-70", "roda essas 3 tasks em paralelo". Cobre só `server/`; `mobile/` está fora porque será reescrito do zero. Não decide regra de negócio (`business-analyst`) nem implementa código (`tech-lead` e as skills que ela aciona) — só decide quando cada uma entra, e nunca mergeia um PR sozinha.
 ---
 
 # Sprint Task Workflow — EsliphFinance
@@ -23,6 +23,13 @@ Não decide nada de produto — isso é sempre `business-analyst`/`domain-archit
 | Nomenclatura | Fixa: `feat/scrum-<N>-<slug>` (ou `fix/`) em `.claude/worktrees/scrum-<N>-<slug>`; sem ticket vira `chore/<slug>` em `.claude/worktrees/<slug>` |
 | Porta Postgres | Reaproveita a menor porta livre (5441+) entre os worktrees **vivos** (`git worktree list`, não varredura de diretório) |
 | Subida do stack | Automática: `make deps` + `make up` + `make db-migrate` fazem parte da criação do worktree |
+| Orquestração da paralelização | Subagentes autônomos (`Agent` tool), um por task — cada um roda o ciclo completo (jira-ticket-context → tech-lead → code-reviewer → PR) dentro do próprio worktree |
+| Entrada da paralelização | Só lista explícita de números de ticket — nunca infere do backlog |
+| Teto de paralelismo | 4 tasks simultâneas — mesmo intervalo de porta (5441–5444) já usado como referência; N>4 é recusado com aviso |
+| Checagem de domínio sobreposto | Avisa se duas tasks da leva caírem no mesmo contexto de `docs/domains/` e confirma pontualmente antes de seguir com aquele par — não bloqueia as demais |
+| Report da paralelização | Por task, assim que o subagente correspondente termina — a sessão orquestradora não espera as N |
+| Tipo de subagente | `Agent` com `subagent_type: "general-purpose"` — nunca `fork`, porque cada task precisa de contexto próprio, não do histórico da conversa que disparou a leva |
+| `make check`/e2e dentro do subagente | Sempre em foreground, nunca aguardando notificação de monitor próprio |
 
 ## Fluxo 1 — Início da task
 
