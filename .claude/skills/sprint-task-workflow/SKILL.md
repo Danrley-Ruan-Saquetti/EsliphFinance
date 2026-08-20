@@ -312,6 +312,33 @@ mcp__atlassian__transitionJiraIssue
   transition: { id: "<id resolvido>" }
 ```
 
+### Passo 5 — Subir os N stacks
+
+Via `stack-runner`, um `make -C <worktree>/server deps && up && db-migrate` por worktree, disparado **em paralelo** (uma chamada de shell por worktree na mesma mensagem) — cada stack usa porta, `STACK_SUFFIX` e volume próprios, então não há disputa de recurso entre eles:
+
+```sh
+make -C .claude/worktrees/scrum-<N1>-<slug1>/server deps
+make -C .claude/worktrees/scrum-<N1>-<slug1>/server up
+make -C .claude/worktrees/scrum-<N1>-<slug1>/server db-migrate
+```
+
+(repita para cada worktree da leva, em chamadas paralelas)
+
+### Passo 6 — Disparar os N subagentes em uma única mensagem paralela
+
+Uma chamada `Agent` por task, todas na mesma mensagem — paralelas de fato, não sequenciais. `subagent_type: "general-purpose"`, nunca `fork`. Cada prompt é autocontido e inclui:
+
+- Caminho do worktree e nome do branch já criados no Passo 3.
+- Porta alocada.
+- O resumo de RNs/critérios de aceite que a `jira-ticket-context` já trouxe no Passo 2 — o subagente **não** reinvoca `jira-ticket-context`, parte direto do roteiro da `tech-lead` a partir de onde ela normalmente entra.
+- Instrução explícita de rodar `make check`/`make test-e2e` em **foreground** dentro do próprio subagente, nunca aguardando notificação de um monitor próprio.
+- Instrução de, ao fechar limpo (checklist "O fechamento" da `tech-lead`), executar o Fluxo 2 já existente por conta própria: push, `gh pr create`, transição Jira In Progress → In Review, comentário com o link do PR.
+- Instrução de, se travar em algo que precise de decisão humana (critério sem RN correspondente, ambiguidade de regra), escalar como a `tech-lead`/`business-analyst` já fariam numa sessão solo, e reportar o bloqueio como resultado — não travar silenciosamente.
+
+### Passo 7 — Reportar conforme cada subagente termina
+
+A sessão orquestradora não aguarda as N tasks para reportar; cada notificação de subagente concluído (sucesso com link do PR, ou bloqueio) é repassada ao usuário assim que chega.
+
 ## Casos de borda
 
 - **Duas tasks "ao mesmo tempo"**: a skill não impede, mas repete o aviso já registrado em memória — tasks sequenciais ou da mesma entidade devem ser empilhadas, uma de cada vez, não paralelizadas: stacks simultâneos com e2e truncando tabelas (`RESTART IDENTITY CASCADE`) derrubam os dados um do outro.
