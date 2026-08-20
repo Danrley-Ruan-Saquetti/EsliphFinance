@@ -15,10 +15,10 @@ export const transactions = pgTable(
     ownerId: uuid('owner_id')
       .notNull()
       .references(() => users.id),
-    accountId: uuid('account_id')
-      .notNull()
-      .references(() => accounts.id),
+    accountId: uuid('account_id').references(() => accounts.id),
     categoryId: uuid('category_id').references(() => categories.id),
+    sourceAccountId: uuid('source_account_id').references(() => accounts.id),
+    destinationAccountId: uuid('destination_account_id').references(() => accounts.id),
     type: transactionType('type').notNull(),
     status: transactionStatus('status').notNull(),
     date: date('date', { mode: 'date' }).notNull(),
@@ -31,5 +31,7 @@ export const transactions = pgTable(
     index('transactions_owner_id_index').on(table.ownerId),
     index('transactions_account_id_index').on(table.accountId),
     index('transactions_category_id_index').on(table.categoryId),
+    index('transactions_source_account_id_index').on(table.sourceAccountId),
+    index('transactions_destination_account_id_index').on(table.destinationAccountId),
   ],
 )

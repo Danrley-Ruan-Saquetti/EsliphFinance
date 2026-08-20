@@ -18,6 +18,8 @@ describe('Transaction', () => {
       ownerId,
       accountId,
       categoryId,
+      sourceAccountId: null,
+      destinationAccountId: null,
       type: 'EXPENSE',
       status: 'SETTLED',
       date,
@@ -40,6 +42,8 @@ describe('Transaction', () => {
       ownerId: new UniqueEntityID(),
       accountId: new UniqueEntityID(),
       categoryId: new UniqueEntityID(),
+      sourceAccountId: null,
+      destinationAccountId: null,
       type: 'INCOME',
       status: 'PLANNED',
       date: new Date(),
@@ -54,6 +58,8 @@ describe('Transaction', () => {
       ownerId: new UniqueEntityID(),
       accountId: new UniqueEntityID(),
       categoryId: new UniqueEntityID(),
+      sourceAccountId: null,
+      destinationAccountId: null,
       type: 'INCOME',
       status: 'PLANNED',
       date: new Date(),
@@ -69,6 +75,8 @@ describe('Transaction', () => {
       ownerId: new UniqueEntityID(),
       accountId: new UniqueEntityID(),
       categoryId: new UniqueEntityID(),
+      sourceAccountId: null,
+      destinationAccountId: null,
       type: 'INCOME',
       status: 'PLANNED',
       date: new Date(),
@@ -79,24 +87,93 @@ describe('Transaction', () => {
     expect(transaction.description).toBeNull()
   })
 
-  it.each([Transaction.INCOME_TYPE, Transaction.EXPENSE_TYPE, Transaction.TRANSFER_TYPE])(
-    'deve aceitar o tipo "%s" (RN039)',
-    type => {
-      const categoryId = type === Transaction.TRANSFER_TYPE ? null : new UniqueEntityID()
+  it.each([Transaction.INCOME_TYPE, Transaction.EXPENSE_TYPE])('deve aceitar o tipo "%s" (RN039)', type => {
+    const transaction = Transaction.create({
+      ownerId: new UniqueEntityID(),
+      accountId: new UniqueEntityID(),
+      categoryId: new UniqueEntityID(),
+      sourceAccountId: null,
+      destinationAccountId: null,
+      type,
+      status: 'SETTLED',
+      date: new Date(),
+      amount: Money.fromCents(1000),
+    })
 
-      const transaction = Transaction.create({
+    expect(transaction.type).toBe(type)
+  })
+
+  it('deve aceitar o tipo "Transferência" com conta de origem e conta de destino (RN039, RN044)', () => {
+    const sourceAccountId = new UniqueEntityID()
+    const destinationAccountId = new UniqueEntityID()
+
+    const transaction = Transaction.create({
+      ownerId: new UniqueEntityID(),
+      accountId: null,
+      categoryId: null,
+      sourceAccountId,
+      destinationAccountId,
+      type: 'TRANSFER',
+      status: 'SETTLED',
+      date: new Date(),
+      amount: Money.fromCents(1000),
+    })
+
+    expect(transaction.type).toBe('TRANSFER')
+    expect(transaction.sourceAccountId).toBe(sourceAccountId)
+    expect(transaction.destinationAccountId).toBe(destinationAccountId)
+    expect(transaction.accountId).toBeNull()
+  })
+
+  it('deve lançar InvariantError quando a transação de transferência não informar a conta de origem ou a conta de destino (RN044)', () => {
+    expect(() =>
+      Transaction.create({
         ownerId: new UniqueEntityID(),
-        accountId: new UniqueEntityID(),
-        categoryId,
-        type,
+        accountId: null,
+        categoryId: null,
+        sourceAccountId: new UniqueEntityID(),
+        destinationAccountId: null,
+        type: 'TRANSFER',
         status: 'SETTLED',
         date: new Date(),
         amount: Money.fromCents(1000),
-      })
+      }),
+    ).toThrow(InvariantError)
+  })
 
-      expect(transaction.type).toBe(type)
-    },
-  )
+  it('deve lançar InvariantError quando a conta de origem e a conta de destino da transferência forem a mesma (RN046)', () => {
+    const accountId = new UniqueEntityID()
+
+    expect(() =>
+      Transaction.create({
+        ownerId: new UniqueEntityID(),
+        accountId: null,
+        categoryId: null,
+        sourceAccountId: accountId,
+        destinationAccountId: accountId,
+        type: 'TRANSFER',
+        status: 'SETTLED',
+        date: new Date(),
+        amount: Money.fromCents(1000),
+      }),
+    ).toThrow(InvariantError)
+  })
+
+  it('deve lançar InvariantError quando a transação de receita ou despesa informar conta de origem ou conta de destino', () => {
+    expect(() =>
+      Transaction.create({
+        ownerId: new UniqueEntityID(),
+        accountId: new UniqueEntityID(),
+        categoryId: new UniqueEntityID(),
+        sourceAccountId: new UniqueEntityID(),
+        destinationAccountId: null,
+        type: 'EXPENSE',
+        status: 'SETTLED',
+        date: new Date(),
+        amount: Money.fromCents(1000),
+      }),
+    ).toThrow(InvariantError)
+  })
 
   it('deve lançar InvariantError quando o tipo estiver fora do domínio permitido (RN039)', () => {
     expect(() =>
@@ -104,6 +181,8 @@ describe('Transaction', () => {
         ownerId: new UniqueEntityID(),
         accountId: new UniqueEntityID(),
         categoryId: new UniqueEntityID(),
+        sourceAccountId: null,
+        destinationAccountId: null,
         type: 'INVALID' as TransactionType,
         status: 'SETTLED',
         date: new Date(),
@@ -117,6 +196,8 @@ describe('Transaction', () => {
       ownerId: new UniqueEntityID(),
       accountId: new UniqueEntityID(),
       categoryId: new UniqueEntityID(),
+      sourceAccountId: null,
+      destinationAccountId: null,
       type: 'EXPENSE',
       status,
       date: new Date(),
@@ -132,6 +213,8 @@ describe('Transaction', () => {
         ownerId: new UniqueEntityID(),
         accountId: new UniqueEntityID(),
         categoryId: new UniqueEntityID(),
+        sourceAccountId: null,
+        destinationAccountId: null,
         type: 'EXPENSE',
         status: 'INVALID' as TransactionStatus,
         date: new Date(),
@@ -146,6 +229,8 @@ describe('Transaction', () => {
         ownerId: new UniqueEntityID(),
         accountId: new UniqueEntityID(),
         categoryId: new UniqueEntityID(),
+        sourceAccountId: null,
+        destinationAccountId: null,
         type: 'EXPENSE',
         status: 'SETTLED',
         date: new Date(),
@@ -160,6 +245,8 @@ describe('Transaction', () => {
         ownerId: new UniqueEntityID(),
         accountId: new UniqueEntityID(),
         categoryId: new UniqueEntityID(),
+        sourceAccountId: null,
+        destinationAccountId: null,
         type: 'EXPENSE',
         status: 'SETTLED',
         date: new Date(),
@@ -176,6 +263,8 @@ describe('Transaction', () => {
           ownerId: new UniqueEntityID(),
           accountId: new UniqueEntityID(),
           categoryId: null,
+          sourceAccountId: null,
+          destinationAccountId: null,
           type,
           status: 'SETTLED',
           date: new Date(),
@@ -189,8 +278,10 @@ describe('Transaction', () => {
     expect(() =>
       Transaction.create({
         ownerId: new UniqueEntityID(),
-        accountId: new UniqueEntityID(),
+        accountId: null,
         categoryId: new UniqueEntityID(),
+        sourceAccountId: new UniqueEntityID(),
+        destinationAccountId: new UniqueEntityID(),
         type: 'TRANSFER',
         status: 'SETTLED',
         date: new Date(),
@@ -209,6 +300,8 @@ describe('Transaction', () => {
         ownerId: new UniqueEntityID(),
         accountId: new UniqueEntityID(),
         categoryId: new UniqueEntityID(),
+        sourceAccountId: null,
+        destinationAccountId: null,
         type: 'EXPENSE',
         status: 'SETTLED',
         date: new Date(),
@@ -229,6 +322,8 @@ describe('Transaction', () => {
       ownerId: new UniqueEntityID(),
       accountId: new UniqueEntityID(),
       categoryId: new UniqueEntityID(),
+      sourceAccountId: null,
+      destinationAccountId: null,
       type: 'EXPENSE',
       status: 'PLANNED',
       date: new Date('2026-01-10T00:00:00.000Z'),
@@ -247,6 +342,8 @@ describe('Transaction', () => {
       ownerId: new UniqueEntityID(),
       accountId: new UniqueEntityID(),
       categoryId: new UniqueEntityID(),
+      sourceAccountId: null,
+      destinationAccountId: null,
       type: 'EXPENSE',
       status: 'PLANNED',
       date: originalDate,
@@ -265,6 +362,8 @@ describe('Transaction', () => {
       ownerId: new UniqueEntityID(),
       accountId: new UniqueEntityID(),
       categoryId: new UniqueEntityID(),
+      sourceAccountId: null,
+      destinationAccountId: null,
       type: 'EXPENSE',
       status: 'PLANNED',
       date: new Date('2026-01-10T00:00:00.000Z'),
@@ -281,6 +380,8 @@ describe('Transaction', () => {
       ownerId: new UniqueEntityID(),
       accountId: new UniqueEntityID(),
       categoryId: new UniqueEntityID(),
+      sourceAccountId: null,
+      destinationAccountId: null,
       type: 'EXPENSE',
       status: 'PLANNED',
       date: new Date(),
@@ -297,6 +398,8 @@ describe('Transaction', () => {
       ownerId: new UniqueEntityID(),
       accountId: new UniqueEntityID(),
       categoryId: new UniqueEntityID(),
+      sourceAccountId: null,
+      destinationAccountId: null,
       type: 'EXPENSE',
       status: 'SETTLED',
       date: new Date(),
@@ -313,6 +416,8 @@ describe('Transaction', () => {
       ownerId: new UniqueEntityID(),
       accountId: new UniqueEntityID(),
       categoryId: new UniqueEntityID(),
+      sourceAccountId: null,
+      destinationAccountId: null,
       type: 'EXPENSE',
       status: 'SETTLED',
       date: new Date(),

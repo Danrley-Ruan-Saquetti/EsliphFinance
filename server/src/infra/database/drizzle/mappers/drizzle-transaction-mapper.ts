@@ -11,8 +11,10 @@ export class DrizzleTransactionMapper {
     return Transaction.create(
       {
         ownerId: new UniqueEntityID(record.ownerId),
-        accountId: new UniqueEntityID(record.accountId),
+        accountId: record.accountId ? new UniqueEntityID(record.accountId) : null,
         categoryId: record.categoryId ? new UniqueEntityID(record.categoryId) : null,
+        sourceAccountId: record.sourceAccountId ? new UniqueEntityID(record.sourceAccountId) : null,
+        destinationAccountId: record.destinationAccountId ? new UniqueEntityID(record.destinationAccountId) : null,
         type: record.type,
         status: record.status,
         date: record.date,
@@ -29,8 +31,10 @@ export class DrizzleTransactionMapper {
     return {
       id: transaction.id.toString(),
       ownerId: transaction.ownerId.toString(),
-      accountId: transaction.accountId.toString(),
+      accountId: transaction.accountId?.toString() ?? null,
       categoryId: transaction.categoryId?.toString() ?? null,
+      sourceAccountId: transaction.sourceAccountId?.toString() ?? null,
+      destinationAccountId: transaction.destinationAccountId?.toString() ?? null,
       type: transaction.type,
       status: transaction.status,
       date: transaction.date,

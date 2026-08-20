@@ -5,8 +5,10 @@ export class TransactionPresenter {
   static toHTTP(transaction: Transaction) {
     return {
       id: transaction.id.toString(),
-      accountId: transaction.accountId.toString(),
+      accountId: transaction.accountId?.toString() ?? null,
       categoryId: transaction.categoryId?.toString() ?? null,
+      sourceAccountId: transaction.sourceAccountId?.toString() ?? null,
+      destinationAccountId: transaction.destinationAccountId?.toString() ?? null,
       type: transaction.type,
       status: transaction.status,
       date: transaction.date,

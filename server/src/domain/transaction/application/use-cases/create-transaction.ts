@@ -9,6 +9,7 @@ import { Category } from '@domain/category/enterprise/entities/category'
 import { TransactionsRepository } from '@domain/transaction/application/repositories/transactions-repository'
 import { CategoryNatureMismatchError } from '@domain/transaction/application/use-cases/errors/category-nature-mismatch-error'
 import { ResourceArchivedError } from '@domain/transaction/application/use-cases/errors/resource-archived-error'
+import { resolveDefaultTransactionStatus } from '@domain/transaction/application/use-cases/resolve-default-transaction-status'
 import { Transaction } from '@domain/transaction/enterprise/entities/transaction'
 import { TransactionStatus } from '@domain/transaction/enterprise/value-objects/transaction-status'
 import { UsersRepository } from '@domain/user/application/repositories/users-repository'
@@ -56,12 +57,14 @@ export class CreateTransactionUseCase implements UseCase<CreateTransactionReques
       return left(new CategoryNatureMismatchError())
     }
 
-    const resolvedStatus = status ?? (await this.resolveDefaultStatus(ownerId, date))
+    const resolvedStatus = status ?? (await resolveDefaultTransactionStatus(this.usersRepository, ownerId, date))
 
     const transaction = Transaction.create({
       ownerId: new UniqueEntityID(ownerId),
       accountId: new UniqueEntityID(accountId),
       categoryId: new UniqueEntityID(categoryId),
+      sourceAccountId: null,
+      destinationAccountId: null,
       type,
       status: resolvedStatus,
       date,
@@ -76,23 +79,5 @@ export class CreateTransactionUseCase implements UseCase<CreateTransactionReques
 
   private isNatureCompatible(nature: Category['nature'], type: CreateTransactionRequest['type']): boolean {
     return nature === Category.BOTH_NATURE || nature === type
-  }
-
-  private async resolveDefaultStatus(ownerId: string, date: Date): Promise<TransactionStatus> {
-    const owner = await this.usersRepository.findById(ownerId)
-
-    if (owner?.defaultTransactionStatus) {
-      return owner.defaultTransactionStatus
-    }
-
-    return this.isFutureDate(date) ? Transaction.PLANNED_STATUS : Transaction.SETTLED_STATUS
-  }
-
-  private isFutureDate(date: Date): boolean {
-    const today = new Date()
-    const todayAtMidnightUTC = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())
-    const dateAtMidnightUTC = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
-
-    return dateAtMidnightUTC > todayAtMidnightUTC
   }
 }

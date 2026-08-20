@@ -25,6 +25,7 @@ import { CreateNoteUseCase } from '@domain/example/application/use-cases/create-
 import { GetNoteUseCase } from '@domain/example/application/use-cases/get-note'
 import { TransactionsRepository } from '@domain/transaction/application/repositories/transactions-repository'
 import { CreateTransactionUseCase } from '@domain/transaction/application/use-cases/create-transaction'
+import { CreateTransferUseCase } from '@domain/transaction/application/use-cases/create-transfer'
 import { RevertTransactionUseCase } from '@domain/transaction/application/use-cases/revert-transaction'
 import { SettleTransactionUseCase } from '@domain/transaction/application/use-cases/settle-transaction'
 import { RefreshTokensRepository } from '@domain/user/application/repositories/refresh-tokens-repository'
@@ -50,6 +51,7 @@ import { CreateAccountController } from '@infra/http/controllers/create-account.
 import { CreateCategoryController } from '@infra/http/controllers/create-category.controller'
 import { CreateNoteController } from '@infra/http/controllers/create-note.controller'
 import { CreateTransactionController } from '@infra/http/controllers/create-transaction.controller'
+import { CreateTransferController } from '@infra/http/controllers/create-transfer.controller'
 import { CreateUserController } from '@infra/http/controllers/create-user.controller'
 import { RevertTransactionController } from '@infra/http/controllers/revert-transaction.controller'
 import { SettleTransactionController } from '@infra/http/controllers/settle-transaction.controller'
@@ -107,6 +109,7 @@ import { SecurityHeadersMiddleware } from '@infra/http/middlewares/security-head
     DeleteCategoryController,
     ListCategoryTreeController,
     CreateTransactionController,
+    CreateTransferController,
     SettleTransactionController,
     RevertTransactionController,
   ],
@@ -267,6 +270,16 @@ import { SecurityHeadersMiddleware } from '@infra/http/middlewares/security-head
         usersRepository: UsersRepository,
       ) => new CreateTransactionUseCase(transactionsRepository, accountsRepository, categoriesRepository, usersRepository),
       inject: [TransactionsRepository, AccountsRepository, CategoriesRepository, UsersRepository],
+    },
+    {
+      provide: CreateTransferUseCase,
+      useFactory: (
+        transactionsRepository: TransactionsRepository,
+        accountsRepository: AccountsRepository,
+        accountGroupsRepository: AccountGroupsRepository,
+        usersRepository: UsersRepository,
+      ) => new CreateTransferUseCase(transactionsRepository, accountsRepository, accountGroupsRepository, usersRepository),
+      inject: [TransactionsRepository, AccountsRepository, AccountGroupsRepository, UsersRepository],
     },
     {
       provide: SettleTransactionUseCase,

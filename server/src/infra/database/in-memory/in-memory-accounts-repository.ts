@@ -70,18 +70,32 @@ export class InMemoryAccountsRepository extends AccountsRepository {
 
   private calculateBalance(account: Account): Money {
     const settledAmountInCents = this.transactionsRepository.items
-      .filter(transaction => transaction.accountId.equals(account.id) && transaction.status === Transaction.SETTLED_STATUS)
-      .reduce((total, transaction) => total + this.signedAmountInCents(transaction), 0)
+      .filter(transaction => transaction.status === Transaction.SETTLED_STATUS && this.affectsAccount(transaction, account))
+      .reduce((total, transaction) => total + this.signedAmountInCents(transaction, account), 0)
 
     return account.initialBalance.add(Money.fromCents(settledAmountInCents))
   }
 
-  private signedAmountInCents(transaction: Transaction): number {
+  private affectsAccount(transaction: Transaction, account: Account): boolean {
+    return Boolean(
+      transaction.accountId?.equals(account.id) || transaction.sourceAccountId?.equals(account.id) || transaction.destinationAccountId?.equals(account.id),
+    )
+  }
+
+  private signedAmountInCents(transaction: Transaction, account: Account): number {
     if (transaction.type === Transaction.INCOME_TYPE) {
       return transaction.amount.amountInCents
     }
     if (transaction.type === Transaction.EXPENSE_TYPE) {
       return -transaction.amount.amountInCents
+    }
+    if (transaction.type === Transaction.TRANSFER_TYPE) {
+      if (transaction.destinationAccountId?.equals(account.id)) {
+        return transaction.amount.amountInCents
+      }
+      if (transaction.sourceAccountId?.equals(account.id)) {
+        return -transaction.amount.amountInCents
+      }
     }
 
     return 0

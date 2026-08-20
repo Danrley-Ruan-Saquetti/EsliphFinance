@@ -111,6 +111,72 @@ describe('Listar contas', () => {
     }
   })
 
+  it('deve debitar a conta de origem e creditar a conta de destino de uma transferência efetivada (RN021, RN044)', async () => {
+    const ownerId = new UniqueEntityID()
+    const accountGroup = await createAccountGroup(ownerId)
+    const source = makeAccount({ ownerId, accountGroupId: accountGroup.id, name: 'Carteira', initialBalance: Money.fromCents(10000) })
+    const destination = makeAccount({ ownerId, accountGroupId: accountGroup.id, name: 'Poupança', initialBalance: Money.fromCents(2000) })
+
+    await accountsRepository.create(source)
+    await accountsRepository.create(destination)
+    await transactionsRepository.create(
+      makeTransaction({
+        ownerId,
+        accountId: null,
+        categoryId: null,
+        sourceAccountId: source.id,
+        destinationAccountId: destination.id,
+        type: 'TRANSFER',
+        status: 'SETTLED',
+        amount: Money.fromCents(3000),
+      }),
+    )
+
+    const result = await sut.execute({ ownerId: ownerId.toString() })
+
+    expect(result.isRight()).toBe(true)
+    if (result.isRight()) {
+      const sourceListed = result.value.accounts.find(({ account }) => account.id.equals(source.id))
+      const destinationListed = result.value.accounts.find(({ account }) => account.id.equals(destination.id))
+
+      expect(sourceListed?.balance?.amountInCents).toBe(7000)
+      expect(destinationListed?.balance?.amountInCents).toBe(5000)
+    }
+  })
+
+  it('não deve considerar transferência prevista no saldo (RN050)', async () => {
+    const ownerId = new UniqueEntityID()
+    const accountGroup = await createAccountGroup(ownerId)
+    const source = makeAccount({ ownerId, accountGroupId: accountGroup.id, initialBalance: Money.fromCents(10000) })
+    const destination = makeAccount({ ownerId, accountGroupId: accountGroup.id, initialBalance: Money.fromCents(2000) })
+
+    await accountsRepository.create(source)
+    await accountsRepository.create(destination)
+    await transactionsRepository.create(
+      makeTransaction({
+        ownerId,
+        accountId: null,
+        categoryId: null,
+        sourceAccountId: source.id,
+        destinationAccountId: destination.id,
+        type: 'TRANSFER',
+        status: 'PLANNED',
+        amount: Money.fromCents(3000),
+      }),
+    )
+
+    const result = await sut.execute({ ownerId: ownerId.toString() })
+
+    expect(result.isRight()).toBe(true)
+    if (result.isRight()) {
+      const sourceListed = result.value.accounts.find(({ account }) => account.id.equals(source.id))
+      const destinationListed = result.value.accounts.find(({ account }) => account.id.equals(destination.id))
+
+      expect(sourceListed?.balance?.amountInCents).toBe(10000)
+      expect(destinationListed?.balance?.amountInCents).toBe(2000)
+    }
+  })
+
   it('não deve considerar transações efetivadas de outra conta no saldo', async () => {
     const ownerId = new UniqueEntityID()
     const accountGroup = await createAccountGroup(ownerId)
