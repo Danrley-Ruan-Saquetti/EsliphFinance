@@ -270,6 +270,48 @@ Antes de criar qualquer worktree, invoque a skill `jira-ticket-context` (via `Sk
 
 Use esse mesmo resultado para inferir o contexto de domínio de cada task (comparando o `summary`/descrição contra os nomes de contexto em `docs/domains/` — hoje `user`, `account-group`, `account`, `category`, `transaction`). Se duas ou mais tasks da leva caírem no mesmo contexto, avise a colisão e peça confirmação pontual antes de seguir com aquele par especificamente — as tasks sem colisão não esperam por essa confirmação.
 
+### Passo 3 — Alocar as N portas de uma vez
+
+Calcule, na própria sessão orquestradora, as N menores portas livres a partir de 5441 entre os worktrees **vivos** (mesma consulta do Fluxo 1, Passo 4):
+
+```sh
+git worktree list --porcelain | awk '/^worktree/{print $2}' | grep '\.claude/worktrees/' | while read -r wt; do
+  [ -f "$wt/server/.env" ] && grep -oP 'POSTGRES_PORT="\K[0-9]+' "$wt/server/.env"
+done | sort -n
+```
+
+Pegue os N menores inteiros a partir de `5441` que não aparecerem nessa lista — **tudo antes de disparar qualquer subagente**, para não ter dois subagentes lendo o mesmo estado em paralelo e reservando a mesma porta.
+
+Para cada task, crie o worktree (mesmo padrão do Fluxo 1, Passo 3):
+
+```sh
+git fetch origin develop
+git worktree add .claude/worktrees/scrum-<N>-<slug> -b feat/scrum-<N>-<slug> develop
+```
+
+E escreva o `server/.env` de cada um (copiando de `server/.env.example` como base):
+
+```
+STACK_SUFFIX="-scrum-<N>"
+POSTGRES_PORT="<porta alocada>"
+```
+
+### Passo 4 — Jira: To Do → In Progress
+
+Para cada task restante da leva, sequencial, mesma resolução de `id` pelo `to.name` do Fluxo 1, Passo 6:
+
+```
+mcp__atlassian__getTransitionsForJiraIssue
+  cloudId: 7039d0db-cf55-4ded-a609-ee57f5164813
+  issueIdOrKey: "SCRUM-<N>"
+# procure na lista "transitions" o item cujo "to.name" seja "In Progress" e use o "id" dele
+
+mcp__atlassian__transitionJiraIssue
+  cloudId: 7039d0db-cf55-4ded-a609-ee57f5164813
+  issueIdOrKey: "SCRUM-<N>"
+  transition: { id: "<id resolvido>" }
+```
+
 ## Casos de borda
 
 - **Duas tasks "ao mesmo tempo"**: a skill não impede, mas repete o aviso já registrado em memória — tasks sequenciais ou da mesma entidade devem ser empilhadas, uma de cada vez, não paralelizadas: stacks simultâneos com e2e truncando tabelas (`RESTART IDENTITY CASCADE`) derrubam os dados um do outro.
