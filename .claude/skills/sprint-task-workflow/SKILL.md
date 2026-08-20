@@ -19,14 +19,16 @@ Não decide nada de produto — isso é sempre `business-analyst`/`domain-archit
 | --- | --- |
 | Transições de Jira | Todas automáticas: `To Do → In Progress` no início, `In Progress → In Review` na abertura do PR, `In Review → Done` no encerramento |
 | Gatilho do `Done` | Comando explícito de encerramento — não há observação em background de merge no GitHub |
-| Abertura do PR | Automática, assim que o checklist de fechamento da `tech-lead` (passo 16) fechar limpo |
-| Nomenclatura | Fixa: `feat/scrum-NN-<slug>` (ou `fix/`) em `.claude/worktrees/scrum-NN-<slug>`; sem ticket vira `chore/<slug>` em `.claude/worktrees/<slug>` |
+| Abertura do PR | Automática, assim que a seção `## O fechamento` da `tech-lead`, depois do passo 16, fechar limpo |
+| Nomenclatura | Fixa: `feat/scrum-<N>-<slug>` (ou `fix/`) em `.claude/worktrees/scrum-<N>-<slug>`; sem ticket vira `chore/<slug>` em `.claude/worktrees/<slug>` |
 | Porta Postgres | Reaproveita a menor porta livre (5441+) entre os worktrees **vivos** (`git worktree list`, não varredura de diretório) |
-| Subida do stack | Automática: `make up` + `make db-migrate` fazem parte da criação do worktree |
+| Subida do stack | Automática: `make deps` + `make up` + `make db-migrate` fazem parte da criação do worktree |
 
 ## Fluxo 1 — Início da task
 
 Gatilho: "começa a SCRUM-60", "cria o worktree pra próxima task da sprint".
+
+Todo caminho usado nesta skill é relativo à raiz do repositório. Antes de rodar qualquer comando deste fluxo, resolva (ou dê `cd` para) a raiz — `git rev-parse --path-format=absolute --git-common-dir` devolve o `.git` comum, e o diretório pai dele é a raiz — o que é especialmente importante quando a sessão já está dentro de outro worktree.
 
 ### Passo 1 — Resolver a issue
 
@@ -43,7 +45,7 @@ Confirme o resultado com o usuário antes de seguir — não adivinhe qual issue
 
 ### Passo 2 — Ler a issue
 
-Mesma lógica da `jira-ticket-context`:
+Invoque a skill `jira-ticket-context` (via a ferramenta `Skill`) — é ela quem busca a issue e cruza as "Regras de negócio" e os "Critérios de aceite" da descrição com `docs/requirements.md`, escalando para a `business-analyst` quando algum critério não tiver RN correspondente. Por baixo, ela faz uma chamada equivalente a esta (ilustrativa, não é o passo em si nem substitui invocar a skill):
 
 ```
 mcp__atlassian__getJiraIssue
@@ -56,8 +58,11 @@ O `summary` vira o slug do branch (kebab-case, sem acento e sem palavra de parad
 
 ### Passo 3 — Criar o worktree
 
+Atualize a referência local de `develop` antes de ramificar, para não partir de uma base desatualizada em relação a `origin/develop`:
+
 ```sh
-git worktree add .claude/worktrees/scrum-NN-<slug> -b feat/scrum-NN-<slug> develop
+git fetch origin develop
+git worktree add .claude/worktrees/scrum-<N>-<slug> -b feat/scrum-<N>-<slug> develop
 ```
 
 Sem ticket (Passo 1 não achou issue), o padrão vira, sem o número:
@@ -81,30 +86,31 @@ done | sort -n
 Pegue o menor inteiro a partir de `5441` que não aparecer nessa lista. Escreva `server/.env` do worktree novo (copiando de `server/.env.example` como base) com:
 
 ```
-STACK_SUFFIX="-scrum-NN"
+STACK_SUFFIX="-scrum-<N>"
 POSTGRES_PORT="<porta alocada>"
 ```
 
-(Para `chore/<slug>` sem número, use o slug no lugar de `scrum-NN` no `STACK_SUFFIX`: `STACK_SUFFIX="-<slug>"`.)
+(Para `chore/<slug>` sem número, use o slug no lugar de `scrum-<N>` no `STACK_SUFFIX`: `STACK_SUFFIX="-<slug>"`.)
 
 ### Passo 5 — Subir o ambiente
 
-Via `stack-runner`, a partir do worktree novo:
+Via `stack-runner`, referenciando o worktree novo via `-C`:
 
 ```sh
-make -C .claude/worktrees/scrum-NN-<slug>/server up
-make -C .claude/worktrees/scrum-NN-<slug>/server db-migrate
+make -C .claude/worktrees/scrum-<N>-<slug>/server deps
+make -C .claude/worktrees/scrum-<N>-<slug>/server up
+make -C .claude/worktrees/scrum-<N>-<slug>/server db-migrate
 ```
 
 ### Passo 6 — Jira: To Do → In Progress
 
-Resolva o id da transição pelo nome antes de aplicar — nunca hardcoded:
+Resolva o id da transição pelo nome do status de destino antes de aplicar — nunca hardcoded. Na resposta de `getTransitionsForJiraIssue`, `transitions[].name` é o rótulo da ação e é customizável (pode ser "start task", "review", qualquer coisa) — não é confiável; `transitions[].to.name` é o nome estável do status de destino, e é nele que a resolução deve se basear:
 
 ```
 mcp__atlassian__getTransitionsForJiraIssue
   cloudId: 7039d0db-cf55-4ded-a609-ee57f5164813
   issueIdOrKey: "SCRUM-<N>"
-# procure na lista "transitions" o item com name == "In Progress" e use o "id" dele
+# procure na lista "transitions" o item cujo "to.name" seja "In Progress" e use o "id" dele
 
 mcp__atlassian__transitionJiraIssue
   cloudId: 7039d0db-cf55-4ded-a609-ee57f5164813
@@ -120,25 +126,25 @@ Reporte branch, caminho do worktree, porta alocada e o resumo trazido pela `jira
 
 ## Fluxo 2 — Fim da implementação (PR automático)
 
-Gatilho: o checklist de fechamento da `tech-lead` (passo 16) fecha limpo — `make check` verde, agent `code-reviewer` sem achado de especificação/camada/propriedade, `docs/domains/` ou `docs/architecture/` atualizados, commits feitos. Nenhum pedido extra é necessário — o fluxo dispara sozinho nesse momento.
+Gatilho: a seção `## O fechamento` da `tech-lead`, depois do passo 16, fecha limpo — `make check` verde, agent `code-reviewer` sem achado de especificação/camada/propriedade, `docs/domains/` ou `docs/architecture/` atualizados, commit feito. Nenhum pedido extra é necessário — o fluxo dispara sozinho nesse momento.
 
 ### Passo 1 — Push
 
 ```sh
-git -C .claude/worktrees/scrum-NN-<slug> push -u origin feat/scrum-NN-<slug>
+git -C .claude/worktrees/scrum-<N>-<slug> push -u origin feat/scrum-<N>-<slug>
 ```
 
 ### Passo 2 — Abrir o PR
 
 ```sh
-gh pr create --base develop --head feat/scrum-NN-<slug> \
+gh pr create --base develop --head feat/scrum-<N>-<slug> \
   --title "<summary da issue>" \
   --body "$(cat <<'EOF'
 ## Resumo
 <bullets a partir do "Objetivo" e dos "Critérios de aceite" trazidos pela jira-ticket-context no início>
 
 ## Ticket
-SCRUM-NN
+SCRUM-<N>
 EOF
 )"
 ```
@@ -151,7 +157,7 @@ Sem ticket (`chore/<slug>`), o corpo do PR não tem a seção "Ticket".
 mcp__atlassian__getTransitionsForJiraIssue
   cloudId: 7039d0db-cf55-4ded-a609-ee57f5164813
   issueIdOrKey: "SCRUM-<N>"
-# procure o item com name == "In Review" e use o "id" dele
+# procure na lista "transitions" o item cujo "to.name" seja "In Review" e use o "id" dele
 
 mcp__atlassian__transitionJiraIssue
   cloudId: 7039d0db-cf55-4ded-a609-ee57f5164813
@@ -167,27 +173,39 @@ mcp__atlassian__addCommentToJiraIssue
 
 ### Passo 4 — Reportar e parar
 
-Devolva o link do PR. **Não mergeie** — merge é sempre decisão humana. Se o checklist da `tech-lead` não tiver fechado limpo, este fluxo nunca é acionado: a correção volta ao passo dono do assunto, e o `check` roda de novo antes de tentar outra vez.
+Devolva o link do PR. **Não mergeie** — merge é sempre decisão humana. Se a seção `## O fechamento` da `tech-lead` não tiver fechado limpo, este fluxo nunca é acionado: a correção volta ao passo dono do assunto, e o `check` roda de novo antes de tentar outra vez.
 
 ## Fluxo 3 — Encerrar a task
 
 Gatilho explícito e manual, depois do merge: "encerra a scrum-52, o PR já foi mergeado".
 
-### Passo 1 — Confirmar o merge
+### Passo 1 — Descobrir o worktree e o branch
+
+Uma sessão fria só recebe o número da SCRUM nesse gatilho — não sabe o caminho do worktree nem o nome completo do branch. Descubra os dois a partir de `git worktree list` antes de qualquer outro passo, e use exatamente o branch encontrado (nunca um nome reconstruído a partir do padrão) no resto deste fluxo:
 
 ```sh
-gh pr view <NN> --json state,mergedAt --jq '.state'
+git worktree list --porcelain | grep -B2 "scrum-<N>"
+```
+
+A saída traz o `worktree <caminho>` e, logo depois, o `branch refs/heads/<branch>` correspondentes (ajuste o `grep`/`awk` conforme o formato retornado). Extraia `<caminho>` e `<branch>` — por exemplo `feat/scrum-<N>-<slug>`, `fix/scrum-<N>-<slug>` ou, sem número, `chore/<slug>` — e siga com esses valores nos passos seguintes.
+
+### Passo 2 — Confirmar o merge
+
+`gh pr view` aceita o nome do branch diretamente, o que evita depender do número do PR — que não tem nenhuma relação com o número da SCRUM (confirmado: o PR da SCRUM-52 é o #27):
+
+```sh
+gh pr view <branch> --json state,mergedAt --jq '.state'
 ```
 
 Se a saída não for `MERGED`, **pare e avise** — não prossiga com um PR ainda aberto ou fechado sem merge.
 
-### Passo 2 — Jira: In Review → Done
+### Passo 3 — Jira: In Review → Done
 
 ```
 mcp__atlassian__getTransitionsForJiraIssue
   cloudId: 7039d0db-cf55-4ded-a609-ee57f5164813
   issueIdOrKey: "SCRUM-<N>"
-# procure o item com name == "Done" e use o "id" dele
+# procure na lista "transitions" o item cujo "to.name" seja "Done" e use o "id" dele
 
 mcp__atlassian__transitionJiraIssue
   cloudId: 7039d0db-cf55-4ded-a609-ee57f5164813
@@ -197,26 +215,26 @@ mcp__atlassian__transitionJiraIssue
 
 Pule este passo quando não houver ticket (`chore/<slug>`).
 
-### Passo 3 — Derrubar o stack
+### Passo 4 — Derrubar o stack
 
 ```sh
-make -C .claude/worktrees/scrum-NN-<slug>/server down
+make -C <caminho do worktree>/server down
 ```
 
 `down`, não `clean` — preserva o volume; o worktree está saindo mesmo, mas `down` é o padrão menos destrutivo da `stack-runner` e evita surpresa se algo precisar ser reaproveitado antes da remoção.
 
-### Passo 4 — Remover o worktree e o branch local
+### Passo 5 — Remover o worktree e o branch local
 
-A partir da raiz do repositório:
+A partir da raiz do repositório, usando o caminho e o branch descobertos no Passo 1:
 
 ```sh
-git worktree remove .claude/worktrees/scrum-NN-<slug>
-git branch -d feat/scrum-NN-<slug>
+git worktree remove <caminho do worktree>
+git branch -D <branch>
 ```
 
-O branch remoto o próprio GitHub apaga no merge, se essa opção estiver ligada no repositório.
+`-D`, não `-d`: o Passo 2 já confirmou `MERGED` pela API do GitHub, então usar `-D` é seguro mesmo que o `develop` local esteja desatualizado e o `-d` recuse com "not fully merged" — e cobre `feat/`, `fix/` e `chore/` igualmente, sem prefixo hardcoded. O branch remoto o próprio GitHub apaga no merge, se essa opção estiver ligada no repositório.
 
-### Passo 5 — Reportar
+### Passo 6 — Reportar
 
 Diga o que foi feito. A porta que a task usava fica livre para o próximo Fluxo 1, Passo 4.
 
@@ -224,7 +242,7 @@ Diga o que foi feito. A porta que a task usava fica livre para o próximo Fluxo 
 
 - **Duas tasks "ao mesmo tempo"**: a skill não impede, mas repete o aviso já registrado em memória — tasks sequenciais ou da mesma entidade devem ser empilhadas, uma de cada vez, não paralelizadas: stacks simultâneos com e2e truncando tabelas (`RESTART IDENTITY CASCADE`) derrubam os dados um do outro.
 - **Issue já em `In Progress` ou `In Review`** ao tentar começar (Fluxo 1, Passo 2): avisa em vez de seguir.
-- **`gh pr view` falha ou o PR não existe** (Fluxo 3, Passo 1): reporta o erro, não tenta adivinhar o estado.
+- **`gh pr view` falha ou o PR não existe** (Fluxo 3, Passo 2): reporta o erro, não tenta adivinhar o estado.
 
 ## Fora de escopo
 
@@ -238,8 +256,8 @@ Diga o que foi feito. A porta que a task usava fica livre para o próximo Fluxo 
 - [ ] A issue foi resolvida por número ou confirmada por busca — nunca adivinhada entre várias
 - [ ] Branch e worktree seguem a nomenclatura fixa (`feat`/`fix`/`chore`)
 - [ ] A porta alocada não colide com nenhum worktree que aparece em `git worktree list`
-- [ ] `make up` + `make db-migrate` rodaram antes de entregar para a `tech-lead`
-- [ ] Toda transição de Jira resolveu o id pelo nome, nunca hardcoded
-- [ ] O PR só abre depois do checklist do passo 16 da `tech-lead` fechar limpo
+- [ ] `make deps` + `make up` + `make db-migrate` rodaram antes de entregar para a `tech-lead`
+- [ ] Toda transição de Jira resolveu o id pelo `to.name` do status de destino, nunca pelo `name` da ação nem hardcoded
+- [ ] O PR só abre depois de a seção `## O fechamento` da `tech-lead`, depois do passo 16, fechar limpo
 - [ ] O encerramento só mexe em algo depois de confirmar `MERGED` via `gh pr view`
 - [ ] `make down` roda antes de `git worktree remove`, nunca depois
