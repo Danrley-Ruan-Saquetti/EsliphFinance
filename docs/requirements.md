@@ -105,6 +105,7 @@
 -   RN086 - A efetivação da _Transação_ só é permitida quando a sua **situação** for "Prevista", sendo rejeitada quando já estiver "Efetivada".
 -   RN087 - A reversão da _Transação_ só é permitida quando a sua **situação** for "Efetivada", sendo rejeitada quando já estiver "Prevista".
 -   RN088 - A efetivação da _Transação_ permite informar a **data** em que ela efetivamente ocorreu, atualizando a **data** da _Transação_.
+-   RN089 - A alteração do **tipo** da _Transação_ de ou para "Transferência" não é permitida na edição, sendo necessário excluir e criar um novo lançamento.
 
 ## Faturas de Cartão de Crédito
 
