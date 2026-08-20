@@ -245,6 +245,31 @@ git branch -D <branch>
 
 Diga o que foi feito. A porta que a task usava fica livre para o próximo Fluxo 1, Passo 4.
 
+## Fluxo 4 — Paralelização multi-worktree
+
+Gatilho: lista explícita de tickets — "paraleliza SCRUM-60, SCRUM-64 e SCRUM-70", "roda essas N tasks em paralelo", "começa essas 3 ao mesmo tempo".
+
+### Passo 1 — Resolver e validar a leva
+
+Faça o parse dos N números citados. Se N > 4, **recusa com aviso** — não segue com uma subleva silenciosa dos 4 primeiros.
+
+Para cada ticket restante:
+
+```
+mcp__atlassian__getJiraIssue
+  cloudId: 7039d0db-cf55-4ded-a609-ee57f5164813
+  issueIdOrKey: "SCRUM-<N>"
+  responseContentFormat: "markdown"
+```
+
+O `status.name` precisa ser `"To Do"`. Um ticket que já estiver `"In Progress"` ou `"In Review"` sai da leva com aviso — mesma regra do Fluxo 1, Passo 2, de não criar um segundo worktree para uma task já em andamento — mas **não aborta a leva inteira**: as demais seguem.
+
+### Passo 2 — Ler as N issues e checar domínio sobreposto
+
+Antes de criar qualquer worktree, invoque a skill `jira-ticket-context` (via `Skill`) para cada ticket restante da leva, sequencialmente — são só chamadas MCP de leitura. Cada resultado dá o slug do branch (do `summary`) e o cruzamento de RNs/critérios de aceite com `docs/requirements.md`, exatamente como o Fluxo 1, Passo 2 faz para uma task.
+
+Use esse mesmo resultado para inferir o contexto de domínio de cada task (comparando o `summary`/descrição contra os nomes de contexto em `docs/domains/` — hoje `user`, `account-group`, `account`, `category`, `transaction`). Se duas ou mais tasks da leva caírem no mesmo contexto, avise a colisão e peça confirmação pontual antes de seguir com aquele par especificamente — as tasks sem colisão não esperam por essa confirmação.
+
 ## Casos de borda
 
 - **Duas tasks "ao mesmo tempo"**: a skill não impede, mas repete o aviso já registrado em memória — tasks sequenciais ou da mesma entidade devem ser empilhadas, uma de cada vez, não paralelizadas: stacks simultâneos com e2e truncando tabelas (`RESTART IDENTITY CASCADE`) derrubam os dados um do outro.
