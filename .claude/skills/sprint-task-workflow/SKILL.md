@@ -341,7 +341,11 @@ A sessão orquestradora não aguarda as N tasks para reportar; cada notificaçã
 
 ## Casos de borda
 
-- **Duas tasks "ao mesmo tempo"**: a skill não impede, mas repete o aviso já registrado em memória — tasks sequenciais ou da mesma entidade devem ser empilhadas, uma de cada vez, não paralelizadas: stacks simultâneos com e2e truncando tabelas (`RESTART IDENTITY CASCADE`) derrubam os dados um do outro.
+- **Duas ou mais tasks ao mesmo tempo**: o caminho suportado é o **Fluxo 4** — cada worktree com `STACK_SUFFIX`/`POSTGRES_PORT` próprios não compartilha banco, então não há colisão de dados entre stacks corretamente isolados. Fora do Fluxo 4 (worktrees criados manualmente, sem `.env` próprio), o aviso original continua valendo: tasks sequenciais ou da mesma entidade devem ser empilhadas, uma de cada vez — um worktree sem `STACK_SUFFIX` cai de volta no banco da raiz, e como cada spec e2e trunca as tabelas com `RESTART IDENTITY CASCADE`, duas suítes simultâneas nesse cenário derrubam os dados uma da outra.
+- **N > 4 no Fluxo 4**: recusa, não trunca silenciosamente a leva para os 4 primeiros.
+- **Ticket já em progresso dentro da leva do Fluxo 4**: sai da leva com aviso, as demais seguem.
+- **Domínio sobreposto entre duas tasks da leva do Fluxo 4**: avisa e confirma pontualmente, não aborta as tasks sem colisão.
+- **Um subagente do Fluxo 4 trava ou bloqueia**: os demais seguem independentes; o bloqueio é reportado como resultado daquela task, não propagado às outras.
 - **Issue já em `In Progress` ou `In Review`** ao tentar começar (Fluxo 1, Passo 2): avisa em vez de seguir.
 - **`gh pr view` falha ou o PR não existe** (Fluxo 3, Passo 2): reporta o erro, não tenta adivinhar o estado.
 
@@ -351,6 +355,8 @@ A sessão orquestradora não aguarda as N tasks para reportar; cada notificaçã
 - Merge do PR — sempre humano.
 - Observação em background de merge no GitHub (webhook, polling) — o encerramento é sempre um comando explícito.
 - Criação ou edição de issues no Jira — a skill só transiciona status e comenta o link do PR; criar ou detalhar uma issue continua manual ou por outra via.
+- Encerramento em lote de várias tasks de uma vez — cada uma encerra individualmente pelo Fluxo 3, mesmo quando criada via Fluxo 4.
+- Qualquer paralelismo dentro de uma única task — isso continua sendo assunto da `tech-lead`.
 
 ## Checklist
 
@@ -362,3 +368,7 @@ A sessão orquestradora não aguarda as N tasks para reportar; cada notificaçã
 - [ ] O PR só abre depois de a seção `## O fechamento` da `tech-lead`, depois do passo 16, fechar limpo
 - [ ] O encerramento só mexe em algo depois de confirmar `MERGED` via `gh pr view`
 - [ ] `make down` roda antes de `git worktree remove`, nunca depois
+- [ ] Toda leva do Fluxo 4 tem N ≤ 4 — pedido maior é recusado, nunca truncado
+- [ ] As N portas da leva são alocadas de uma vez, antes de disparar qualquer subagente
+- [ ] Todo subagente do Fluxo 4 usa `subagent_type: "general-purpose"`, nunca `fork`
+- [ ] Nenhum subagente do Fluxo 4 espera notificação de monitor próprio para `make check`/e2e — sempre foreground
