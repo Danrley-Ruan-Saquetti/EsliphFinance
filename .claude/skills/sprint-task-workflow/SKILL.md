@@ -168,3 +168,54 @@ mcp__atlassian__addCommentToJiraIssue
 ### Passo 4 — Reportar e parar
 
 Devolva o link do PR. **Não mergeie** — merge é sempre decisão humana. Se o checklist da `tech-lead` não tiver fechado limpo, este fluxo nunca é acionado: a correção volta ao passo dono do assunto, e o `check` roda de novo antes de tentar outra vez.
+
+## Fluxo 3 — Encerrar a task
+
+Gatilho explícito e manual, depois do merge: "encerra a scrum-52, o PR já foi mergeado".
+
+### Passo 1 — Confirmar o merge
+
+```sh
+gh pr view <NN> --json state,mergedAt --jq '.state'
+```
+
+Se a saída não for `MERGED`, **pare e avise** — não prossiga com um PR ainda aberto ou fechado sem merge.
+
+### Passo 2 — Jira: In Review → Done
+
+```
+mcp__atlassian__getTransitionsForJiraIssue
+  cloudId: 7039d0db-cf55-4ded-a609-ee57f5164813
+  issueIdOrKey: "SCRUM-<N>"
+# procure o item com name == "Done" e use o "id" dele
+
+mcp__atlassian__transitionJiraIssue
+  cloudId: 7039d0db-cf55-4ded-a609-ee57f5164813
+  issueIdOrKey: "SCRUM-<N>"
+  transition: { id: "<id resolvido>" }
+```
+
+Pule este passo quando não houver ticket (`chore/<slug>`).
+
+### Passo 3 — Derrubar o stack
+
+```sh
+make -C .claude/worktrees/scrum-NN-<slug>/server down
+```
+
+`down`, não `clean` — preserva o volume; o worktree está saindo mesmo, mas `down` é o padrão menos destrutivo da `stack-runner` e evita surpresa se algo precisar ser reaproveitado antes da remoção.
+
+### Passo 4 — Remover o worktree e o branch local
+
+A partir da raiz do repositório:
+
+```sh
+git worktree remove .claude/worktrees/scrum-NN-<slug>
+git branch -d feat/scrum-NN-<slug>
+```
+
+O branch remoto o próprio GitHub apaga no merge, se essa opção estiver ligada no repositório.
+
+### Passo 5 — Reportar
+
+Diga o que foi feito. A porta que a task usava fica livre para o próximo Fluxo 1, Passo 4.
