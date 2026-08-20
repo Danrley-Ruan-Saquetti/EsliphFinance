@@ -29,7 +29,7 @@ Não decide nada de produto — isso é sempre `business-analyst`/`domain-archit
 | Checagem de domínio sobreposto | Avisa se duas tasks da leva caírem no mesmo contexto de `docs/domains/` e confirma pontualmente antes de seguir com aquele par — não bloqueia as demais |
 | Report da paralelização | Por task, assim que o subagente correspondente termina — a sessão orquestradora não espera as N |
 | Tipo de subagente | `Agent` com `subagent_type: "general-purpose"` — nunca `fork`, porque cada task precisa de contexto próprio, não do histórico da conversa que disparou a leva |
-| `make check`/e2e dentro do subagente | Sempre em foreground, nunca aguardando notificação de monitor próprio |
+| `make check`/e2e dentro do subagente | Sempre em foreground, nunca aguardando notificação de monitor próprio; serial pela `stack-runner`, nunca via `check-dispatcher` — paralelizar o check dentro de cada task multiplicaria as N tasks da leva por 3 subagentes de check |
 
 ## Fluxo 1 — Início da task
 
@@ -331,7 +331,7 @@ Uma chamada `Agent` por task, todas na mesma mensagem — paralelas de fato, nã
 - Caminho do worktree e nome do branch já criados no Passo 3.
 - Porta alocada.
 - O resumo de RNs/critérios de aceite que a `jira-ticket-context` já trouxe no Passo 2 — o subagente **não** reinvoca `jira-ticket-context`, parte direto do roteiro da `tech-lead` a partir de onde ela normalmente entra.
-- Instrução explícita de rodar `make check`/`make test-e2e` em **foreground** dentro do próprio subagente, nunca aguardando notificação de um monitor próprio.
+- Instrução explícita de rodar `make check`/`make test-e2e` em **foreground** dentro do próprio subagente, nunca aguardando notificação de um monitor próprio — serial, nunca via `check-dispatcher`: a task já é um dos N subagentes da leva, e disparar mais três dentro dela multiplicaria o fan-out.
 - Instrução de, ao fechar limpo (checklist "O fechamento" da `tech-lead`), executar o Fluxo 2 já existente por conta própria: push, `gh pr create`, transição Jira In Progress → In Review, comentário com o link do PR.
 - Instrução de, se travar em algo que precise de decisão humana (critério sem RN correspondente, ambiguidade de regra), escalar como a `tech-lead`/`business-analyst` já fariam numa sessão solo, e reportar o bloqueio como resultado — não travar silenciosamente.
 
@@ -371,4 +371,4 @@ A sessão orquestradora não aguarda as N tasks para reportar; cada notificaçã
 - [ ] Toda leva do Fluxo 4 tem N ≤ 4 — pedido maior é recusado, nunca truncado
 - [ ] As N portas da leva são alocadas de uma vez, antes de disparar qualquer subagente
 - [ ] Todo subagente do Fluxo 4 usa `subagent_type: "general-purpose"`, nunca `fork`
-- [ ] Nenhum subagente do Fluxo 4 espera notificação de monitor próprio para `make check`/e2e — sempre foreground
+- [ ] Nenhum subagente do Fluxo 4 espera notificação de monitor próprio para `make check`/e2e — sempre foreground, e nenhum invoca a `check-dispatcher` para não multiplicar o fan-out

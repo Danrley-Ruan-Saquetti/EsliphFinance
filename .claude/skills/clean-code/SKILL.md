@@ -170,6 +170,8 @@ make typecheck   # tsc --noEmit
 make check       # typecheck + lint + testes (rode antes de fechar a tarefa)
 ```
 
+Se o tempo total importar, a skill `check-dispatcher` paraleliza os mesmos grupos do `make check` em subagentes independentes, em vez da cadeia serial.
+
 No `mobile/`, os scripts npm rodam no host: `npm run lint`.
 
 Se o lint reclamar de algo que esta skill não cobre, a configuração ganha — e vale avisar, porque significa que esta skill está desatualizada.

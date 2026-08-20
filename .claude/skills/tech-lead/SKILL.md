@@ -60,7 +60,7 @@ Cada passo nomeia o dono e o portão que precisa fechar antes do próximo começ
 | 10 | Controller + schema Zod + presenter. | `platform-architect` | Mensagem em português, `code` em inglês; rota nasce autenticada |
 | 11 | Factory em `test/factories/` + spec unitário espelhado, citando a RN no nome do `it`. | `spec-writer` | Edge cases cobertos, não só o caminho feliz |
 | 12 | E2E enxuto: só a conversa HTTP ↔ Nest ↔ banco. Nenhuma regra aqui. | `spec-writer` | Uma rota, o caminho feliz, o essencial de erro |
-| 13 | `make -C server check` — typecheck, lint, unitários e e2e. | `stack-runner` | Verde. Se os e2e forem os primeiros depois de uma migration nova, `db-migrate` antes |
+| 13 | `make -C server check` — typecheck, lint, unitários e e2e. Se o tempo total importar, os mesmos grupos rodam em paralelo pela `check-dispatcher` em vez da cadeia serial. | `stack-runner` (ou `check-dispatcher`) | Verde. Se os e2e forem os primeiros depois de uma migration nova, `db-migrate` antes |
 | 14 | **Atualizar `docs/domains/` e/ou `docs/architecture/`** — mapa de arquivos, regras, fronteiras, contrato HTTP, o que saiu de "Ainda não existe". | `domain-architect` / `platform-architect` | O documento descreve o que passou a existir |
 | 15 | Revisar o diff inteiro, documento incluído — pelo **agent** `code-reviewer` (`Agent`, `subagent_type: code-reviewer`), em contexto isolado do que gerou o código, não pela skill inline. | `code-reviewer` (agent) | Nenhum achado de especificação, camada ou propriedade em aberto |
 | 16 | Commit. | você, [em duas linhas](#o-commit) | Mensagem no padrão do repositório |
@@ -122,7 +122,7 @@ Uma unidade de trabalho é um commit. Código em um commit e documento no seguin
 A parte mais valiosa desta skill, porque é onde a tarefa costuma ser dada por pronta cedo demais. Percorra item a item **antes** de dizer que acabou:
 
 - [ ] A RN citada existe em `docs/requirements.md` e o comportamento entregue é o que ela descreve — nada implementado sobre um DA ainda em aberto
-- [ ] `make -C server check` verde
+- [ ] `make -C server check` verde (serial pela `stack-runner`, ou o resultado agregado por grupo da `check-dispatcher` quando paralelizado)
 - [ ] `docs/domains/` e/ou `docs/architecture/` refletem o que passou a existir
 - [ ] `.env.example` atualizado, se entrou variável
 - [ ] In-memory e Drizzle honram a mesma porta

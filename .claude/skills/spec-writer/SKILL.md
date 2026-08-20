@@ -218,7 +218,7 @@ Nenhuma mudança em `src/` fecha sem teste. Na prática:
 2. **Escreva ou atualize o spec espelhado** antes de mexer na implementação, listando os edge cases da seção acima. Não é obrigatório rodar o ciclo vermelho-verde do TDD, mas escrever o teste primeiro é o que garante que ele descreve a regra, e não o código que você acabou de escrever.
 3. `make test-file FILE=<caminho do spec>` enquanto implementa.
 4. `make test-cov` e confira **a linha do arquivo alterado**.
-5. `make check` (typecheck + lint + testes) antes de dar a tarefa por concluída.
+5. `make check` (typecheck + lint + testes) antes de dar a tarefa por concluída — ou, pela `check-dispatcher`, os mesmos grupos em paralelo quando o tempo total importar.
 
 **Alterou código já coberto?** Atualize o spec no mesmo commit. Teste desatualizado é pior que teste ausente: ele afirma um comportamento que não existe mais e dá confiança falsa.
 

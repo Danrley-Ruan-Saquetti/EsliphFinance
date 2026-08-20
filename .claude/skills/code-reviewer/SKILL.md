@@ -148,7 +148,7 @@ Feche com o que está faltando e não é uma linha de código: o spec ausente, o
 
 Por padrão você aponta e para. Achado e correção no mesmo passo tiram do usuário a chance de discordar do achado — e um achado do eixo 1 frequentemente **deve** ser discutido, porque a saída pode ser mudar a RN e não o código.
 
-Quando o usuário pedir a correção, aplique-a pelas skills donas do assunto: `clean-code` para estilo, `spec-writer` para teste, `domain-architect` ou `platform-architect` para o documento. E rode `make -C server check` antes de devolver — pela `stack-runner`, nunca `npm` no host.
+Quando o usuário pedir a correção, aplique-a pelas skills donas do assunto: `clean-code` para estilo, `spec-writer` para teste, `domain-architect` ou `platform-architect` para o documento. E rode `make -C server check` antes de devolver — pela `stack-runner`, nunca `npm` no host; se o tempo total importar, a `check-dispatcher` paraleliza os mesmos grupos.
 
 ## Checklist
 
