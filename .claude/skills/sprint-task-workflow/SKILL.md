@@ -117,3 +117,54 @@ Pule este passo inteiro quando não houver ticket (`chore/<slug>`).
 ### Passo 7 — Entregar para a tech-lead
 
 Reporte branch, caminho do worktree, porta alocada e o resumo trazido pela `jira-ticket-context` (RNs, critérios de aceite). A partir daqui, a implementação em si — passos 1 a 14 do roteiro da `tech-lead` — roda **dentro do worktree criado**, não na raiz do repositório.
+
+## Fluxo 2 — Fim da implementação (PR automático)
+
+Gatilho: o checklist de fechamento da `tech-lead` (passo 16) fecha limpo — `make check` verde, agent `code-reviewer` sem achado de especificação/camada/propriedade, `docs/domains/` ou `docs/architecture/` atualizados, commits feitos. Nenhum pedido extra é necessário — o fluxo dispara sozinho nesse momento.
+
+### Passo 1 — Push
+
+```sh
+git -C .claude/worktrees/scrum-NN-<slug> push -u origin feat/scrum-NN-<slug>
+```
+
+### Passo 2 — Abrir o PR
+
+```sh
+gh pr create --base develop --head feat/scrum-NN-<slug> \
+  --title "<summary da issue>" \
+  --body "$(cat <<'EOF'
+## Resumo
+<bullets a partir do "Objetivo" e dos "Critérios de aceite" trazidos pela jira-ticket-context no início>
+
+## Ticket
+SCRUM-NN
+EOF
+)"
+```
+
+Sem ticket (`chore/<slug>`), o corpo do PR não tem a seção "Ticket".
+
+### Passo 3 — Jira: In Progress → In Review
+
+```
+mcp__atlassian__getTransitionsForJiraIssue
+  cloudId: 7039d0db-cf55-4ded-a609-ee57f5164813
+  issueIdOrKey: "SCRUM-<N>"
+# procure o item com name == "In Review" e use o "id" dele
+
+mcp__atlassian__transitionJiraIssue
+  cloudId: 7039d0db-cf55-4ded-a609-ee57f5164813
+  issueIdOrKey: "SCRUM-<N>"
+  transition: { id: "<id resolvido>" }
+
+mcp__atlassian__addCommentToJiraIssue
+  cloudId: 7039d0db-cf55-4ded-a609-ee57f5164813
+  issueIdOrKey: "SCRUM-<N>"
+  commentBody: "PR aberto: <url retornada pelo gh pr create>"
+  contentFormat: "markdown"
+```
+
+### Passo 4 — Reportar e parar
+
+Devolva o link do PR. **Não mergeie** — merge é sempre decisão humana. Se o checklist da `tech-lead` não tiver fechado limpo, este fluxo nunca é acionado: a correção volta ao passo dono do assunto, e o `check` roda de novo antes de tentar outra vez.
