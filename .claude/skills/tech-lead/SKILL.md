@@ -106,7 +106,7 @@ Guard, middleware, filtro, pipe, decorator, presenter ou schema genérico, bloco
 
 ### Mobile
 
-O roteiro acima é do backend. Em `mobile/` não existe mapa equivalente a `docs/domains/`, então os passos 2, 3 e 14 não têm a quem apontar — diga isso em vez de fingir que apontam. O que continua valendo: a RN pela `business-analyst` (passo 1), o estilo pela `clean-code`, o texto de tela em português, e o fechamento com revisão e commit.
+`mobile/` foi removido para ser reescrito do zero e não existe hoje no repositório — não há tarefa de mobile a rotear enquanto isso. Quando o projeto voltar, esta seção precisa ser reescrita a partir da estrutura nova, não restaurada como estava.
 
 ## O commit
 

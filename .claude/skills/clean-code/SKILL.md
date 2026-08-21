@@ -1,13 +1,13 @@
 ---
 name: clean-code
-description: Padrão de escrita, formatação e design de código do EsliphFinance (server NestJS e mobile Expo) — código sem nenhum comentário, autodescritivo pelos nomes, formatado conforme o eslint.config.mjs e o .prettierrc do projeto. Use SEMPRE que for escrever, alterar ou refatorar qualquer arquivo TypeScript deste repositório, mesmo que o pedido seja só "cria o use-case X", "adiciona esse campo", "corrige esse bug" ou "arruma o import" — ela vale antes de escrever, para guiar o design, e é a fonte do padrão que a skill `code-reviewer` aplica na revisão. Também vale quando o pedido mencionar clean code, formatação, nomenclatura, coesão, legibilidade ou remoção de comentários. Não é a skill da revisão: "revisa isso", "esse código está bom?" e "o que faltou aqui" são da `code-reviewer`.
+description: Padrão de escrita, formatação e design de código do EsliphFinance (server NestJS) — código sem nenhum comentário, autodescritivo pelos nomes, formatado conforme o eslint.config.mjs e o .prettierrc do projeto. Use SEMPRE que for escrever, alterar ou refatorar qualquer arquivo TypeScript deste repositório, mesmo que o pedido seja só "cria o use-case X", "adiciona esse campo", "corrige esse bug" ou "arruma o import" — ela vale antes de escrever, para guiar o design, e é a fonte do padrão que a skill `code-reviewer` aplica na revisão. Também vale quando o pedido mencionar clean code, formatação, nomenclatura, coesão, legibilidade ou remoção de comentários. Não é a skill da revisão: "revisa isso", "esse código está bom?" e "o que faltou aqui" são da `code-reviewer`.
 ---
 
 # Clean Code — EsliphFinance
 
 Este repositório tem um estilo próprio e bastante opinado. Ele não é o "clean code de livro": há decisões específicas aqui (zero comentários, `Either` no lugar de exceção, linha em branco antes de `return`) que só aparecem no código já escrito. Esta skill existe para que código novo seja indistinguível do código que já está lá.
 
-Vale para `server/` e `mobile/`. O `mobile/` ainda está embrionário e não tem `.prettierrc` próprio — mesmo assim segue **as mesmas regras de escrita do server**, que são as descritas aqui.
+Vale para `server/`. O `mobile/` foi removido para ser reescrito do zero; quando voltar a existir, esta skill precisa ser revisada para cobri-lo de novo.
 
 ## Como usar
 
@@ -171,8 +171,6 @@ make check       # typecheck + lint + testes (rode antes de fechar a tarefa)
 ```
 
 Se o tempo total importar, a skill `check-dispatcher` paraleliza os mesmos grupos do `make check` em subagentes independentes, em vez da cadeia serial.
-
-No `mobile/`, os scripts npm rodam no host: `npm run lint`.
 
 Se o lint reclamar de algo que esta skill não cobre, a configuração ganha — e vale avisar, porque significa que esta skill está desatualizada.
 

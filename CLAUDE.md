@@ -9,7 +9,6 @@ EsliphFinance é um aplicativo de finanças pessoais. O repositório é um monor
 | Diretório | O que é |
 | --------- | ------- |
 | `server/` | API backend (NestJS + PostgreSQL, tudo via Docker; nada de `npm` no host — os comandos são alvos do `Makefile`, e `make help` lista todos; a execução é da skill `stack-runner`). **Tem o seu próprio `CLAUDE.md`** com stack, arquitetura e comandos — leia-o antes de mexer em qualquer coisa aqui. |
-| `mobile/` | Aplicativo Expo / React Native, com scripts npm próprios rodando direto no host. Consulte o diretório para a sua stack e comandos. |
 | `docs/`   | Documentação de produto: `requirements.md` (a especificação) e `open-decisions.md` (o que ainda não foi decidido). Em `domains/`, um arquivo por contexto de `server/src/domain` com o mapa técnico da fatia — arquivos, regras que cada um garante, fronteiras com os vizinhos e o que ainda não existe. Em `architecture/`, um arquivo por eixo transversal do backend — ciclo da requisição, módulos e injeção, blocos de `core/`, persistência, segurança e configuração. |
 | `.github/workflows/` | Pipelines do GitHub Actions. `server-tests.yml` roda os testes unitários e e2e do backend nos pushes e pull requests para `main` e `develop`, direto no Node 22 do runner (sem Docker), com o Postgres como *service container*. |
 
@@ -29,7 +28,7 @@ A contrapartida técnica fica em `docs/domains/`: enquanto `requirements.md` diz
 
 O que sustenta todos os domínios está em `docs/architecture/`: camadas, blocos de `core/`, módulos e injeção, ciclo da requisição e contrato de erro, persistência, segurança e configuração. A mesma regra vale — leia o eixo antes de varrer `server/src/core` ou `server/src/infra`, e atualize-o no mesmo passo do código. A manutenção é da skill `platform-architect`.
 
-Regras que atravessam os dois projetos e valem sempre:
+Regras que valem sempre:
 
 - Valores monetários são inteiros em centavos (RNF004); a formatação com 2 casas é só na exibição.
 - Todo registro pertence a um usuário e só pode ser lido ou alterado por ele (RN010, RN011).
@@ -38,7 +37,7 @@ Regras que atravessam os dois projetos e valem sempre:
 ## Convenções do repositório
 
 - **Idioma**: código, nomes de arquivos e identificadores em inglês; documentação, requisitos, comentários e mensagens de commit em português.
-- **Idioma das mensagens**: todo texto que chega ao usuário é em **português** — o `message` e o `details[].message` das respostas da API, os erros de validação de entrada e de invariante de domínio, e os textos de tela do mobile. Continuam em inglês apenas o que não é exibido: identificadores, códigos de erro (`RESOURCE_NOT_FOUND`), logs e as mensagens de falha na validação das variáveis de ambiente, que são diagnóstico de quem opera a aplicação.
+- **Idioma das mensagens**: todo texto que chega ao usuário é em **português** — o `message` e o `details[].message` das respostas da API, os erros de validação de entrada e de invariante de domínio. Continuam em inglês apenas o que não é exibido: identificadores, códigos de erro (`RESOURCE_NOT_FOUND`), logs e as mensagens de falha na validação das variáveis de ambiente, que são diagnóstico de quem opera a aplicação.
 - **Commits**: prefixo de tipo em minúsculo seguido de descrição capitalizada — `config: Configurando Vitest com coverage para testes`, `refactor: Alterando para usar o nome do banco definido na variável de ambiente`.
 - **Branches**: `master` é a branch principal; o backend está sendo desenvolvido na branch `server`.
 - **Variáveis de ambiente**: cada projeto tem o seu `.env` (ignorado pelo git) e um `.env.example` versionado. Ao introduzir uma variável nova, atualize o `.env.example` correspondente.
