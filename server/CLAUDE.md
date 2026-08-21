@@ -15,7 +15,7 @@ API do EsliphFinance. Este documento cobre apenas o backend; o contexto geral do
 | Ambiente         | Docker + Docker Compose            |
 | Comandos         | Makefile                           |
 
-> Estado atual do repositório: a fundação arquitetural está implementada (camadas, `core/`, pipe de validação, padrão `Either`, aliases) e **o que sustenta todos os domínios está em [`../docs/architecture/`](../docs/architecture/README.md)**, um arquivo por eixo transversal. O domínio foi resetado — `src/domain` está vazio, sem nenhum contexto implementado, para ser reconstruído do zero; `docs/domains/` não existe até o primeiro contexto novo nascer, ponto em que a skill `domain-architect` recria o índice.
+> Estado atual do repositório: a fundação arquitetural está implementada (camadas, `core/`, pipe de validação, padrão `Either`, aliases) e **o que sustenta todos os domínios está em [`../docs/architecture/`](../docs/architecture/README.md)**, um arquivo por eixo transversal. O domínio foi resetado — `src/domain` está vazio, sem nenhum contexto implementado, para ser reconstruído do zero; `docs/domains/` não existe até o primeiro contexto novo nascer, quando o índice será recriado.
 
 ## Ambiente Docker
 
@@ -198,7 +198,7 @@ Havia um **módulo de exemplo** em `src/domain/example` (entidade `Note`), fatia
 
 ## Plataforma
 
-O detalhe de como isto está montado — e o **porquê** de cada escolha — está em [`../docs/architecture/`](../docs/architecture/README.md), um arquivo por eixo. Leia o eixo **antes** de varrer `src/core` ou `src/infra`, e atualize-o no mesmo passo do código; é a skill `platform-architect` que responde por esses arquivos.
+O detalhe de como isto está montado — e o **porquê** de cada escolha — está em [`../docs/architecture/`](../docs/architecture/README.md), um arquivo por eixo. Leia o eixo **antes** de varrer `src/core` ou `src/infra`, e atualize-o no mesmo passo do código.
 
 | Eixo | Cobre |
 | ---- | ----- |
@@ -225,9 +225,9 @@ Identificador, nome de arquivo e `code` de erro são em inglês; **toda mensagem
 
 ## Domínios
 
-`src/domain` está vazio — nenhum contexto implementado. O que cada contexto tem construído — os arquivos que compõem a fatia, as regras que cada um garante, as fronteiras com os vizinhos e o que ainda não existe — vai em `../docs/domains/`, um arquivo por contexto, recriado pela skill `domain-architect` a partir do primeiro contexto que nascer.
+`src/domain` está vazio — nenhum contexto implementado. O que cada contexto tem construído — os arquivos que compõem a fatia, as regras que cada um garante, as fronteiras com os vizinhos e o que ainda não existe — vai em `../docs/domains/`, um arquivo por contexto, a ser recriado a partir do primeiro contexto que nascer.
 
-Ao mexer em um domínio, leia o documento dele **antes** de varrer `src/`, e atualize-o no mesmo passo do código — é a skill `domain-architect` que responde por esses arquivos.
+Ao mexer em um domínio, leia o documento dele **antes** de varrer `src/`, e atualize-o no mesmo passo do código.
 
 ## Testes
 

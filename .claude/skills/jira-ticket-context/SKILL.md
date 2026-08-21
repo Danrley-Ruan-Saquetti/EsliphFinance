@@ -1,6 +1,6 @@
 ---
 name: jira-ticket-context
-description: Ponte entre o branch atual e o ticket Jira que o originou — extrai o número LIPH do nome do branch (`feat/liph-NN-slug`), busca a issue via Atlassian MCP e cruza "Regras de negócio" e "Critérios de aceite" da descrição com `docs/requirements.md`. Use ANTES do passo 1 do roteiro da `tech-lead` ("localizar a RN"), sempre que o branch atual seguir o padrão `liph-NN` ou o pedido citar um número de ticket — para trazer o critério de aceite original em vez de a `business-analyst` reconstruir a regra só a partir do nome da branch ou do pedido do usuário. Não decide nada sozinha: se achar critério de aceite sem RN correspondente, o encaminhamento é sempre a `business-analyst`, nunca implementar em silêncio.
+description: Ponte entre o branch atual e o ticket Jira que o originou — extrai o número LIPH do nome do branch (`feat/liph-NN-slug`), busca a issue via Atlassian MCP e cruza "Regras de negócio" e "Critérios de aceite" da descrição com `docs/requirements.md`. Use ANTES de localizar a RN em `docs/requirements.md`, sempre que o branch atual seguir o padrão `liph-NN` ou o pedido citar um número de ticket — para trazer o critério de aceite original em vez de a `business-analyst` reconstruir a regra só a partir do nome da branch ou do pedido do usuário. Não decide nada sozinha: se achar critério de aceite sem RN correspondente, o encaminhamento é sempre a `business-analyst`, nunca implementar em silêncio.
 user-invocable: false
 ---
 
@@ -60,7 +60,7 @@ Para cada RN citada na issue:
 
 ## Como reportar
 
-Resumo curto antes de seguir para a `business-analyst` ou para o passo 1 da `tech-lead`:
+Resumo curto antes de seguir para a `business-analyst` ou para a localização da RN:
 
 - Chave e título da issue, e o status atual.
 - As RNs citadas, com nota de cada uma: já existe e bate / já existe e diverge / não existe.

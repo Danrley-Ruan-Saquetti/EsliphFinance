@@ -29,7 +29,7 @@ Quatro coisas com propósito parecido e escopo diferente — vale dizer qual é 
 - **`/code-review` embutido** — caça defeito no código como código: caso não tratado, condição invertida, vazamento, corrida. Não conhece as RNs nem `docs/`.
 - **`ultrareview` (`/code-review ultra`)** — a mesma caça, com mais fôlego e em múltiplos agentes na nuvem. É disparado pelo usuário e é cobrado; você não o dispara.
 - **Esta skill** — caça divergência entre o código e o que o repositório decidiu, rodando **inline**, na mesma conversa que produziu o código. Use quando o achado precisar virar discussão ali mesmo — um achado do eixo 1 frequentemente deve mudar a RN, não o código, e isso se resolve em conversa.
-- **O agent `code-reviewer`** (`.claude/agents/code-reviewer.md`, mesmo checklist desta skill) — a mesma caça de divergência, mas em **contexto isolado**: recebe só o diff, sem ter visto como o código foi escrito nem por quê. É o que o passo 15 da `tech-lead` usa antes do commit, porque quem acabou de escrever tende a revisar com o mesmo raciocínio que gerou o código.
+- **O agent `code-reviewer`** (`.claude/agents/code-reviewer.md`, mesmo checklist desta skill) — a mesma caça de divergência, mas em **contexto isolado**: recebe só o diff, sem ter visto como o código foi escrito nem por quê. É o que se usa antes do commit, porque quem acabou de escrever tende a revisar com o mesmo raciocínio que gerou o código.
 
 Rodar o embutido (ou o `ultrareview`) junto com o agent é o ideal antes de um PR grande: um pega bug, o outro pega divergência, e nenhum compartilha contexto com quem escreveu.
 
@@ -148,7 +148,7 @@ Feche com o que está faltando e não é uma linha de código: o spec ausente, o
 
 Por padrão você aponta e para. Achado e correção no mesmo passo tiram do usuário a chance de discordar do achado — e um achado do eixo 1 frequentemente **deve** ser discutido, porque a saída pode ser mudar a RN e não o código.
 
-Quando o usuário pedir a correção, aplique-a pelas skills donas do assunto: `clean-code` para estilo, `spec-writer` para teste, `domain-architect` ou `platform-architect` para o documento. E rode `make -C server check` antes de devolver — pela `stack-runner`, nunca `npm` no host; se o tempo total importar, a `check-dispatcher` paraleliza os mesmos grupos.
+Quando o usuário pedir a correção, aplique-a pelas skills donas do assunto: `clean-code` para estilo, `spec-writer` para teste, e o documento correspondente em `docs/domains/` ou `docs/architecture/` quando o mapa ficou desatualizado. E rode `make -C server check` antes de devolver — pela `stack-runner`, nunca `npm` no host; se o tempo total importar, a `check-dispatcher` paraleliza os mesmos grupos.
 
 ## Checklist
 

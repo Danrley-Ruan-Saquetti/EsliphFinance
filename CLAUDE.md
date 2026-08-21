@@ -24,9 +24,9 @@ Antes de implementar qualquer comportamento, localize a RN correspondente — el
 
 A manutenção desses dois documentos é da skill `business-analyst` — use-a sempre que precisar localizar, interpretar, criar ou alterar um requisito.
 
-A contrapartida técnica fica em `docs/domains/`: enquanto `requirements.md` diz o que o produto **deve** fazer, cada arquivo de domínio descreve o que **está construído** naquele contexto — quais arquivos formam a fatia vertical, onde cada RN é aplicada, por onde o contexto conversa com os vizinhos e o que dele ainda não existe. Leia o documento do domínio antes de varrer `server/src` para entender uma feature, e atualize-o no mesmo passo em que o código muda. A manutenção é da skill `domain-architect`.
+A contrapartida técnica fica em `docs/domains/`: enquanto `requirements.md` diz o que o produto **deve** fazer, cada arquivo de domínio descreve o que **está construído** naquele contexto — quais arquivos formam a fatia vertical, onde cada RN é aplicada, por onde o contexto conversa com os vizinhos e o que dele ainda não existe. Leia o documento do domínio antes de varrer `server/src` para entender uma feature, e atualize-o no mesmo passo em que o código muda.
 
-O que sustenta todos os domínios está em `docs/architecture/`: camadas, blocos de `core/`, módulos e injeção, ciclo da requisição e contrato de erro, persistência, segurança e configuração. A mesma regra vale — leia o eixo antes de varrer `server/src/core` ou `server/src/infra`, e atualize-o no mesmo passo do código. A manutenção é da skill `platform-architect`.
+O que sustenta todos os domínios está em `docs/architecture/`: camadas, blocos de `core/`, módulos e injeção, ciclo da requisição e contrato de erro, persistência, segurança e configuração. A mesma regra vale — leia o eixo antes de varrer `server/src/core` ou `server/src/infra`, e atualize-o no mesmo passo do código.
 
 Regras que valem sempre:
 

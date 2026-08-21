@@ -7,7 +7,7 @@ description: Como escrever e manter os testes automatizados do EsliphFinance com
 
 O teste aqui não é uma rede de segurança opcional escrita depois: ele é a forma executável de `docs/requirements.md`. As RNs são a especificação do produto, e o único lugar onde elas viram algo verificável é o nome e o corpo de um `it(...)`. É por isso que a regra prática deste projeto é **a implementação serve ao teste**, e não o contrário — quando os dois discordam, a suspeita recai primeiro sobre a implementação.
 
-Esta skill cobre **o que testar, onde colocar e como escrever**. O estilo do código (zero comentários, sem ponto e vírgula, linha em branco antes do `return`) está na skill `clean-code` e vale integralmente dentro dos arquivos de teste. Os comandos estão em `server/CLAUDE.md`, a arquitetura transversal em `docs/architecture/` (mantida pela skill `platform-architect`), e o mapa do domínio que você vai testar — quais arquivos formam a fatia e onde cada RN é aplicada — está em `docs/domains/`, mantido pela skill `domain-architect`.
+Esta skill cobre **o que testar, onde colocar e como escrever**. O estilo do código (zero comentários, sem ponto e vírgula, linha em branco antes do `return`) está na skill `clean-code` e vale integralmente dentro dos arquivos de teste. Os comandos estão em `server/CLAUDE.md`, a arquitetura transversal em `docs/architecture/`, e o mapa do domínio que você vai testar — quais arquivos formam a fatia e onde cada RN é aplicada — está em `docs/domains/`.
 
 ## A pirâmide deste projeto
 

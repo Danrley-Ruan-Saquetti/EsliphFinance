@@ -1,6 +1,6 @@
 ---
 name: check-dispatcher
-description: Use quando o pedido for rodar o gate completo do backend (typecheck, lint, testes unitários e testes e2e) e o tempo total importar — paraleliza os grupos do `make check` em subagentes independentes em vez da cadeia serial que a `stack-runner` roda. Vale para "paraleliza o check", "roda typecheck, test e e2e ao mesmo tempo", "acelera o check", "dispara o check em subagentes", e no fechamento de uma task (passo 13 da `tech-lead`, gate de fechamento da `sprint-task-workflow`) quando o usuário preferir isso à execução serial. Não roda comando nenhum sozinha: cada subagente ainda invoca `make -C server <alvo>` pela convenção da `stack-runner`.
+description: Use quando o pedido for rodar o gate completo do backend (typecheck, lint, testes unitários e testes e2e) e o tempo total importar — paraleliza os grupos do `make check` em subagentes independentes em vez da cadeia serial que a `stack-runner` roda. Vale para "paraleliza o check", "roda typecheck, test e e2e ao mesmo tempo", "acelera o check", "dispara o check em subagentes", e no fechamento de uma task, quando o usuário preferir isso à execução serial. Não roda comando nenhum sozinha: cada subagente ainda invoca `make -C server <alvo>` pela convenção da `stack-runner`.
 ---
 
 # Check Dispatcher — EsliphFinance
@@ -15,8 +15,8 @@ Esta skill não substitui esse alvo nem a `stack-runner` que o executa — ela d
 
 - **Usar**: gate de fechamento de uma task, PR prestes a abrir, ou qualquer momento em que "roda o check" for pedido e minutos importam.
 - **Não usar** para uma alteração de um arquivo isolado onde o `make -C server check` serial já responde em segundos — o overhead de subir três `docker compose run` além do normal não compensa.
-- **Não confundir com o Fluxo 4 da `sprint-task-workflow`**: aquele paraleliza **tasks inteiras** da sprint, cada uma em worktree e stack Docker próprios (portas 5441–5444). Esta skill paraleliza **os passos do check dentro de um único worktree/stack** — os três subagentes apontam para o mesmo `docker-compose.yml`, a mesma rede, o mesmo banco.
-- **Cuidado com fan-out dentro do Fluxo 4**: se cada subagente de task da sprint também disparar esta skill, N tasks paralelas viram 3N subagentes de uma vez. Nesse cenário, prefira `make -C server check` serial dentro de cada subagente de task — a paralelização já veio do Fluxo 4.
+- **Escopo é um worktree só**: esta skill paraleliza **os passos do check dentro de um único worktree/stack** — os três subagentes apontam para o mesmo `docker-compose.yml`, a mesma rede, o mesmo banco. Ela não paraleliza tasks inteiras em worktrees separados.
+- **Cuidado com fan-out**: se cada subagente que já roda em paralelo também disparar esta skill, N tasks paralelas viram 3N subagentes de uma vez. Nesse cenário, prefira `make -C server check` serial dentro de cada subagente.
 
 ## Os três grupos e por que são seguros em paralelo
 
@@ -103,13 +103,13 @@ B (test):            OK | FALHOU — <resumo, teste quebrado vs. cobertura>
 C (test-e2e):         OK | FALHOU — <resumo>
 ```
 
-Se todos os três passaram, o `check` paralelo equivale ao `make -C server check` serial — trate como o mesmo sinal verde que a `tech-lead` e a `sprint-task-workflow` esperam no fechamento. Se algum falhou, a saída bruta é entregue ao dono do arquivo (`domain-architect`, `platform-architect`, `spec-writer` ou `clean-code`), do mesmo jeito que a `stack-runner` faz — esta skill também não corrige código.
+Se todos os três passaram, o `check` paralelo equivale ao `make -C server check` serial — trate como o mesmo sinal verde esperado no fechamento de uma task. Se algum falhou, a saída bruta é entregue ao dono do arquivo (`spec-writer` ou `clean-code`), do mesmo jeito que a `stack-runner` faz — esta skill também não corrige código.
 
 ## Fronteiras
 
 - Não roda `make` diretamente: delega a cada subagente, que segue a convenção da `stack-runner` (`make -C server <alvo>`, nunca `npm`/`npx` no host).
 - Não decide conteúdo de código nem regra de negócio.
-- Não é a paralelização de tasks da sprint (Fluxo 4) — não cria worktree, não sobe stack próprio, não mexe em porta.
+- Não é a paralelização de tasks inteiras — não cria worktree, não sobe stack próprio, não mexe em porta.
 - Não pula o `db-migrate` prévio nem delega isso a um subagente.
 
 ## Checklist
