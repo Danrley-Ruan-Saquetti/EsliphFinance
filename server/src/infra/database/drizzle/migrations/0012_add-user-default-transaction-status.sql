@@ -1,2 +1,0 @@
-CREATE TYPE "public"."user_default_transaction_status" AS ENUM('PLANNED', 'SETTLED');--> statement-breakpoint
-ALTER TABLE "users" ADD COLUMN "default_transaction_status" "user_default_transaction_status";

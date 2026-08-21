@@ -43,7 +43,7 @@ describe('Política de CORS (e2e)', () => {
   })
 
   it('responde o preflight com os métodos e headers aceitos', async () => {
-    const response = await request(app.getHttpServer()).options('/notes').set('Origin', allowedOrigin).set('Access-Control-Request-Method', 'POST')
+    const response = await request(app.getHttpServer()).options('/status').set('Origin', allowedOrigin).set('Access-Control-Request-Method', 'POST')
 
     expect(response.statusCode).toBe(204)
     expect(response.headers['access-control-allow-methods']).toBe('GET,POST,PUT,PATCH,DELETE,OPTIONS')

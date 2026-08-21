@@ -15,7 +15,7 @@ API do EsliphFinance. Este documento cobre apenas o backend; o contexto geral do
 | Ambiente         | Docker + Docker Compose            |
 | Comandos         | Makefile                           |
 
-> Estado atual do repositório: a fundação arquitetural está implementada (camadas, `core/`, pipe de validação, padrão `Either`, aliases), a persistência com Drizzle e o pipeline de migrations estão no ar, e há um **módulo de exemplo** em `src/domain/example` servindo de referência de estrutura — ele não faz parte do domínio real. Os contextos reais implementados são `src/domain/user` (RF001, RF002), `src/domain/account-group` (RF003), `src/domain/account` (RF004), `src/domain/category` (RF006) e `src/domain/transaction` (RF008); **o que existe em cada um, o que ainda falta e como eles se ligam está em [`../docs/domains/`](../docs/domains/README.md)**, um arquivo por contexto, e **o que sustenta todos eles está em [`../docs/architecture/`](../docs/architecture/README.md)**, um arquivo por eixo transversal.
+> Estado atual do repositório: a fundação arquitetural está implementada (camadas, `core/`, pipe de validação, padrão `Either`, aliases) e **o que sustenta todos os domínios está em [`../docs/architecture/`](../docs/architecture/README.md)**, um arquivo por eixo transversal. O domínio foi resetado — `src/domain` está vazio, sem nenhum contexto implementado, para ser reconstruído do zero; `docs/domains/` não existe até o primeiro contexto novo nascer, ponto em que a skill `domain-architect` recria o índice.
 
 ## Ambiente Docker
 
@@ -180,7 +180,7 @@ test/
   factories/                     # construtores de entidade para os testes
 ```
 
-`src/domain/example` (entidade `Note`) e os arquivos correspondentes em `src/infra` são o **módulo de exemplo**: uma fatia vertical completa que serve de modelo ao criar um contexto novo. Não é domínio real e deve sair quando deixar de ser útil como referência.
+Havia um **módulo de exemplo** em `src/domain/example` (entidade `Note`), fatia vertical de referência para criar um contexto novo; saiu no reset do domínio e não precisa voltar — a estrutura acima já documenta o padrão.
 
 ### Convenções
 
@@ -225,7 +225,7 @@ Identificador, nome de arquivo e `code` de erro são em inglês; **toda mensagem
 
 ## Domínios
 
-O que cada contexto de `src/domain` tem construído — os arquivos que compõem a fatia, as regras que cada um garante, as fronteiras com os vizinhos e o que ainda não existe — está em [`../docs/domains/`](../docs/domains/README.md), um arquivo por contexto: [usuários](../docs/domains/user.md), [grupos de contas](../docs/domains/account-group.md), [contas](../docs/domains/account.md), [categorias](../docs/domains/category.md) e [transações](../docs/domains/transaction.md).
+`src/domain` está vazio — nenhum contexto implementado. O que cada contexto tem construído — os arquivos que compõem a fatia, as regras que cada um garante, as fronteiras com os vizinhos e o que ainda não existe — vai em `../docs/domains/`, um arquivo por contexto, recriado pela skill `domain-architect` a partir do primeiro contexto que nascer.
 
 Ao mexer em um domínio, leia o documento dele **antes** de varrer `src/`, e atualize-o no mesmo passo do código — é a skill `domain-architect` que responde por esses arquivos.
 
@@ -233,8 +233,8 @@ Ao mexer em um domínio, leia o documento dele **antes** de varrer `src/`, e atu
 
 - Todo teste vive em `test/` — nada de `*.spec.ts` dentro de `src/`.
 - São **duas configurações do Vitest**: `vitest.config.js` coleta `test/units/**/*.spec.ts` (unitários) e `vitest.config.e2e.js` coleta `test/e2e/**/*.e2e-spec.ts` (e2e). Um arquivo fora desses padrões não é executado por ninguém.
-- **Unitários** ficam em `test/units/` **no mesmo caminho do arquivo testado em `src/`** (`src/domain/example/application/use-cases/create-note.ts` → `test/units/domain/example/application/use-cases/create-note.spec.ts`) e cobrem entidades e casos de uso usando **repositórios in-memory**, sem Docker de banco e sem NestJS.
-- **E2E** ficam em `test/e2e/` **no mesmo caminho do arquivo testado em `src/`** — normalmente o controller (`src/infra/http/controllers/get-note.controller.ts` → `test/e2e/infra/http/controllers/get-note.controller.e2e-spec.ts`), um arquivo por controller. Sobem a aplicação Nest e batem no serviço `database` com as migrations já aplicadas (`make db-migrate`). Cada spec chama `await cleanDatabase(app)` (`@tests/database/clean-database`) no `beforeAll`, e os arquivos rodam em série (`fileParallelism: false`) porque compartilham o mesmo banco. O helper enumera as tabelas por `isTable` sobre o `schemas/index.ts` e as trunca com `RESTART IDENTITY CASCADE`, então **tabela nova é limpa sozinha** assim que entra no índice de schemas — nenhum spec lista tabela para limpar, e um spec só importa uma tabela quando for consultá-la em asserção.
+- **Unitários** ficam em `test/units/` **no mesmo caminho do arquivo testado em `src/`** (`src/domain/<contexto>/application/use-cases/<caso-de-uso>.ts` → `test/units/domain/<contexto>/application/use-cases/<caso-de-uso>.spec.ts`) e cobrem entidades e casos de uso usando **repositórios in-memory**, sem Docker de banco e sem NestJS.
+- **E2E** ficam em `test/e2e/` **no mesmo caminho do arquivo testado em `src/`** — normalmente o controller (`src/infra/http/controllers/<rota>.controller.ts` → `test/e2e/infra/http/controllers/<rota>.controller.e2e-spec.ts`), um arquivo por controller. Sobem a aplicação Nest e batem no serviço `database` com as migrations já aplicadas (`make db-migrate`). Cada spec chama `await cleanDatabase(app)` (`@tests/database/clean-database`) no `beforeAll`, e os arquivos rodam em série (`fileParallelism: false`) porque compartilham o mesmo banco. O helper enumera as tabelas por `isTable` sobre o `schemas/index.ts` e as trunca com `RESTART IDENTITY CASCADE`, então **tabela nova é limpa sozinha** assim que entra no índice de schemas — nenhum spec lista tabela para limpar, e um spec só importa uma tabela quando for consultá-la em asserção.
 - **Factories** ficam em `test/factories/make-<entidade>.ts`, com assinatura `(override = {}, id?)`, e são a forma padrão de montar entidade em spec — exceto no spec da própria entidade, onde a construção é o que está sob teste.
 - Coverage está habilitado por padrão nos unitários, então qualquer execução grava em `coverage/`. A meta é **100% dos arquivos testáveis**, com o `vitest.config.js` reprovando abaixo de **85%**; ficam fora da conta o bootstrap, os módulos Nest, o `DrizzleService`, os repositórios e schemas Drizzle e os repositórios in-memory.
 - Casos de uso novos entram com teste unitário; o teste deve referenciar a RN que implementa. Todo caso de uso que lê ou altera registro entra também com teste de acesso cruzado entre dois usuários, citando RN010 e RN011.
