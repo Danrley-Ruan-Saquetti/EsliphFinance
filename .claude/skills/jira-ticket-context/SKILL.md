@@ -1,18 +1,18 @@
 ---
 name: jira-ticket-context
-description: Ponte entre o branch atual e o ticket Jira que o originou — extrai o número SCRUM do nome do branch (`feat/scrum-NN-slug`), busca a issue via Atlassian MCP e cruza "Regras de negócio" e "Critérios de aceite" da descrição com `docs/requirements.md`. Use ANTES do passo 1 do roteiro da `tech-lead` ("localizar a RN"), sempre que o branch atual seguir o padrão `scrum-NN` ou o pedido citar um número de ticket — para trazer o critério de aceite original em vez de a `business-analyst` reconstruir a regra só a partir do nome da branch ou do pedido do usuário. Não decide nada sozinha: se achar critério de aceite sem RN correspondente, o encaminhamento é sempre a `business-analyst`, nunca implementar em silêncio.
+description: Ponte entre o branch atual e o ticket Jira que o originou — extrai o número LIPH do nome do branch (`feat/liph-NN-slug`), busca a issue via Atlassian MCP e cruza "Regras de negócio" e "Critérios de aceite" da descrição com `docs/requirements.md`. Use ANTES do passo 1 do roteiro da `tech-lead` ("localizar a RN"), sempre que o branch atual seguir o padrão `liph-NN` ou o pedido citar um número de ticket — para trazer o critério de aceite original em vez de a `business-analyst` reconstruir a regra só a partir do nome da branch ou do pedido do usuário. Não decide nada sozinha: se achar critério de aceite sem RN correspondente, o encaminhamento é sempre a `business-analyst`, nunca implementar em silêncio.
 user-invocable: false
 ---
 
 # Jira Ticket Context — EsliphFinance
 
-Os branches deste repositório nascem de uma issue Jira: `feat/scrum-52-transaction-model`, `feat/scrum-54-transaction-status`. O número depois de `scrum-` é a chave da issue no projeto **SCRUM** ("Esliph") do site **esliph.atlassian.net**. Essa issue costuma ter mais contexto do que o nome do branch ou o pedido do usuário — em especial uma lista explícita de RNs e um bloco de critérios de aceite — e hoje nada traz isso para a conversa antes de implementar. É essa lacuna que você fecha.
+Os branches deste repositório nascem de uma issue Jira: `feat/liph-52-transaction-model`, `feat/liph-54-transaction-status`. O número depois de `liph-` é a chave da issue no projeto **LIPH** ("Esliph") do site **esliph.atlassian.net**. Essa issue costuma ter mais contexto do que o nome do branch ou o pedido do usuário — em especial uma lista explícita de RNs e um bloco de critérios de aceite — e hoje nada traz isso para a conversa antes de implementar. É essa lacuna que você fecha.
 
 Você não substitui a `business-analyst`: ela continua sendo quem decide se uma RN existe, o que ela diz e onde registrar o que falta. Você só traz o material de origem para a mesa antes dela precisar reconstruir a partir de menos informação.
 
 ## Quando não se aplica
 
-- Branch `master`, `develop`, ou qualquer nome que não tenha `scrum-<número>` — diga isso e pare. Não adivinhe o ticket por outra via (nome da feature, commit, etc.).
+- Branch `master`, `develop`, ou qualquer nome que não tenha `liph-<número>` — diga isso e pare. Não adivinhe o ticket por outra via (nome da feature, commit, etc.).
 - Tarefa que não veio de branch nenhum (ex.: sessão fora de um repositório git, ou pedido avulso sem relação com uma issue) — não force a busca.
 
 ## Passo 1 — Achar a chave da issue
@@ -21,7 +21,7 @@ Você não substitui a `business-analyst`: ela continua sendo quem decide se uma
 git branch --show-current
 ```
 
-Extraia com `scrum-(\d+)` (case-insensitive) — o número vira a chave `SCRUM-<N>`. Se o branch não casar com o padrão, pare aqui e diga que não há ticket associado.
+Extraia com `liph-(\d+)` (case-insensitive) — o número vira a chave `LIPH-<N>`. Se o branch não casar com o padrão, pare aqui e diga que não há ticket associado.
 
 ## Passo 2 — Buscar a issue
 
@@ -34,7 +34,7 @@ cloudId: 7039d0db-cf55-4ded-a609-ee57f5164813   (esliph.atlassian.net)
 ```
 mcp__atlassian__getJiraIssue
   cloudId: 7039d0db-cf55-4ded-a609-ee57f5164813
-  issueIdOrKey: "SCRUM-<N>"
+  issueIdOrKey: "LIPH-<N>"
   responseContentFormat: "markdown"
 ```
 

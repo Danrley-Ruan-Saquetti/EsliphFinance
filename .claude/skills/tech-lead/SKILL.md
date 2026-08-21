@@ -47,7 +47,7 @@ Cada passo nomeia o dono e o portão que precisa fechar antes do próximo começ
 
 | # | Passo | Dono | Portão de saída |
 | - | ----- | ---- | --------------- |
-| 0 | Se o branch atual seguir `scrum-NN`, buscar a issue Jira de origem antes de tudo. | `jira-ticket-context` | RNs e critério de aceite do ticket trazidos para a conversa |
+| 0 | Se o branch atual seguir `liph-NN`, buscar a issue Jira de origem antes de tudo. | `jira-ticket-context` | RNs e critério de aceite do ticket trazidos para a conversa |
 | 1 | Localizar a RN que rege o comportamento. Se não existir, decidir e registrar — nunca inventar em silêncio. Se estiver em `docs/open-decisions.md` como **DA0xx**, **pare aqui**: sem regra, não se implementa. | `business-analyst` | A RN existe, é citável e cobre o caso |
 | 2 | Ler o mapa do domínio antes de varrer `src/`. Se o contexto ainda não tem arquivo em `docs/domains/`, ele nasce agora. | `domain-architect` | Sei quais arquivos a fatia toca e onde cada regra mora |
 | 3 | Se a mudança atravessa domínios (módulo, provider, guard, pipe, presenter genérico, variável de ambiente), ler o eixo correspondente. | `platform-architect` | Sei qual padrão vou seguir |

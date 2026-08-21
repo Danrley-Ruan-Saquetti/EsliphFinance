@@ -63,7 +63,7 @@ Ao implementar uma regra de negócio, a citação da RN vai para o nome do `it(.
 
 **3. Um tipo ou um erro nomeado.** `Either<ResourceNotFoundError | NotAllowedError, { note: Note }>` já declara, na assinatura, tudo que pode dar errado. Nenhum comentário faz isso melhor, e a assinatura é conferida pelo `tsc`.
 
-Se depois disso ainda sobrou algo que não coube em lugar nenhum — decisão de arquitetura, pendência, contexto de negócio —, o lugar é fora do código: o `CLAUDE.md` da pasta, o `docs/requirements.md`, ou um ticket (`SCRUM-XX`). Nunca um `// TODO`.
+Se depois disso ainda sobrou algo que não coube em lugar nenhum — decisão de arquitetura, pendência, contexto de negócio —, o lugar é fora do código: o `CLAUDE.md` da pasta, o `docs/requirements.md`, ou um ticket (`LIPH-XX`). Nunca um `// TODO`.
 
 ## Formatação
 

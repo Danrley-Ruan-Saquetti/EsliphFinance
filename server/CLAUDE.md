@@ -37,7 +37,7 @@ Nenhum serviço fixa `container_name`: quem batiza os containers é o Compose, a
 
 ```sh
 # server/.env de um worktree
-STACK_SUFFIX="-scrum-46"   # projeto esliph-finance-scrum-46, volume ..._postgres-data
+STACK_SUFFIX="-liph-46"   # projeto esliph-finance-liph-46, volume ..._postgres-data
 POSTGRES_PORT="5441"       # a porta publicada precisa ser única entre stacks simultâneos
 ```
 

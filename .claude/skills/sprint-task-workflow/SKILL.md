@@ -1,6 +1,6 @@
 ---
 name: sprint-task-workflow
-description: O orquestrador do ciclo de uma task de sprint do EsliphFinance — cria o worktree isolado, sobe um stack Docker próprio, move a issue no Jira e abre o PR ao final, amarrando o que a `jira-ticket-context`, a `tech-lead`, a `stack-runner` e o agent `code-reviewer` já fazem, sem duplicar nenhuma delas. Use SEMPRE para começar uma task nova da sprint — "começa a SCRUM-60", "cria o worktree pra próxima task", "bora implementar a scrum-53" —, para encerrar uma já mergeada — "encerra a scrum-52", "o PR da scrum-54 já foi mergeado, fecha isso" — e para rodar várias tasks independentes ao mesmo tempo, cada uma isolada no próprio worktree e stack — "paraleliza SCRUM-60, SCRUM-64 e SCRUM-70", "roda essas 3 tasks em paralelo". Cobre só `server/`; `mobile/` está fora porque será reescrito do zero. Não decide regra de negócio (`business-analyst`) nem implementa código (`tech-lead` e as skills que ela aciona) — só decide quando cada uma entra, e nunca mergeia um PR sozinha.
+description: O orquestrador do ciclo de uma task de sprint do EsliphFinance — cria o worktree isolado, sobe um stack Docker próprio, move a issue no Jira e abre o PR ao final, amarrando o que a `jira-ticket-context`, a `tech-lead`, a `stack-runner` e o agent `code-reviewer` já fazem, sem duplicar nenhuma delas. Use SEMPRE para começar uma task nova da sprint — "começa a LIPH-60", "cria o worktree pra próxima task", "bora implementar a liph-53" —, para encerrar uma já mergeada — "encerra a liph-52", "o PR da liph-54 já foi mergeado, fecha isso" — e para rodar várias tasks independentes ao mesmo tempo, cada uma isolada no próprio worktree e stack — "paraleliza LIPH-60, LIPH-64 e LIPH-70", "roda essas 3 tasks em paralelo". Cobre só `server/`; `mobile/` está fora porque será reescrito do zero. Não decide regra de negócio (`business-analyst`) nem implementa código (`tech-lead` e as skills que ela aciona) — só decide quando cada uma entra, e nunca mergeia um PR sozinha.
 ---
 
 # Sprint Task Workflow — EsliphFinance
@@ -20,7 +20,7 @@ Não decide nada de produto — isso é sempre `business-analyst`/`domain-archit
 | Transições de Jira | Todas automáticas: `To Do → In Progress` no início, `In Progress → In Review` na abertura do PR, `In Review → Done` no encerramento |
 | Gatilho do `Done` | Comando explícito de encerramento — não há observação em background de merge no GitHub |
 | Abertura do PR | Automática, assim que a seção `## O fechamento` da `tech-lead`, depois do passo 16, fechar limpo |
-| Nomenclatura | Fixa: `feat/scrum-<N>-<slug>` (ou `fix/`) em `.claude/worktrees/scrum-<N>-<slug>`; sem ticket vira `chore/<slug>` em `.claude/worktrees/<slug>` |
+| Nomenclatura | Fixa: `feat/liph-<N>-<slug>` (ou `fix/`) em `.claude/worktrees/liph-<N>-<slug>`; sem ticket vira `chore/<slug>` em `.claude/worktrees/<slug>` |
 | Porta Postgres | Reaproveita a menor porta livre (5441+) entre os worktrees **vivos** (`git worktree list`, não varredura de diretório) |
 | Subida do stack | Automática: `make deps` + `make up` + `make db-migrate` fazem parte da criação do worktree |
 | Orquestração da paralelização | Subagentes autônomos (`Agent` tool), um por task — cada um roda o ciclo completo (jira-ticket-context → tech-lead → code-reviewer → PR) dentro do próprio worktree |
@@ -33,18 +33,18 @@ Não decide nada de produto — isso é sempre `business-analyst`/`domain-archit
 
 ## Fluxo 1 — Início da task
 
-Gatilho: "começa a SCRUM-60", "cria o worktree pra próxima task da sprint".
+Gatilho: "começa a LIPH-60", "cria o worktree pra próxima task da sprint".
 
 Todo caminho usado nesta skill é relativo à raiz do repositório. Antes de rodar qualquer comando de qualquer fluxo desta skill, resolva (ou dê `cd` para) a raiz — `git rev-parse --path-format=absolute --git-common-dir` devolve o `.git` comum, e o diretório pai dele é a raiz — o que é especialmente importante quando a sessão já está dentro de outro worktree.
 
 ### Passo 1 — Resolver a issue
 
-Número explícito (`SCRUM-60` ou só `60`) usa direto. Descrição solta busca por JQL:
+Número explícito (`LIPH-60` ou só `60`) usa direto. Descrição solta busca por JQL:
 
 ```
 mcp__atlassian__searchJiraIssuesUsingJql
   cloudId: 7039d0db-cf55-4ded-a609-ee57f5164813
-  jql: project = SCRUM AND status = "To Do" AND summary ~ "<termo>"
+  jql: project = LIPH AND status = "To Do" AND summary ~ "<termo>"
   fields: ["summary", "status"]
 ```
 
@@ -57,7 +57,7 @@ Invoque a skill `jira-ticket-context` (via a ferramenta `Skill`) — é ela quem
 ```
 mcp__atlassian__getJiraIssue
   cloudId: 7039d0db-cf55-4ded-a609-ee57f5164813
-  issueIdOrKey: "SCRUM-<N>"
+  issueIdOrKey: "LIPH-<N>"
   responseContentFormat: "markdown"
 ```
 
@@ -69,7 +69,7 @@ Atualize a referência local de `develop` antes de ramificar, para não partir d
 
 ```sh
 git fetch origin develop
-git worktree add .claude/worktrees/scrum-<N>-<slug> -b feat/scrum-<N>-<slug> develop
+git worktree add .claude/worktrees/liph-<N>-<slug> -b feat/liph-<N>-<slug> develop
 ```
 
 Sem ticket (Passo 1 não achou issue), o padrão vira, sem o número:
@@ -93,20 +93,20 @@ done | sort -n
 Pegue o menor inteiro a partir de `5441` que não aparecer nessa lista. Escreva `server/.env` do worktree novo (copiando de `server/.env.example` como base) com:
 
 ```
-STACK_SUFFIX="-scrum-<N>"
+STACK_SUFFIX="-liph-<N>"
 POSTGRES_PORT="<porta alocada>"
 ```
 
-(Para `chore/<slug>` sem número, use o slug no lugar de `scrum-<N>` no `STACK_SUFFIX`: `STACK_SUFFIX="-<slug>"`.)
+(Para `chore/<slug>` sem número, use o slug no lugar de `liph-<N>` no `STACK_SUFFIX`: `STACK_SUFFIX="-<slug>"`.)
 
 ### Passo 5 — Subir o ambiente
 
 Via `stack-runner`, referenciando o worktree novo via `-C`:
 
 ```sh
-make -C .claude/worktrees/scrum-<N>-<slug>/server deps
-make -C .claude/worktrees/scrum-<N>-<slug>/server up
-make -C .claude/worktrees/scrum-<N>-<slug>/server db-migrate
+make -C .claude/worktrees/liph-<N>-<slug>/server deps
+make -C .claude/worktrees/liph-<N>-<slug>/server up
+make -C .claude/worktrees/liph-<N>-<slug>/server db-migrate
 ```
 
 ### Passo 6 — Jira: To Do → In Progress
@@ -116,12 +116,12 @@ Resolva o id da transição pelo nome do status de destino antes de aplicar — 
 ```
 mcp__atlassian__getTransitionsForJiraIssue
   cloudId: 7039d0db-cf55-4ded-a609-ee57f5164813
-  issueIdOrKey: "SCRUM-<N>"
+  issueIdOrKey: "LIPH-<N>"
 # procure na lista "transitions" o item cujo "to.name" seja "In Progress" e use o "id" dele
 
 mcp__atlassian__transitionJiraIssue
   cloudId: 7039d0db-cf55-4ded-a609-ee57f5164813
-  issueIdOrKey: "SCRUM-<N>"
+  issueIdOrKey: "LIPH-<N>"
   transition: { id: "<id resolvido>" }
 ```
 
@@ -138,20 +138,20 @@ Gatilho: a seção `## O fechamento` da `tech-lead`, depois do passo 16, fecha l
 ### Passo 1 — Push
 
 ```sh
-git -C .claude/worktrees/scrum-<N>-<slug> push -u origin feat/scrum-<N>-<slug>
+git -C .claude/worktrees/liph-<N>-<slug> push -u origin feat/liph-<N>-<slug>
 ```
 
 ### Passo 2 — Abrir o PR
 
 ```sh
-gh pr create --base develop --head feat/scrum-<N>-<slug> \
+gh pr create --base develop --head feat/liph-<N>-<slug> \
   --title "<summary da issue>" \
   --body "$(cat <<'EOF'
 ## Resumo
 <bullets a partir do "Objetivo" e dos "Critérios de aceite" trazidos pela jira-ticket-context no início>
 
 ## Ticket
-SCRUM-<N>
+LIPH-<N>
 EOF
 )"
 ```
@@ -163,17 +163,17 @@ Sem ticket (`chore/<slug>`), o corpo do PR não tem a seção "Ticket".
 ```
 mcp__atlassian__getTransitionsForJiraIssue
   cloudId: 7039d0db-cf55-4ded-a609-ee57f5164813
-  issueIdOrKey: "SCRUM-<N>"
+  issueIdOrKey: "LIPH-<N>"
 # procure na lista "transitions" o item cujo "to.name" seja "In Review" e use o "id" dele
 
 mcp__atlassian__transitionJiraIssue
   cloudId: 7039d0db-cf55-4ded-a609-ee57f5164813
-  issueIdOrKey: "SCRUM-<N>"
+  issueIdOrKey: "LIPH-<N>"
   transition: { id: "<id resolvido>" }
 
 mcp__atlassian__addCommentToJiraIssue
   cloudId: 7039d0db-cf55-4ded-a609-ee57f5164813
-  issueIdOrKey: "SCRUM-<N>"
+  issueIdOrKey: "LIPH-<N>"
   commentBody: "PR aberto: <url retornada pelo gh pr create>"
   contentFormat: "markdown"
 ```
@@ -184,21 +184,21 @@ Devolva o link do PR. **Não mergeie** — merge é sempre decisão humana. Se a
 
 ## Fluxo 3 — Encerrar a task
 
-Gatilho explícito e manual, depois do merge: "encerra a scrum-52, o PR já foi mergeado".
+Gatilho explícito e manual, depois do merge: "encerra a liph-52, o PR já foi mergeado".
 
 ### Passo 1 — Descobrir o worktree e o branch
 
-Uma sessão fria só recebe o número da SCRUM nesse gatilho — não sabe o caminho do worktree nem o nome completo do branch. Descubra os dois a partir de `git worktree list` antes de qualquer outro passo, e use exatamente o branch encontrado (nunca um nome reconstruído a partir do padrão) no resto deste fluxo:
+Uma sessão fria só recebe o número da LIPH nesse gatilho — não sabe o caminho do worktree nem o nome completo do branch. Descubra os dois a partir de `git worktree list` antes de qualquer outro passo, e use exatamente o branch encontrado (nunca um nome reconstruído a partir do padrão) no resto deste fluxo:
 
 ```sh
-git worktree list --porcelain | grep -B2 "scrum-<N>"
+git worktree list --porcelain | grep -B2 "liph-<N>"
 ```
 
-A saída traz o `worktree <caminho>` e, logo depois, o `branch refs/heads/<branch>` correspondentes (ajuste o `grep`/`awk` conforme o formato retornado). Extraia `<caminho>` e `<branch>` — por exemplo `feat/scrum-<N>-<slug>`, `fix/scrum-<N>-<slug>` ou, sem número, `chore/<slug>` — e siga com esses valores nos passos seguintes.
+A saída traz o `worktree <caminho>` e, logo depois, o `branch refs/heads/<branch>` correspondentes (ajuste o `grep`/`awk` conforme o formato retornado). Extraia `<caminho>` e `<branch>` — por exemplo `feat/liph-<N>-<slug>`, `fix/liph-<N>-<slug>` ou, sem número, `chore/<slug>` — e siga com esses valores nos passos seguintes.
 
 ### Passo 2 — Confirmar o merge
 
-`gh pr view` aceita o nome do branch diretamente, o que evita depender do número do PR — que não tem nenhuma relação com o número da SCRUM (confirmado: o PR da SCRUM-52 é o #27):
+`gh pr view` aceita o nome do branch diretamente, o que evita depender do número do PR — que não tem nenhuma relação com o número da LIPH (confirmado: o PR da LIPH-52 é o #27):
 
 ```sh
 gh pr view <branch> --json state,mergedAt --jq '.state'
@@ -211,12 +211,12 @@ Se a saída não for `MERGED`, **pare e avise** — não prossiga com um PR aind
 ```
 mcp__atlassian__getTransitionsForJiraIssue
   cloudId: 7039d0db-cf55-4ded-a609-ee57f5164813
-  issueIdOrKey: "SCRUM-<N>"
+  issueIdOrKey: "LIPH-<N>"
 # procure na lista "transitions" o item cujo "to.name" seja "Done" e use o "id" dele
 
 mcp__atlassian__transitionJiraIssue
   cloudId: 7039d0db-cf55-4ded-a609-ee57f5164813
-  issueIdOrKey: "SCRUM-<N>"
+  issueIdOrKey: "LIPH-<N>"
   transition: { id: "<id resolvido>" }
 ```
 
@@ -247,7 +247,7 @@ Diga o que foi feito. A porta que a task usava fica livre para o próximo Fluxo 
 
 ## Fluxo 4 — Paralelização multi-worktree
 
-Gatilho: lista explícita de tickets — "paraleliza SCRUM-60, SCRUM-64 e SCRUM-70", "roda essas N tasks em paralelo", "começa essas 3 ao mesmo tempo".
+Gatilho: lista explícita de tickets — "paraleliza LIPH-60, LIPH-64 e LIPH-70", "roda essas N tasks em paralelo", "começa essas 3 ao mesmo tempo".
 
 ### Passo 1 — Resolver e validar a leva
 
@@ -258,7 +258,7 @@ Para cada ticket restante:
 ```
 mcp__atlassian__getJiraIssue
   cloudId: 7039d0db-cf55-4ded-a609-ee57f5164813
-  issueIdOrKey: "SCRUM-<N>"
+  issueIdOrKey: "LIPH-<N>"
   responseContentFormat: "markdown"
 ```
 
@@ -288,7 +288,7 @@ Para cada task, crie o worktree (mesmo padrão do Fluxo 1, Passo 3):
 
 ```sh
 git fetch origin develop
-git worktree add .claude/worktrees/scrum-<N>-<slug> -b feat/scrum-<N>-<slug> develop
+git worktree add .claude/worktrees/liph-<N>-<slug> -b feat/liph-<N>-<slug> develop
 ```
 
 Task de correção usa `fix/` no lugar de `feat/`, mesmo padrão de worktree.
@@ -296,7 +296,7 @@ Task de correção usa `fix/` no lugar de `feat/`, mesmo padrão de worktree.
 E escreva o `server/.env` de cada um (copiando de `server/.env.example` como base):
 
 ```
-STACK_SUFFIX="-scrum-<N>"
+STACK_SUFFIX="-liph-<N>"
 POSTGRES_PORT="<porta alocada>"
 ```
 
@@ -307,12 +307,12 @@ Para cada task restante da leva, sequencial, mesma resolução de `id` pelo `to.
 ```
 mcp__atlassian__getTransitionsForJiraIssue
   cloudId: 7039d0db-cf55-4ded-a609-ee57f5164813
-  issueIdOrKey: "SCRUM-<N>"
+  issueIdOrKey: "LIPH-<N>"
 # procure na lista "transitions" o item cujo "to.name" seja "In Progress" e use o "id" dele
 
 mcp__atlassian__transitionJiraIssue
   cloudId: 7039d0db-cf55-4ded-a609-ee57f5164813
-  issueIdOrKey: "SCRUM-<N>"
+  issueIdOrKey: "LIPH-<N>"
   transition: { id: "<id resolvido>" }
 ```
 
@@ -321,9 +321,9 @@ mcp__atlassian__transitionJiraIssue
 Via `stack-runner`. Dentro de um worktree, as três etapas são **sequenciais** — `db-migrate` depende do `database` já saudável, que só `up` garante — então encadeie com `&&` num único comando por worktree. O paralelismo é **entre worktrees**, não dentro de um: dispare uma chamada de shell por worktree na mesma mensagem, cada uma com as três etapas encadeadas — cada stack usa porta, `STACK_SUFFIX` e volume próprios, então não há disputa de recurso entre eles:
 
 ```sh
-make -C .claude/worktrees/scrum-<N1>-<slug1>/server deps && \
-make -C .claude/worktrees/scrum-<N1>-<slug1>/server up && \
-make -C .claude/worktrees/scrum-<N1>-<slug1>/server db-migrate
+make -C .claude/worktrees/liph-<N1>-<slug1>/server deps && \
+make -C .claude/worktrees/liph-<N1>-<slug1>/server up && \
+make -C .claude/worktrees/liph-<N1>-<slug1>/server db-migrate
 ```
 
 (repita para cada worktree da leva, em chamadas paralelas — uma chamada de shell por worktree, nunca dividindo as três etapas de um mesmo worktree entre chamadas paralelas)
@@ -332,7 +332,7 @@ make -C .claude/worktrees/scrum-<N1>-<slug1>/server db-migrate
 
 Uma chamada `Agent` por task, todas na mesma mensagem — paralelas de fato, não sequenciais. `subagent_type: "general-purpose"`, nunca `fork`. Cada prompt é autocontido e inclui:
 
-- O `SCRUM-<N>` da task e o `summary` da issue — necessários para o Fluxo 2 (título do PR, transição Jira).
+- O `LIPH-<N>` da task e o `summary` da issue — necessários para o Fluxo 2 (título do PR, transição Jira).
 - Caminho do worktree e nome do branch já criados no Passo 3.
 - Porta alocada.
 - O resumo de RNs/critérios de aceite que a `jira-ticket-context` já trouxe no Passo 2 — o subagente **não** reinvoca `jira-ticket-context`, parte direto do roteiro da `tech-lead` a partir de onde ela normalmente entra.
@@ -350,7 +350,7 @@ A sessão orquestradora não aguarda as N tasks para reportar; cada notificaçã
 - **N > 4 no Fluxo 4**: recusa, não trunca silenciosamente a leva para os 4 primeiros.
 - **Ticket já em progresso dentro da leva do Fluxo 4**: sai da leva com aviso, as demais seguem.
 - **Domínio sobreposto entre duas tasks da leva do Fluxo 4**: avisa e confirma pontualmente, não aborta as tasks sem colisão. O risco real não é colisão de dados (isso o isolamento de stack já resolve) — é migration/schema conflitante (migrations Drizzle diferentes sobre a mesma tabela) ou branch que só compila se a outra já existir; nesse caso o caminho correto é empilhar as duas tasks, não usar o Fluxo 4 para esse par.
-- **Porta ou branch já em uso por um worktree vivo fora da leva**: `git worktree add -b feat/scrum-<N>-<slug>` falha se o branch já existir (ex.: a mesma SCRUM sendo trabalhada fora desta leva, pelo Fluxo 1 normal) — pula essa task específica com aviso, sem abortar a leva.
+- **Porta ou branch já em uso por um worktree vivo fora da leva**: `git worktree add -b feat/liph-<N>-<slug>` falha se o branch já existir (ex.: a mesma LIPH sendo trabalhada fora desta leva, pelo Fluxo 1 normal) — pula essa task específica com aviso, sem abortar a leva.
 - **`make db-studio` entre dois worktrees da leva**: é o único alvo que publica porta fixa (padrão 4983, ver `server/CLAUDE.md`) — dois worktrees da leva não conseguem abri-lo simultaneamente sem `STUDIO_PORT=` diferente por worktree.
 - **Um subagente do Fluxo 4 trava ou bloqueia**: os demais seguem independentes; o bloqueio é reportado como resultado daquela task, não propagado às outras.
 - **Issue já em `In Progress` ou `In Review`** ao tentar começar (Fluxo 1, Passo 2): avisa em vez de seguir.
