@@ -1,11 +1,11 @@
 ---
 name: spec-writer
-description: Como escrever e manter os testes automatizados do EsliphFinance com Vitest — unitários espelhados em `server/test/units`, ancorados nas RNs de `docs/requirements.md`, cobrindo edge cases com meta de 100%, e e2e espelhados em `server/test/e2e`, enxutos, só de comunicação HTTP. Use SEMPRE que criar, alterar ou revisar qualquer código de `server/src`: todo use-case, entidade, value object, mapper, presenter, pipe, controller ou schema Zod entra com o teste que o cobre, mesmo que o pedido não fale em teste ("implementa o use-case X", "adiciona esse campo na entidade", "corrige esse bug"). Também vale quando o pedido mencionar teste, spec, Vitest, cobertura, coverage, mock, stub, factory, TDD, e2e, "o teste quebrou" ou "por que isso não está coberto".
+description: Como escrever e manter os testes automatizados do EsliphFinance com Vitest — unitários espelhados em `server/test/units`, ancorados nas RNs de `docs/requirements/`, cobrindo edge cases com meta de 100%, e e2e espelhados em `server/test/e2e`, enxutos, só de comunicação HTTP. Use SEMPRE que criar, alterar ou revisar qualquer código de `server/src`: todo use-case, entidade, value object, mapper, presenter, pipe, controller ou schema Zod entra com o teste que o cobre, mesmo que o pedido não fale em teste ("implementa o use-case X", "adiciona esse campo na entidade", "corrige esse bug"). Também vale quando o pedido mencionar teste, spec, Vitest, cobertura, coverage, mock, stub, factory, TDD, e2e, "o teste quebrou" ou "por que isso não está coberto".
 ---
 
 # Spec Writer — EsliphFinance
 
-O teste aqui não é uma rede de segurança opcional escrita depois: ele é a forma executável de `docs/requirements.md`. As RNs são a especificação do produto, e o único lugar onde elas viram algo verificável é o nome e o corpo de um `it(...)`. É por isso que a regra prática deste projeto é **a implementação serve ao teste**, e não o contrário — quando os dois discordam, a suspeita recai primeiro sobre a implementação.
+O teste aqui não é uma rede de segurança opcional escrita depois: ele é a forma executável de `docs/requirements/`. As RNs são a especificação do produto, e o único lugar onde elas viram algo verificável é o nome e o corpo de um `it(...)`. É por isso que a regra prática deste projeto é **a implementação serve ao teste**, e não o contrário — quando os dois discordam, a suspeita recai primeiro sobre a implementação.
 
 Esta skill cobre **o que testar, onde colocar e como escrever**. O estilo do código (zero comentários, sem ponto e vírgula, linha em branco antes do `return`) está na skill `clean-code` e vale integralmente dentro dos arquivos de teste. Os comandos estão em `server/CLAUDE.md`, a arquitetura transversal em `docs/architecture/`, e o mapa do domínio que você vai testar — quais arquivos formam a fatia e onde cada RN é aplicada — está em `docs/domains/`.
 
@@ -72,7 +72,7 @@ describe('Consultar nota', () => {
     }
   })
 
-  it('deve retornar NotAllowedError quando a nota é de outro usuário (RN010, RN011)', async () => {
+  it('deve retornar NotAllowedError quando a nota é de outro usuário (RN-0010, RN-0011)', async () => {
     const note = makeNote()
 
     await notesRepository.create(note)
@@ -100,10 +100,10 @@ Os elementos, um a um:
 **`it` descreve o comportamento, não o código**, no formato:
 
 ```
-deve <resultado esperado> quando <condição> (RN0xx)
+deve <resultado esperado> quando <condição> (RN-00xx)
 ```
 
-A condição só aparece quando distingue este caso dos outros — no caminho feliz óbvio, `'deve criar a nota e persisti-la no repositório'` basta. A citação da RN é obrigatória sempre que o teste prova uma regra de negócio, e vai no fim, entre parênteses, separando múltiplas por vírgula. É a única referência ao requisito que o projeto aceita: no código de produção não há comentário, então **o nome do teste é o rastro entre `docs/requirements.md` e a linha implementada** — e é um rastro que quebra sozinho quando a regra muda.
+A condição só aparece quando distingue este caso dos outros — no caminho feliz óbvio, `'deve criar a nota e persisti-la no repositório'` basta. A citação da RN é obrigatória sempre que o teste prova uma regra de negócio, e vai no fim, entre parênteses, separando múltiplas por vírgula. É a única referência ao requisito que o projeto aceita: no código de produção não há comentário, então **o nome do teste é o rastro entre `docs/requirements/` e a linha implementada** — e é um rastro que quebra sozinho quando a regra muda.
 
 **Corpo em três blocos separados por linha em branco**: montar o cenário, executar o SUT, verificar. Sem os rótulos `// arrange`, `// act`, `// assert` — comentário é proibido no repositório, e a separação em branco já comunica.
 
@@ -137,7 +137,7 @@ expect(notesRepository.items).toHaveLength(1)
 expect(notesRepository.items[0].ownerId.toString()).toBe(ownerId)
 ```
 
-Isso vale principalmente para saldo (RN021), consumo de orçamento (RN070), atribuição de lançamento à fatura (RN053) e geração de parcelas (RN064) — casos em que o retorno é trivial e o efeito é toda a regra.
+Isso vale principalmente para saldo (RN-0021), consumo de orçamento (RN-0070), atribuição de lançamento à fatura (RN-0053) e geração de parcelas (RN-0064) — casos em que o retorno é trivial e o efeito é toda a regra.
 
 ## Factories
 
@@ -178,17 +178,17 @@ Depois de escrever, confira o arquivo na tabela do `make test-cov` — não a m�
 
 Cobrir 100% das linhas com um caso feliz por método é fácil e quase inútil. O que faz o teste valer é o segundo e o terceiro caso. Este domínio é financeiro e tem armadilhas recorrentes — passe por esta lista ao escrever qualquer spec:
 
-- **Limites numéricos**: o valor exato do limite, um abaixo e um acima. Senha com 7, 8 e 9 caracteres (RN003); valor zero e negativo (RN041); 1, 2 e 31 parcelas (RN064); dias 0, 1, 31 e 32 (RN020).
-- **Datas que não existem**: dia 31 em fevereiro, fechamento e vencimento ajustados para o último dia do mês (RN020). Data passada, hoje e futura mudam a situação da transação (RN049) — congele o relógio com `vi.useFakeTimers()` e `vi.setSystemTime(...)` em vez de calcular a partir de `new Date()`, senão o teste falha em um dia específico do mês.
-- **Dinheiro que não divide**: parcelar 100 em 3 (RN065 manda a sobra na primeira parcela). Some as parcelas e compare com o total — é a asserção que pega o centavo perdido. Sempre inteiro em centavos (RNF004), nunca `float`.
-- **Propriedade do registro**: para todo use-case que lê ou altera algo, existe o caso "o registro é de outro usuário" → `NotAllowedError` (RN010, RN011). Este é o teste mais esquecido do projeto e o de maior impacto.
-- **Vínculos que bloqueiam exclusão**: grupo com contas (RN017), conta com transações (RN024), categoria com transações ou subcategorias (RN034) — e a alternativa de arquivar. Exclusão de usuário é lógica (RN012), e o e-mail continua indisponível depois (RN014).
-- **Compatibilidade**: natureza da categoria × tipo da transação (RN042), subcategoria × categoria pai (RN033), profundidade de dois níveis (RN032), grupo "Padrão" nas pontas da transferência (RN045) e contas iguais (RN046).
-- **Exclusões de agregação**: transferência não entra em receita/despesa (RN047) nem consome orçamento (RN071); só transação efetivada compõe saldo (RN050); só conta não arquivada entra no saldo consolidado (RN077).
+- **Limites numéricos**: o valor exato do limite, um abaixo e um acima. Senha com 7, 8 e 9 caracteres (RN-0003); valor zero e negativo (RN-0041); 1, 2 e 31 parcelas (RN-0064); dias 0, 1, 31 e 32 (RN-0020).
+- **Datas que não existem**: dia 31 em fevereiro, fechamento e vencimento ajustados para o último dia do mês (RN-0020). Data passada, hoje e futura mudam a situação da transação (RN-0049) — congele o relógio com `vi.useFakeTimers()` e `vi.setSystemTime(...)` em vez de calcular a partir de `new Date()`, senão o teste falha em um dia específico do mês.
+- **Dinheiro que não divide**: parcelar 100 em 3 (RN-0065 manda a sobra na primeira parcela). Some as parcelas e compare com o total — é a asserção que pega o centavo perdido. Sempre inteiro em centavos (RNF-0004), nunca `float`.
+- **Propriedade do registro**: para todo use-case que lê ou altera algo, existe o caso "o registro é de outro usuário" → `NotAllowedError` (RN-0010, RN-0011). Este é o teste mais esquecido do projeto e o de maior impacto.
+- **Vínculos que bloqueiam exclusão**: grupo com contas (RN-0017), conta com transações (RN-0024), categoria com transações ou subcategorias (RN-0034) — e a alternativa de arquivar. Exclusão de usuário é lógica (RN-0012), e o e-mail continua indisponível depois (RN-0014).
+- **Compatibilidade**: natureza da categoria × tipo da transação (RN-0042), subcategoria × categoria pai (RN-0033), profundidade de dois níveis (RN-0032), grupo "Padrão" nas pontas da transferência (RN-0045) e contas iguais (RN-0046).
+- **Exclusões de agregação**: transferência não entra em receita/despesa (RN-0047) nem consome orçamento (RN-0071); só transação efetivada compõe saldo (RN-0050); só conta não arquivada entra no saldo consolidado (RN-0077).
 - **Coleção vazia e ausência**: listar sem nenhum registro, buscar id inexistente, campo opcional ausente e `null` — não são a mesma coisa no mapper.
-- **Idempotência e estado repetido**: pagar fatura já paga, arquivar o que já está arquivado, usar duas vezes o token de renovação (RN007).
+- **Idempotência e estado repetido**: pagar fatura já paga, arquivar o que já está arquivado, usar duas vezes o token de renovação (RN-0007).
 
-Quando o comportamento não estiver em nenhuma RN, **pergunte antes de inventar** — uma regra chutada dentro de um teste vira especificação de fato sem ninguém ter decidido nada. Quem responde por isso é a skill `business-analyst`, dona de `docs/requirements.md` e de `docs/open-decisions.md`: acione-a para localizar a regra, ou para transformar a lacuna em uma RN nova ou em uma pendência **DA0xx**. Um ponto que ainda está em `docs/open-decisions.md` não tem regra e não deve ganhar teste.
+Quando o comportamento não estiver em nenhuma RN, **pergunte antes de inventar** — uma regra chutada dentro de um teste vira especificação de fato sem ninguém ter decidido nada. Quem responde por isso é a skill `business-analyst`, dona de `docs/requirements/` e de `docs/open-decisions.md`: acione-a para localizar a regra, ou para transformar a lacuna em uma RN nova ou em uma pendência **DA-00xx**. Um ponto que ainda está em `docs/open-decisions.md` não tem regra e não deve ganhar teste.
 
 ## E2E: só a comunicação
 
@@ -214,7 +214,7 @@ Os e2e exigem banco no ar com as migrations aplicadas (`make db-migrate`), rodam
 
 Nenhuma mudança em `src/` fecha sem teste. Na prática:
 
-1. **Localize a RN** em `docs/requirements.md`. Ela costuma trazer restrição que o nome da feature não sugere.
+1. **Localize a RN** em `docs/requirements/rules.md`. Ela costuma trazer restrição que o nome da feature não sugere.
 2. **Escreva ou atualize o spec espelhado** antes de mexer na implementação, listando os edge cases da seção acima. Não é obrigatório rodar o ciclo vermelho-verde do TDD, mas escrever o teste primeiro é o que garante que ele descreve a regra, e não o código que você acabou de escrever.
 3. `make test-file FILE=<caminho do spec>` enquanto implementa.
 4. `make test-cov` e confira **a linha do arquivo alterado**.

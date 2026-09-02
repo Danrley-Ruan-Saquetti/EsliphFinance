@@ -1,6 +1,6 @@
 # Configuração
 
-> **Cobre** `server/src/infra/env` · **Requisitos** RNF003 · RNF005 · RNF007 · RN005 · RN006
+> **Cobre** `server/src/infra/env` · **Requisitos** RNF-0003 · RNF-0005 · RNF-0007 · RN-0005 · RN-0006
 
 Como uma variável de ambiente é declarada, validada e lida. A configuração vive inteira em `infra/env`, em três arquivos: `env.ts` declara o schema, `validate-env.ts` o roda no bootstrap, `env.service.ts` é a única forma de ler.
 
@@ -11,14 +11,14 @@ Como uma variável de ambiente é declarada, validada e lida. A configuração v
 | `NODE_ENV` | `development` | `development`, `test` ou `production`; endurece a validação em produção |
 | `PORT` | `3000` | Porta da API |
 | `DATABASE_URL` | **obrigatória** | URL de conexão; precisa ser URL válida |
-| `DATABASE_SSL` | `false` | `true` para instância gerenciada em nuvem (RNF003); exige certificado válido |
+| `DATABASE_SSL` | `false` | `true` para instância gerenciada em nuvem (RNF-0003); exige certificado válido |
 | `DATABASE_POOL_MAX` | `10` | Tamanho máximo do pool |
 | `CORS_ORIGINS` | `*` | Origens aceitas, separadas por vírgula; o schema já entrega a lista, com os vazios descartados |
-| `ENFORCE_HTTPS` | `true` em produção, `false` fora | Redireciona HTTP para HTTPS e habilita o HSTS (RNF007) |
+| `ENFORCE_HTTPS` | `true` em produção, `false` fora | Redireciona HTTP para HTTPS e habilita o HSTS (RNF-0007) |
 | `HSTS_MAX_AGE` | `31536000` | Duração, em segundos, do `Strict-Transport-Security` |
-| `JWT_SECRET` | **obrigatória** | Segredo HS256, mínimo de 32 caracteres (RNF005) |
-| `ACCESS_TOKEN_EXPIRES_IN_SECONDS` | `900` | Validade do token de acesso (RN005) |
-| `REFRESH_TOKEN_EXPIRES_IN_SECONDS` | `2592000` | Validade do token de renovação (RN006) |
+| `JWT_SECRET` | **obrigatória** | Segredo HS256, mínimo de 32 caracteres (RNF-0005) |
+| `ACCESS_TOKEN_EXPIRES_IN_SECONDS` | `900` | Validade do token de acesso (RN-0005) |
+| `REFRESH_TOKEN_EXPIRES_IN_SECONDS` | `2592000` | Validade do token de renovação (RN-0006) |
 
 O schema **transforma**, não só valida: `DATABASE_SSL` e `ENFORCE_HTTPS` chegam ao `EnvService` como `boolean`, `CORS_ORIGINS` como `string[]`, os numéricos como `number`. Quem lê nunca converte.
 
@@ -30,7 +30,7 @@ O schema **transforma**, não só valida: `DATABASE_SSL` e `ENFORCE_HTTPS` chega
 
 | Condição | Quando vale |
 | -------- | ----------- |
-| `REFRESH_TOKEN_EXPIRES_IN_SECONDS` ≤ `ACCESS_TOKEN_EXPIRES_IN_SECONDS` | Sempre (RN006) |
+| `REFRESH_TOKEN_EXPIRES_IN_SECONDS` ≤ `ACCESS_TOKEN_EXPIRES_IN_SECONDS` | Sempre (RN-0006) |
 | `ENFORCE_HTTPS="false"` | Só em `NODE_ENV="production"` |
 | `*` em `CORS_ORIGINS` | Só em `NODE_ENV="production"` |
 

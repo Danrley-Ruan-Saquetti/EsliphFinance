@@ -24,7 +24,7 @@ describe('envSchema', () => {
     })
   })
 
-  it('deve rejeitar a configuração quando a URL do banco está ausente (RNF003)', () => {
+  it('deve rejeitar a configuração quando a URL do banco está ausente (RNF-0003)', () => {
     expect(() => envSchema.parse({ JWT_SECRET: jwtSecret })).toThrow()
   })
 
@@ -32,15 +32,15 @@ describe('envSchema', () => {
     expect(() => envSchema.parse({ DATABASE_URL: 'não-é-uma-url', JWT_SECRET: jwtSecret })).toThrow()
   })
 
-  it('deve rejeitar a configuração quando o segredo de assinatura está ausente (RNF005)', () => {
+  it('deve rejeitar a configuração quando o segredo de assinatura está ausente (RNF-0005)', () => {
     expect(() => envSchema.parse({ DATABASE_URL: databaseUrl })).toThrow()
   })
 
-  it('deve rejeitar um segredo de assinatura curto demais (RNF005)', () => {
+  it('deve rejeitar um segredo de assinatura curto demais (RNF-0005)', () => {
     expect(() => envSchema.parse({ DATABASE_URL: databaseUrl, JWT_SECRET: 'segredo-curto' })).toThrow()
   })
 
-  it('deve converter os prazos dos tokens em número (RN005, RN006)', () => {
+  it('deve converter os prazos dos tokens em número (RN-0005, RN-0006)', () => {
     const env = envSchema.parse({
       DATABASE_URL: databaseUrl,
       JWT_SECRET: jwtSecret,
@@ -52,11 +52,11 @@ describe('envSchema', () => {
     expect(env.REFRESH_TOKEN_EXPIRES_IN_SECONDS).toBe(604800)
   })
 
-  it('deve rejeitar um prazo de token não positivo (RN005)', () => {
+  it('deve rejeitar um prazo de token não positivo (RN-0005)', () => {
     expect(() => envSchema.parse({ DATABASE_URL: databaseUrl, JWT_SECRET: jwtSecret, ACCESS_TOKEN_EXPIRES_IN_SECONDS: '0' })).toThrow()
   })
 
-  it('deve rejeitar o token de renovação com prazo menor ou igual ao do token de acesso (RN005, RN006)', () => {
+  it('deve rejeitar o token de renovação com prazo menor ou igual ao do token de acesso (RN-0005, RN-0006)', () => {
     const parsing = () =>
       envSchema.parse({
         DATABASE_URL: databaseUrl,
@@ -68,7 +68,7 @@ describe('envSchema', () => {
     expect(parsing).toThrow(/Refresh token lifetime must be longer than the access token lifetime/)
   })
 
-  it('deve converter DATABASE_SSL em booleano para conectar em instância na nuvem (RNF003)', () => {
+  it('deve converter DATABASE_SSL em booleano para conectar em instância na nuvem (RNF-0003)', () => {
     const env = envSchema.parse({ DATABASE_URL: databaseUrl, JWT_SECRET: jwtSecret, DATABASE_SSL: 'true' })
 
     expect(env.DATABASE_SSL).toBe(true)
@@ -95,13 +95,13 @@ describe('envSchema', () => {
     expect(env.CORS_ORIGINS).toEqual(['https://app.esliph.com', 'https://admin.esliph.com'])
   })
 
-  it('deve exigir HTTPS por padrão em produção (RNF007)', () => {
+  it('deve exigir HTTPS por padrão em produção (RNF-0007)', () => {
     const env = envSchema.parse({ DATABASE_URL: databaseUrl, JWT_SECRET: jwtSecret, NODE_ENV: 'production', CORS_ORIGINS: 'https://app.esliph.com' })
 
     expect(env.ENFORCE_HTTPS).toBe(true)
   })
 
-  it('deve rejeitar HTTPS desabilitado em produção (RNF007)', () => {
+  it('deve rejeitar HTTPS desabilitado em produção (RNF-0007)', () => {
     const parsing = () =>
       envSchema.parse({
         DATABASE_URL: databaseUrl,

@@ -59,7 +59,7 @@ describe('SecurityHeadersMiddleware', () => {
     expect(headers['X-Powered-By']).toBeUndefined()
   })
 
-  it('deve anunciar o Strict-Transport-Security quando o HTTPS é obrigatório (RNF007)', () => {
+  it('deve anunciar o Strict-Transport-Security quando o HTTPS é obrigatório (RNF-0007)', () => {
     const sut = new SecurityHeadersMiddleware(makeEnvService({ ENFORCE_HTTPS: true, HSTS_MAX_AGE: 600 }))
 
     const { headers } = applyMiddleware(sut)

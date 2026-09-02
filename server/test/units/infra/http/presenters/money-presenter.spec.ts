@@ -4,7 +4,7 @@ import { Money } from '@core/value-objects/money'
 import { MoneyPresenter } from '@infra/http/presenters/money-presenter'
 
 describe('MoneyPresenter', () => {
-  it('deve expor o valor em centavos e formatado com duas casas decimais (RNF004)', () => {
+  it('deve expor o valor em centavos e formatado com duas casas decimais (RNF-0004)', () => {
     const result = MoneyPresenter.toHTTP(Money.fromCents(123456))
 
     expect(result).toEqual({ amountInCents: 123456, formatted: '1234.56' })

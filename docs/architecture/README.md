@@ -1,8 +1,8 @@
 # Arquitetura da plataforma
 
-> **Cobre** `server/src/core` e o `server/src/infra` transversal · **Requisitos** RNF002 · RNF003 · RNF004 · RNF005 · RNF006 · RNF007 · RN010 · RN011
+> **Cobre** `server/src/core` e o `server/src/infra` transversal · **Requisitos** RNF-0002 · RNF-0003 · RNF-0004 · RNF-0005 · RNF-0006 · RNF-0007 · RN-0010 · RN-0011
 
-Este diretório descreve **o que sustenta todos os domínios** do backend: as camadas, os blocos de construção de `core/`, o wiring do Nest e a infraestrutura que atende a qualquer contexto. O que está dentro de um contexto de `src/domain` — entidades, casos de uso, regras de conta ou de usuário — está em [`../domains/`](../domains/README.md), um arquivo por contexto.
+Este diretório descreve **o que sustenta todos os domínios** do backend: as camadas, os blocos de construção de `core/`, o wiring do Nest e a infraestrutura que atende a qualquer contexto. O que está dentro de um contexto de `src/domain` — entidades, casos de uso, regras de conta ou de usuário — ainda não tem documento: `docs/domains/` foi removido junto com a fatia de domínio e volta com ela, um arquivo por contexto.
 
 A divisão prática: se o fato vale para contas **e** para usuários **e** para o próximo contexto que entrar, ele mora aqui; se vale só para um, mora lá.
 
@@ -52,4 +52,4 @@ Não há `APP_PIPE` nem `APP_INTERCEPTOR`: a validação é por rota (ver [`requ
 
 ## Fora deste diretório
 
-Execução, Docker, `Makefile`, CI e workflows não são cobertos aqui — estão no [`server/CLAUDE.md`](../../server/CLAUDE.md). Padrão de escrita de testes é da skill `spec-writer`; estilo de código é da `clean-code`; requisitos e regras de negócio são da `business-analyst`, em [`../requirements.md`](../requirements.md).
+Execução, Docker, `Makefile`, CI e workflows não são cobertos aqui — estão no [`server/CLAUDE.md`](../../server/CLAUDE.md). Padrão de escrita de testes é da skill `spec-writer`; estilo de código é da `clean-code`; requisitos e regras de negócio são da `business-analyst`, em [`../requirements/rules.md`](../requirements/rules.md).

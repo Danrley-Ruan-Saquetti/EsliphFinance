@@ -1,4 +1,7 @@
 {
+  "enabledPlugins": {
+    "living-docs@esliph": true
+  },
   "hooks": {
     "PreToolUse": [
       {

@@ -140,3 +140,6 @@ vite.config.ts.timestamp-*
 
 # Worktrees criados pelo Claude Code
 .claude/worktrees/
+
+# Configuração local do Claude Code: caminho de marketplace específico da máquina.
+.claude/settings.local.json

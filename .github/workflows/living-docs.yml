@@ -1,0 +1,33 @@
+# Enforcement de documentação viva, instalado por `living-docs init`.
+#
+# O modo de invocação é parâmetro de quem instala (`--invoke`): como o toolkit
+# chega a este CI é decisão aberta — `DA-0003` no repositório do toolkit —, e
+# fixar aqui uma resposta transformaria a escolha do toolkit em regra do
+# consumidor.
+#
+# Este arquivo é seu: o `init` só o cria quando ele não existe, e nunca o
+# reescreve.
+name: living-docs
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  living-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # O diff do PR compara <base>...HEAD, e um clone raso não tem a base.
+          fetch-depth: 0
+
+      # O CLI do toolkit é TypeScript executado direto (`src/cli/index.ts`) e
+      # declara `engines.node >= 24`: o Node padrão do runner não o roda.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: CI-1 a CI-4, CI-7 e CI-8 — estado da árvore
+        run: npx --yes github:esliph/living-docs validate
+

@@ -81,7 +81,7 @@ describe('AllExceptionsFilter', () => {
     expect(body.details).toBeUndefined()
   })
 
-  it('deve responder 403 quando o registro é de outro usuário (RN010, RN011)', () => {
+  it('deve responder 403 quando o registro é de outro usuário (RN-0010, RN-0011)', () => {
     const { statusCode, body } = catchException(new NotAllowedError())
 
     expect(statusCode).toBe(HttpStatus.FORBIDDEN)

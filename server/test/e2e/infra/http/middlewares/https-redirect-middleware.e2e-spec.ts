@@ -27,21 +27,21 @@ describe('Segurança de transporte (e2e)', () => {
     await app.close()
   })
 
-  it('redireciona a requisição que chega em HTTP preservando método e caminho (RNF007)', async () => {
+  it('redireciona a requisição que chega em HTTP preservando método e caminho (RNF-0007)', async () => {
     const response = await request(app.getHttpServer()).get('/status').set('x-forwarded-proto', 'http')
 
     expect(response.statusCode).toBe(308)
     expect(response.headers.location).toMatch(/^https:\/\/.+\/status$/)
   })
 
-  it('atende normalmente a requisição encaminhada como HTTPS pelo proxy (RNF007)', async () => {
+  it('atende normalmente a requisição encaminhada como HTTPS pelo proxy (RNF-0007)', async () => {
     const response = await request(app.getHttpServer()).get('/status').set('x-forwarded-proto', 'https')
 
     expect(response.statusCode).toBe(200)
     expect(response.body).toEqual({ status: true })
   })
 
-  it('anuncia o Strict-Transport-Security quando o HTTPS é obrigatório (RNF007)', async () => {
+  it('anuncia o Strict-Transport-Security quando o HTTPS é obrigatório (RNF-0007)', async () => {
     const response = await request(app.getHttpServer()).get('/status').set('x-forwarded-proto', 'https')
 
     expect(response.headers['strict-transport-security']).toBe('max-age=31536000; includeSubDomains; preload')

@@ -1,8 +1,8 @@
 # Persistência
 
-> **Cobre** `server/src/infra/database` e `server/drizzle.config.ts` · **Requisitos** RNF003 · RNF004
+> **Cobre** `server/src/infra/database` e `server/drizzle.config.ts` · **Requisitos** RNF-0003 · RNF-0004
 
-Como o banco é acessado, como uma tabela nasce e como a entidade atravessa a fronteira do armazenamento. O conteúdo de cada tabela é do contexto que a possui e está em [`../domains/`](../domains/README.md).
+Como o banco é acessado, como uma tabela nasce e como a entidade atravessa a fronteira do armazenamento. O conteúdo de cada tabela é do contexto que a possui, e volta a ser documentado em `docs/domains/` quando a fatia de domínio voltar.
 
 ## `DrizzleService` — o dono único da conexão
 
@@ -10,7 +10,7 @@ Como o banco é acessado, como uma tabela nasce e como a entidade atravessa a fr
 
 | Momento | O que faz |
 | ------- | --------- |
-| Construtor | Cria o `Pool` com `DATABASE_URL`, `DATABASE_POOL_MAX` e SSL — com `DATABASE_SSL` ligado, exige certificado válido (`rejectUnauthorized: true`), que é o modo esperado da instância gerenciada em nuvem (RNF003) |
+| Construtor | Cria o `Pool` com `DATABASE_URL`, `DATABASE_POOL_MAX` e SSL — com `DATABASE_SSL` ligado, exige certificado válido (`rejectUnauthorized: true`), que é o modo esperado da instância gerenciada em nuvem (RNF-0003) |
 | `onModuleInit` | Pega e devolve uma conexão imediatamente, para a aplicação falhar no start em vez de na primeira requisição |
 | `onApplicationShutdown` | Encerra o pool — só roda porque `main.ts` chama `enableShutdownHooks()` |
 
@@ -26,7 +26,7 @@ Três detalhes que custam caro descobrir:
 - **`schemas/index.ts` é um barril e tem função de runtime.** É o `schema` que o `drizzle.config.ts` aponta, é o que tipa o `db`, e é o que o helper de teste `cleanDatabase` varre com `isTable` para truncar tudo com `RESTART IDENTITY CASCADE`. Consequência: **tabela nova é limpa sozinha nos testes assim que entra no barril** — e tabela que ficar de fora não é gerada nem limpa.
 - **`drizzle.config.ts` lê `process.env` direto**, com `dotenv/config`, e é a única exceção legítima à regra de que toda variável passa pelo `EnvService`. Ele roda antes e fora do Nest. Ver [`configuration.md`](configuration.md).
 
-Coluna monetária usa sempre o helper `moneyAmount(name)` — `bigint` com `mode: 'number'` (RNF004). Ver [`core-building-blocks.md`](core-building-blocks.md).
+Coluna monetária usa sempre o helper `moneyAmount(name)` — `bigint` com `mode: 'number'` (RNF-0004). Ver [`core-building-blocks.md`](core-building-blocks.md).
 
 ## Mappers
 

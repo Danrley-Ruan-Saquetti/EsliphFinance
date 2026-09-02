@@ -1,0 +1,180 @@
+# O único arquivo específico deste projeto. Hooks e checks não conhecem
+# caminho nenhum — leem daqui. Regra de origem: docs/superpowers/research/2026-08-24-living-documentation-toolkit.md §3.
+version: 1
+stale-after-months: 6
+
+# A forma escrita de um ID neste projeto (ADR-0011). A identidade NÃO depende
+# dela: `RN009` e `RN-0009` são o mesmo item. Mude isto para adotar um
+# repositório cujos IDs já se escrevem de outro jeito — nunca renumere o
+# repositório para caber no padrão.
+id-format:
+  separator: "-"
+  padding: 4
+
+artifacts:
+  - id-prefix: ADR
+    path: docs/adr/
+    owner: "@DANRLEY-RUAN-SAQUETTI"
+    skill: decision-recorder
+    append-only: true
+    mutable-fields: [status, superseded-by, last-reviewed]
+
+  - id-prefix: DA
+    path: docs/open-decisions.md
+    owner: "@DANRLEY-RUAN-SAQUETTI"
+    skill: decision-recorder
+    # Seções, não tabela: o arquivo já existia com uma seção por lacuna, e cada
+    # item carrega contexto, alternativas e recomendação — corpo longo demais
+    # para uma célula. Adotado como está (bootstrap, passo 1).
+    collection: sections
+
+  - id-prefix: TDR
+    path: docs/decisions/debt/
+    owner: "@DANRLEY-RUAN-SAQUETTI"
+    skill: decision-recorder
+    append-only: true
+    mutable-fields: [status, last-reviewed]
+
+  # O `docs/requirements.md` único virou três arquivos, um por família: o
+  # coletor lê o arquivo inteiro por regra, e três regras sobre o mesmo caminho
+  # declaravam cada ID três vezes. Nenhum ID foi renumerado na separação.
+  - id-prefix: RF
+    path: docs/requirements/functional.md
+    owner: "@DANRLEY-RUAN-SAQUETTI"
+    skill: requirements-keeper
+    collection: sections
+    cited-by: []
+
+  - id-prefix: RNF
+    path: docs/requirements/non-functional.md
+    owner: "@DANRLEY-RUAN-SAQUETTI"
+    skill: requirements-keeper
+    collection: sections
+    cited-by: []
+
+  # `cited-by` vazio nas três famílias, e é a única lacuna deliberada desta
+  # instalação: a fatia `server/src/domain` foi removida no reset da branch, e
+  # cobrar citação de teste em 89 RNs sem implementação reprovaria o CI no
+  # primeiro push — aviso ignorado é o começo da wiki morta. Religue com
+  # ["server/test/**", "server/src/**"] no PR que trouxer
+  # `server/src/domain/` de volta; é ele que liga o CI-3.
+  - id-prefix: RN
+    path: docs/requirements/rules.md
+    owner: "@DANRLEY-RUAN-SAQUETTI"
+    skill: requirements-keeper
+    collection: sections
+    cited-by: []
+
+generated: []
+# Artefato gerado: HK-2 bloqueia editá-lo à mão, e CI-5 (`living-docs drift`)
+# compara o arquivo versionado com a saída do gerador.
+#
+# O `command` IMPRIME o conteúdo esperado na saída padrão e NÃO escreve arquivo
+# nenhum — um check que reescreve o que está checando apaga a evidência no mesmo
+# instante em que a reporta. Gerador que só sabe escrever arquivo ganha um
+# invólucro: gere num diretório temporário e imprima o resultado.
+#
+# O init não inventa gerador, pela mesma razão que não inventa `watches`.
+# Declare o seu. Exemplo:
+#
+# generated:
+#   - path: docs/contracts/openapi.gen.yaml
+#     command: "node tools/gen-openapi.js"
+
+# Documento com dono e SEM família de IDs (ADR-0008, que resolve DA-0002).
+# CI-4 cobra a revisão e CI-7 cobra o dono; CI-1, CI-2 e HK-1 não leem daqui.
+# `role` é vocabulário fechado: agent-contract, definition-of-done.
+documents:
+  - path: docs/.ownership.yml
+    owner: "@DANRLEY-RUAN-SAQUETTI"
+    skill: living-docs-bootstrap
+  - path: docs/ids-retired.txt
+    owner: "@DANRLEY-RUAN-SAQUETTI"
+    skill: living-docs-bootstrap
+  - path: CONTRIBUTING.md
+    owner: "@DANRLEY-RUAN-SAQUETTI"
+    skill: working-agreements-keeper
+  - path: docs/definition-of-done.md
+    owner: "@DANRLEY-RUAN-SAQUETTI"
+    skill: working-agreements-keeper
+    role: definition-of-done
+  - path: docs/glossary.md
+    owner: "@DANRLEY-RUAN-SAQUETTI"
+    skill: glossary-keeper
+  - path: docs/charter/
+    owner: "@DANRLEY-RUAN-SAQUETTI"
+    skill: charter-keeper
+  - path: CLAUDE.md
+    owner: "@DANRLEY-RUAN-SAQUETTI"
+    skill: working-agreements-keeper
+    role: agent-contract
+  # O contrato do agente do backend. Não leva `role`: o papel é único e é do
+  # CLAUDE.md da raiz, que é quem indexa este.
+  - path: server/CLAUDE.md
+    owner: "@DANRLEY-RUAN-SAQUETTI"
+    skill: working-agreements-keeper
+  # Camada 4 — o que ESTÁ construído. Fica fora do escopo do toolkit (spec
+  # §Escopo), mas é o doc dono de metade dos `watches` abaixo, e CI-7 cobra dono
+  # de todo caminho vigiado. Sem skill dona: nenhuma das sete a cobre.
+  - path: docs/architecture/
+    owner: "@DANRLEY-RUAN-SAQUETTI"
+
+# Mecanismo 1: código → doc dono. HK-4 lembra depois da edição, HK-5 pergunta
+# antes do commit. Na Fase 7, CI-7 lê daqui também. Preencha com os caminhos do
+# SEU código — o init não inventa vínculo, porque vínculo que ninguém reconhece
+# ensina a ignorar o lembrete. Exemplo:
+#
+# watches:
+#   - code: "src/domain/**"
+#     doc: docs/requirements/rules.md
+#     reason: "comportamento novo exige regra com ID antes do código"
+watches:
+  # `server/src/domain/` ainda não existe — a fatia de domínio foi removida no
+  # reset da branch. O vínculo fica declarado porque é exatamente no PR que a
+  # traz de volta que a RN precisa existir antes do código.
+  - code: "server/src/domain/**"
+    doc: docs/requirements/rules.md
+    reason: "comportamento novo exige RN com ID antes do código (spec, camada 3)"
+
+  - code: "server/src/core/**"
+    doc: docs/architecture/core-building-blocks.md
+    reason: "bloco de core mudou: Entity, Either, value object, evento de domínio"
+
+  - code: "server/src/infra/http/**"
+    doc: docs/architecture/request-lifecycle.md
+    reason: "ciclo da requisição e contrato de erro mudam com pipe, filtro, middleware ou controller"
+
+  - code: "server/src/infra/database/**"
+    doc: docs/architecture/persistence.md
+    reason: "schema, mapper ou repositório mudou: a persistência descrita ficou falsa"
+
+  - code: "server/src/infra/auth/**"
+    doc: docs/architecture/security.md
+    reason: "superfície de autenticação e autorização mudou"
+
+  - code: "server/src/infra/env/**"
+    doc: docs/architecture/configuration.md
+    reason: "variável de ambiente nova ou validação alterada"
+
+  - code: "server/src/**/*.module.ts"
+    doc: docs/architecture/modules-and-di.md
+    reason: "módulo ou provider novo muda o mapa de injeção"
+
+  - code: "server/Makefile"
+    doc: CONTRIBUTING.md
+    reason: "alvo novo do Makefile é passo novo de como se trabalha aqui"
+
+# Gatilho de CI-6: quais caminhos, quando mudam, são visíveis a quem consome
+# este software. O init não os inventa, pela mesma razão que não inventa
+# `watches`. A regra de `watches` que aponta o CHANGELOG precisa trazer
+# `consumer-visible: true` — é ela que diz a CI-6 onde a entrada deveria estar.
+# Exemplo:
+#
+# watches:
+#   - code: "src/api/**"
+#     doc: CHANGELOG.md
+#     consumer-visible: true
+#     reason: "mudança visível ao consumidor nasce com a entrada no mesmo PR"
+#
+# consumer-visible-paths: ["src/api/**"]
+consumer-visible-paths: []

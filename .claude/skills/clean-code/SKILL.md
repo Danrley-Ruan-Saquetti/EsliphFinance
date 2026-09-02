@@ -15,7 +15,7 @@ Vale para `server/`. O `mobile/` foi removido para ser reescrito do zero; quando
 
 **Depois de escrever**: rode a verificação — não entregue código que você não formatou. A revisão é da skill `code-reviewer`, que confronta o código com a RN, a arquitetura e os testes; o [checklist](#checklist) daqui é um dos eixos dela, e o mais raso deles. Estilo verde não significa código correto.
 
-Isto aqui cobre _como_ escrever. A arquitetura — camadas, regra de dependência, onde cada arquivo mora, contratos de use-case e repositório — está em `server/CLAUDE.md` e, em detalhe, em `docs/architecture/`; as regras de negócio em `docs/requirements.md`. Consulte-os; não duplique o conteúdo deles aqui.
+Isto aqui cobre _como_ escrever. A arquitetura — camadas, regra de dependência, onde cada arquivo mora, contratos de use-case e repositório — está em `server/CLAUDE.md` e, em detalhe, em `docs/architecture/`; as regras de negócio em `docs/requirements/`. Consulte-os; não duplique o conteúdo deles aqui.
 
 ## Zero comentários
 
@@ -37,7 +37,7 @@ Antes:
 
 ```ts
 /* A propriedade do registro é verificada aqui, no caso de uso, e não por
-   filtro implícito no repositório (RN010, RN011). */
+   filtro implícito no repositório (RN-0010, RN-0011). */
 if (note.ownerId.toString() !== ownerId) {
     return left(new NotAllowedError())
 }
@@ -56,14 +56,14 @@ Número solto ganha uma constante nomeada em vez de um comentário explicando o 
 **2. O nome do teste.** É onde a referência à RN sobrevive, e sobrevive melhor: se a regra mudar, o teste falha. O repositório já faz isso —
 
 ```ts
-it('deve retornar NotAllowedError quando a nota é de outro usuário (RN010, RN011)', async () => {
+it('deve retornar NotAllowedError quando a nota é de outro usuário (RN-0010, RN-0011)', async () => {
 ```
 
 Ao implementar uma regra de negócio, a citação da RN vai para o nome do `it(...)`, nunca para uma linha de comentário no código de produção.
 
 **3. Um tipo ou um erro nomeado.** `Either<ResourceNotFoundError | NotAllowedError, { note: Note }>` já declara, na assinatura, tudo que pode dar errado. Nenhum comentário faz isso melhor, e a assinatura é conferida pelo `tsc`.
 
-Se depois disso ainda sobrou algo que não coube em lugar nenhum — decisão de arquitetura, pendência, contexto de negócio —, o lugar é fora do código: o `CLAUDE.md` da pasta, o `docs/requirements.md`, ou um ticket (`LIPH-XX`). Nunca um `// TODO`.
+Se depois disso ainda sobrou algo que não coube em lugar nenhum — decisão de arquitetura, pendência, contexto de negócio —, o lugar é fora do código: o `CLAUDE.md` da pasta, o `docs/requirements/`, ou um ticket (`LIPH-XX`). Nunca um `// TODO`.
 
 ## Formatação
 

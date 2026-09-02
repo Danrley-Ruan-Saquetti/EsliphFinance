@@ -1,6 +1,6 @@
 # EsliphFinance — Server
 
-API do EsliphFinance: NestJS + PostgreSQL, rodando inteiramente em Docker. As regras de negócio estão em [`../docs/requirements.md`](../docs/requirements.md), que é a fonte de verdade do domínio — toda implementação referencia a RN correspondente.
+API do EsliphFinance: NestJS + PostgreSQL, rodando inteiramente em Docker. As regras de negócio estão em [`../docs/requirements/rules.md`](../docs/requirements/rules.md), que é a fonte de verdade do domínio — toda implementação referencia a RN correspondente.
 
 ## Como rodar
 
@@ -68,7 +68,7 @@ src/
       pipes/                       # ZodValidationPipe
       presenters/                  # domínio -> JSON de resposta
       http.module.ts               # controllers + instanciação dos casos de uso
-    auth/                          # JWT, guards, estratégias (RNF005)
+    auth/                          # JWT, guards, estratégias (RNF-0005)
     cryptography/                  # implementações de hash/JWT
     env/                           # schema Zod das variáveis de ambiente + EnvService
 
@@ -142,8 +142,8 @@ Validar na borda **não substitui** as invariantes do domínio: a entidade conti
 
 ### Outras regras
 
-- **Dinheiro** é inteiro em centavos (RNF004), encapsulado em um Value Object; nunca `float`, nem em coluna do banco.
-- **Propriedade do registro** é verificada dentro do caso de uso, comparando o dono antes de ler ou alterar (RN010, RN011) — não por filtro implícito no repositório.
+- **Dinheiro** é inteiro em centavos (RNF-0004), encapsulado em um Value Object; nunca `float`, nem em coluna do banco.
+- **Propriedade do registro** é verificada dentro do caso de uso, comparando o dono antes de ler ou alterar (RN-0010, RN-0011) — não por filtro implícito no repositório.
 - **Exclusões** são majoritariamente lógicas ou bloqueadas por vínculos; conferir a RN antes de implementar um delete.
 
 ### Path aliases
@@ -180,17 +180,17 @@ Invalid environment variables:
 | `NODE_ENV`          | `development`                      | `development`, `test` ou `production`; endurece a validação em produção    |
 | `PORT`              | `3000`                             | Porta da API                                                              |
 | `DATABASE_URL`      | obrigatória                        | URL de conexão — o `database` do Compose em desenvolvimento               |
-| `DATABASE_SSL`      | `false`                            | `true` para instâncias gerenciadas em nuvem (RNF003)                      |
+| `DATABASE_SSL`      | `false`                            | `true` para instâncias gerenciadas em nuvem (RNF-0003)                      |
 | `DATABASE_POOL_MAX` | `10`                               | Tamanho máximo do pool                                                    |
 | `CORS_ORIGINS`      | `*`                                | Origens aceitas, separadas por vírgula; `*` é rejeitado em produção        |
-| `ENFORCE_HTTPS`     | `true` em produção, `false` fora   | Redireciona HTTP para HTTPS e habilita o HSTS (RNF007)                    |
+| `ENFORCE_HTTPS`     | `true` em produção, `false` fora   | Redireciona HTTP para HTTPS e habilita o HSTS (RNF-0007)                    |
 | `HSTS_MAX_AGE`      | `31536000`                         | Duração, em segundos, do `Strict-Transport-Security`                      |
 
 Nenhum segredo é versionado: `.env` está no `.gitignore` e só o `.env.example`, com defaults de desenvolvimento, vai para o repositório. Em produção a `DATABASE_URL` aponta para a instância em nuvem, com `DATABASE_SSL="true"`, e vem do ambiente. Ao introduzir uma variável nova, atualize o schema, o `.env.example` e o `docker-compose.yml`.
 
 Com `NODE_ENV="production"` a validação é mais estrita e a aplicação recusa subir se `ENFORCE_HTTPS="false"` ou se `CORS_ORIGINS` contiver `*`.
 
-### HTTPS (RNF007)
+### HTTPS (RNF-0007)
 
 O TLS termina no proxy à frente da API — o processo Node atende em HTTP dentro da rede privada. O proxy é obrigado a **sobrescrever** o header `x-forwarded-proto` com o protocolo real do cliente, porque é ele que o `HttpsRedirectMiddleware` usa para decidir; quando o TLS termina na própria aplicação, `request.secure` cobre o caso.
 
@@ -211,7 +211,7 @@ O `Strict-Transport-Security` só é anunciado quando `ENFORCE_HTTPS="true"`: em
 | `Cross-Origin-Resource-Policy` | `same-origin`                               |
 | `Strict-Transport-Security`    | só com `ENFORCE_HTTPS="true"`               |
 
-`CorsMiddleware` monta a política a partir de `CORS_ORIGINS`, aceita `Content-Type`, `Authorization` e `x-request-id`, expõe `x-request-id` ao cliente e guarda o preflight por 24 horas. Credenciais de navegador ficam desabilitadas: a autenticação é por Bearer token (RNF005), não por cookie.
+`CorsMiddleware` monta a política a partir de `CORS_ORIGINS`, aceita `Content-Type`, `Authorization` e `x-request-id`, expõe `x-request-id` ao cliente e guarda o preflight por 24 horas. Credenciais de navegador ficam desabilitadas: a autenticação é por Bearer token (RNF-0005), não por cookie.
 
 A ordem no `HttpModule` é `CorsMiddleware → SecurityHeadersMiddleware → RequestIdMiddleware → HttpsRedirectMiddleware`, para que o preflight seja respondido antes de tudo, os headers de segurança valham inclusive nas respostas de erro e o identificador de requisição já exista quando o redirecionamento ou a recusa acontece.
 

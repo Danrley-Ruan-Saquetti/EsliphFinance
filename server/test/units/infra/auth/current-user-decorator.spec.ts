@@ -14,13 +14,13 @@ function makeExecutionContext(request: Partial<AuthenticatedRequest>): Execution
 }
 
 describe('authenticatedUserOf', () => {
-  it('deve devolver o usuário que o guard anexou à requisição (RN011)', () => {
+  it('deve devolver o usuário que o guard anexou à requisição (RN-0011)', () => {
     const context = makeExecutionContext({ user: { id: USER_ID } })
 
     expect(authenticatedUserOf(undefined, context)).toEqual({ id: USER_ID })
   })
 
-  it('deve lançar UnauthenticatedError quando a requisição não tem usuário autenticado (RNF005)', () => {
+  it('deve lançar UnauthenticatedError quando a requisição não tem usuário autenticado (RNF-0005)', () => {
     const context = makeExecutionContext({})
 
     expect(() => authenticatedUserOf(undefined, context)).toThrow(UnauthenticatedError)

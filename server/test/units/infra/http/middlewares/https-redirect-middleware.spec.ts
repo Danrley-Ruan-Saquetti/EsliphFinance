@@ -41,7 +41,7 @@ describe('HttpsRedirectMiddleware', () => {
     expect(redirection()).toBeUndefined()
   })
 
-  it('deve redirecionar para HTTPS preservando o caminho quando a requisição chega em HTTP (RNF007)', () => {
+  it('deve redirecionar para HTTPS preservando o caminho quando a requisição chega em HTTP (RNF-0007)', () => {
     const sut = new HttpsRedirectMiddleware(makeEnvService({ ENFORCE_HTTPS: true }))
     const { response, redirection } = makeResponse()
     const { next, wasCalled } = makeNext()
@@ -84,7 +84,7 @@ describe('HttpsRedirectMiddleware', () => {
     expect(redirection()).toBeUndefined()
   })
 
-  it('deve recusar a requisição insegura quando não há host para onde redirecionar (RNF007)', () => {
+  it('deve recusar a requisição insegura quando não há host para onde redirecionar (RNF-0007)', () => {
     const sut = new HttpsRedirectMiddleware(makeEnvService({ ENFORCE_HTTPS: true }))
     const { response } = makeResponse()
     const { next } = makeNext()

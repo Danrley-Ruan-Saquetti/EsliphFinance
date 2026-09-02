@@ -1,6 +1,6 @@
 # EsliphFinance — Server
 
-API do EsliphFinance. Este documento cobre apenas o backend; o contexto geral do repositório (domínio, requisitos, convenções de idioma e commits) está no `CLAUDE.md` da raiz, e as regras de negócio em `../docs/requirements.md`.
+API do EsliphFinance. Este documento cobre apenas o backend; o contexto geral do repositório (domínio, requisitos, convenções de idioma e commits) está no `CLAUDE.md` da raiz, e as regras de negócio em `../docs/requirements/`.
 
 ## Stack
 
@@ -130,7 +130,7 @@ Infra (HTTP, Drizzle, Auth, Env)  →  Application (use-cases, ports)  →  Doma
 src/
   core/                          # blocos de construção compartilhados, sem regra de negócio
     entities/                    #   Entity, AggregateRoot, UniqueEntityID
-    value-objects/               #   ValueObject base, Money (centavos — RNF004)
+    value-objects/               #   ValueObject base, Money (centavos — RNF-0004)
     errors/                      #   BaseError e erros genéricos de aplicação
     events/                      #   contrato de evento de domínio
     types/                       #   utilitários de tipo (Optional)
@@ -167,7 +167,7 @@ src/
       presenters/                # domínio -> JSON de resposta
       schemas/                   # schemas Zod reutilizáveis de entrada (moneySchema)
       http.module.ts             # controllers + instanciação dos use-cases
-    auth/                        # guards e estratégias (RNF005)
+    auth/                        # guards e estratégias (RNF-0005)
     cryptography/                # implementações das portas de hash, assinatura JWT e geração de token
     env/                         # schema Zod das variáveis de ambiente + EnvService
 
@@ -190,8 +190,8 @@ Havia um **módulo de exemplo** em `src/domain/example` (entidade `Note`), fatia
 - **Repositórios** são declarados como classe abstrata em `domain/<ctx>/application/repositories` (a classe abstrata também é o token de injeção) e ligados à implementação em `infra/database/database.module.ts`. O uso no caso de uso é sempre pelo tipo abstrato.
 - **Schema do banco** vive em `infra/database/drizzle/schemas/` e é a fonte das migrations — alterar tabela é editar o schema e rodar `make db-generate NAME=<nome>`, nunca DDL manual nem edição do SQL já aplicado.
 - **Zod** valida nas bordas: corpo/query/params HTTP e variáveis de ambiente. A validação de entrada não substitui as invariantes do domínio, que ficam nas entidades.
-- **Dinheiro** é encapsulado no Value Object `Money` sobre inteiro em centavos; nunca `float`, nem em coluna do banco (RNF004).
-- **Propriedade do registro** é verificada dentro do caso de uso, não por filtro implícito no repositório: buscar o registro e comparar o dono antes de ler ou alterar. Registro de outro usuário é tratado como **inexistente** (RN011).
+- **Dinheiro** é encapsulado no Value Object `Money` sobre inteiro em centavos; nunca `float`, nem em coluna do banco (RNF-0004).
+- **Propriedade do registro** é verificada dentro do caso de uso, não por filtro implícito no repositório: buscar o registro e comparar o dono antes de ler ou alterar. Registro de outro usuário é tratado como **inexistente** (RN-0011).
 - **Exclusões** são majoritariamente lógicas ou bloqueadas por vínculos — conferir a RN correspondente antes de implementar um delete.
 - **Nomenclatura**: arquivos em kebab-case com sufixo de papel (`create-note.ts`, `notes-repository.ts`, `create-note.controller.ts`, `note-presenter.ts`, `http.module.ts`); um artefato por arquivo, com o nome do arquivo espelhando o do artefato; contextos no singular, repositórios no plural do agregado.
 - **Path aliases**: `@*` → `src/*`, `@tests/*` → `test/*`. Import relativo só entre arquivos irmãos da mesma pasta — com uma exceção obrigatória nos schemas Drizzle, explicada em [`../docs/architecture/persistence.md`](../docs/architecture/persistence.md).
@@ -206,7 +206,7 @@ O detalhe de como isto está montado — e o **porquê** de cada escolha — est
 | [Módulos e injeção](../docs/architecture/modules-and-di.md) | Grafo dos módulos, `useFactory` + `inject`, classe abstrata como token, ciclo de vida do bootstrap |
 | [Blocos de `core/`](../docs/architecture/core-building-blocks.md) | `Entity`, `ValueObject`, `Either`, `BaseError` e **`Money`** — operações, arredondamento e as três bordas do valor monetário |
 | [Persistência](../docs/architecture/persistence.md) | `DrizzleService`, schemas como fonte das migrations, mappers, repositórios Drizzle e in-memory |
-| [Segurança](../docs/architecture/security.md) | Rota protegida por padrão e `@Public()`, `@CurrentUser()`, **isolamento dos registros por usuário** (RN010, RN011), cryptography |
+| [Segurança](../docs/architecture/security.md) | Rota protegida por padrão e `@Public()`, `@CurrentUser()`, **isolamento dos registros por usuário** (RN-0010, RN-0011), cryptography |
 | [Configuração](../docs/architecture/configuration.md) | Todas as variáveis de ambiente, o que o schema recusa em produção, e como se lê pelo `EnvService` |
 
 Três consequências valem em toda tarefa, mesmo sem abrir os documentos:
@@ -237,7 +237,7 @@ Ao mexer em um domínio, leia o documento dele **antes** de varrer `src/`, e atu
 - **E2E** ficam em `test/e2e/` **no mesmo caminho do arquivo testado em `src/`** — normalmente o controller (`src/infra/http/controllers/<rota>.controller.ts` → `test/e2e/infra/http/controllers/<rota>.controller.e2e-spec.ts`), um arquivo por controller. Sobem a aplicação Nest e batem no serviço `database` com as migrations já aplicadas (`make db-migrate`). Cada spec chama `await cleanDatabase(app)` (`@tests/database/clean-database`) no `beforeAll`, e os arquivos rodam em série (`fileParallelism: false`) porque compartilham o mesmo banco. O helper enumera as tabelas por `isTable` sobre o `schemas/index.ts` e as trunca com `RESTART IDENTITY CASCADE`, então **tabela nova é limpa sozinha** assim que entra no índice de schemas — nenhum spec lista tabela para limpar, e um spec só importa uma tabela quando for consultá-la em asserção.
 - **Factories** ficam em `test/factories/make-<entidade>.ts`, com assinatura `(override = {}, id?)`, e são a forma padrão de montar entidade em spec — exceto no spec da própria entidade, onde a construção é o que está sob teste.
 - Coverage está habilitado por padrão nos unitários, então qualquer execução grava em `coverage/`. A meta é **100% dos arquivos testáveis**, com o `vitest.config.js` reprovando abaixo de **85%**; ficam fora da conta o bootstrap, os módulos Nest, o `DrizzleService`, os repositórios e schemas Drizzle e os repositórios in-memory.
-- Casos de uso novos entram com teste unitário; o teste deve referenciar a RN que implementa. Todo caso de uso que lê ou altera registro entra também com teste de acesso cruzado entre dois usuários, citando RN010 e RN011.
+- Casos de uso novos entram com teste unitário; o teste deve referenciar a RN que implementa. Todo caso de uso que lê ou altera registro entra também com teste de acesso cruzado entre dois usuários, citando RN-0010 e RN-0011.
 - A skill `spec-writer` (em `.claude/skills/`) traz o padrão completo de escrita dos specs, a lista de edge cases do domínio e o checklist.
 - No CI (`.github/workflows/server-tests.yml`) os testes rodam **sem Docker**: Node 22 via `actions/setup-node` e os scripts npm direto (`npm ci`, `npm test`, `npm run db:migrate`, `npm run test:e2e`), com o Postgres subindo como _service container_ do GitHub Actions em `localhost:5432`. O `Makefile` continua sendo o caminho do desenvolvimento local; ao criar um alvo novo que o CI precise, adicione o script npm equivalente ao workflow. Roda a cada push e pull request para `main` e `develop` que toque em `server/`.
 

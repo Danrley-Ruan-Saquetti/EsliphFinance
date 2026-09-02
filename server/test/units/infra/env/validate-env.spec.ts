@@ -31,7 +31,7 @@ describe('validateEnv', () => {
     expect(validation).toThrow(/PORT:/)
   })
 
-  it('deve falhar quando a política de transporte de produção não é atendida (RNF007)', () => {
+  it('deve falhar quando a política de transporte de produção não é atendida (RNF-0007)', () => {
     const validation = () => validateEnv({ DATABASE_URL: databaseUrl, JWT_SECRET: jwtSecret, NODE_ENV: 'production', ENFORCE_HTTPS: 'false' })
 
     expect(validation).toThrow(/ENFORCE_HTTPS:/)

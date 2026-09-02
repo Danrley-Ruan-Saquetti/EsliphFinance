@@ -1,6 +1,6 @@
 # Referência de Domínio — Finanças Pessoais e Investimento
 
-Base para fundamentar recomendações quando `docs/requirements.md` é silencioso. Aqui está a prática do setor e o vocabulário correto; a especificação do EsliphFinance está no documento de requisitos, e onde os dois divergirem, o documento vence — o que existe aqui é insumo para propor mudança, não regra em vigor.
+Base para fundamentar recomendações quando `docs/requirements/` é silencioso. Aqui está a prática do setor e o vocabulário correto; a especificação do EsliphFinance está no documento de requisitos, e onde os dois divergirem, o documento vence — o que existe aqui é insumo para propor mudança, não regra em vigor.
 
 ## Índice
 
@@ -82,7 +82,7 @@ A peça mais difícil de modelar do domínio, e onde os usuários mais reclamam 
 
 Meta é um objetivo de acúmulo com valor alvo e, opcionalmente, data alvo. Duas modelagens competem:
 
-- **Meta vinculada a uma conta** (o progresso é o saldo daquela conta): simples, honesta, e obriga o usuário a ter uma conta por meta. É o modelo do EsliphFinance hoje (RN073, RN074).
+- **Meta vinculada a uma conta** (o progresso é o saldo daquela conta): simples, honesta, e obriga o usuário a ter uma conta por meta. É o modelo do EsliphFinance hoje (RN-0073, RN-0074).
 - **Meta como reserva virtual** (o usuário "aloca" parte do saldo de uma conta): flexível, permite várias metas numa conta só, e cobra o conceito de saldo alocado vs. livre — que é exatamente o tipo de conceito que o usuário comum não entende.
 
 A **reserva de emergência** (3 a 6 meses de despesas, em liquidez diária) é a meta que todo material de educação financeira recomenda primeiro. Um produto que calcula automaticamente esse alvo a partir da média de despesas do usuário entrega valor real sem pedir nada em troca.
@@ -105,7 +105,7 @@ Regra transversal: **todo relatório precisa dizer o que exclui**. Transferênci
 
 Quando o produto passar a suportar investimentos, quase todo instinto vindo de conta corrente falha. As diferenças estruturais:
 
-**O saldo não é a soma dos lançamentos.** Numa conta corrente, saldo = saldo inicial + lançamentos. Numa posição de investimento, o valor é **quantidade × cotação atual** — muda todo dia sem que nada seja lançado. Uma regra como a RN021 simplesmente não se aplica, e tentar forçá-la produz um saldo errado por construção.
+**O saldo não é a soma dos lançamentos.** Numa conta corrente, saldo = saldo inicial + lançamentos. Numa posição de investimento, o valor é **quantidade × cotação atual** — muda todo dia sem que nada seja lançado. Uma regra como a RN-0021 simplesmente não se aplica, e tentar forçá-la produz um saldo errado por construção.
 
 **Aporte e resgate não são receita e despesa.** Aportar é mover dinheiro da conta corrente para o investimento; o patrimônio não muda. Classificar aporte como despesa é o erro mais comum e ele destrói a taxa de poupança justamente de quem está poupando. Aporte e resgate são **transferências**; o que é receita é o **rendimento**.
 

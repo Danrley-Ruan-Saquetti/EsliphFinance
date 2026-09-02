@@ -1,0 +1,2 @@
+# IDs retirados. Nunca são reciclados (docs/superpowers/research/2026-08-24-living-documentation-toolkit.md §2).
+# Um ID por linha.

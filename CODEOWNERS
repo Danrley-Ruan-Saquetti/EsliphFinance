@@ -1,0 +1,16 @@
+# Espelha o campo `owner` de docs/.ownership.yml. Um artefato, um dono.
+docs/adr/    @DANRLEY-RUAN-SAQUETTI
+docs/open-decisions.md    @DANRLEY-RUAN-SAQUETTI
+docs/decisions/debt/    @DANRLEY-RUAN-SAQUETTI
+docs/requirements/functional.md    @DANRLEY-RUAN-SAQUETTI
+docs/requirements/non-functional.md    @DANRLEY-RUAN-SAQUETTI
+docs/requirements/rules.md    @DANRLEY-RUAN-SAQUETTI
+CONTRIBUTING.md    @DANRLEY-RUAN-SAQUETTI
+docs/definition-of-done.md    @DANRLEY-RUAN-SAQUETTI
+CLAUDE.md    @DANRLEY-RUAN-SAQUETTI
+server/CLAUDE.md    @DANRLEY-RUAN-SAQUETTI
+docs/architecture/    @DANRLEY-RUAN-SAQUETTI
+docs/glossary.md    @DANRLEY-RUAN-SAQUETTI
+docs/charter/    @DANRLEY-RUAN-SAQUETTI
+docs/.ownership.yml    @DANRLEY-RUAN-SAQUETTI
+docs/ids-retired.txt    @DANRLEY-RUAN-SAQUETTI

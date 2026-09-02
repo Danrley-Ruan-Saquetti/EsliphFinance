@@ -4,7 +4,7 @@ import { InvariantError } from '@core/errors/invariant-error'
 import { Money } from '@core/value-objects/money'
 
 describe('Money', () => {
-  it('deve criar o valor a partir de centavos inteiros (RNF004)', () => {
+  it('deve criar o valor a partir de centavos inteiros (RNF-0004)', () => {
     const sut = Money.fromCents(1234)
 
     expect(sut.amountInCents).toBe(1234)
@@ -18,7 +18,7 @@ describe('Money', () => {
     expect(Money.fromCents(-1234).amountInCents).toBe(-1234)
   })
 
-  it('deve lançar ao criar o valor a partir de um número fracionário (RNF004)', () => {
+  it('deve lançar ao criar o valor a partir de um número fracionário (RNF-0004)', () => {
     expect(() => Money.fromCents(10.5)).toThrow(InvariantError)
   })
 
@@ -89,13 +89,13 @@ describe('Money', () => {
     expect(parts.map(part => part.amountInCents)).toEqual([3000, 3000, 3000])
   })
 
-  it('deve aplicar a diferença de arredondamento na primeira parte (RN065)', () => {
+  it('deve aplicar a diferença de arredondamento na primeira parte (RN-0065)', () => {
     const parts = Money.fromCents(10000).allocate(3)
 
     expect(parts.map(part => part.amountInCents)).toEqual([3334, 3333, 3333])
   })
 
-  it('deve preservar o total ao dividir em partes (RN065, RNF004)', () => {
+  it('deve preservar o total ao dividir em partes (RN-0065, RNF-0004)', () => {
     const total = Money.fromCents(10000)
 
     const parts = total.allocate(7)
@@ -103,7 +103,7 @@ describe('Money', () => {
     expect(parts.reduce((sum, part) => sum.add(part), Money.zero()).amountInCents).toBe(total.amountInCents)
   })
 
-  it('deve preservar o total ao dividir um valor negativo em partes (RN065)', () => {
+  it('deve preservar o total ao dividir um valor negativo em partes (RN-0065)', () => {
     const total = Money.fromCents(-10000)
 
     const parts = total.allocate(3)
@@ -118,7 +118,7 @@ describe('Money', () => {
     expect(parts.map(part => part.amountInCents)).toEqual([10000])
   })
 
-  it('deve dividir um valor menor que a quantidade de partes concentrando os centavos na primeira (RN065)', () => {
+  it('deve dividir um valor menor que a quantidade de partes concentrando os centavos na primeira (RN-0065)', () => {
     const parts = Money.fromCents(2).allocate(3)
 
     expect(parts.map(part => part.amountInCents)).toEqual([2, 0, 0])
@@ -132,19 +132,19 @@ describe('Money', () => {
     expect(() => sut.allocate(2.5)).toThrow(InvariantError)
   })
 
-  it('deve formatar o valor com duas casas decimais (RNF004)', () => {
+  it('deve formatar o valor com duas casas decimais (RNF-0004)', () => {
     expect(Money.fromCents(123456).toString()).toBe('1234.56')
     expect(Money.fromCents(1000).toString()).toBe('10.00')
     expect(Money.fromCents(5).toString()).toBe('0.05')
     expect(Money.zero().toString()).toBe('0.00')
   })
 
-  it('deve formatar o valor negativo com o sinal antes da parte inteira (RNF004)', () => {
+  it('deve formatar o valor negativo com o sinal antes da parte inteira (RNF-0004)', () => {
     expect(Money.fromCents(-1234).toString()).toBe('-12.34')
     expect(Money.fromCents(-5).toString()).toBe('-0.05')
   })
 
-  it('deve formatar o maior valor representável sem perder precisão (RNF004)', () => {
+  it('deve formatar o maior valor representável sem perder precisão (RNF-0004)', () => {
     expect(Money.fromCents(Number.MAX_SAFE_INTEGER).toString()).toBe('90071992547409.91')
   })
 })

@@ -1,6 +1,6 @@
 # Ciclo de vida da requisição
 
-> **Cobre** `server/src/infra/http` · **Requisitos** RNF007 · RN011
+> **Cobre** `server/src/infra/http` · **Requisitos** RNF-0007 · RN-0011
 
 Da chegada da requisição à resposta, incluindo o caminho de erro. Toda resposta de erro da API — validação, regra de negócio ou falha inesperada — sai no mesmo formato, e há um único lugar que a produz.
 
@@ -41,7 +41,7 @@ A cadeia é aplicada em `forRoutes('*')` e a ordem é comportamento:
 
 O 308 é escolhido em vez de 301/302 porque preserva método e corpo — um `POST` redirecionado continua `POST`. A decisão vem do `x-forwarded-proto` porque o TLS termina no proxy; o proxy é obrigado a sobrescrever esse header, senão o cliente o forja.
 
-`credentials: false` no CORS é consequência da autenticação ser por Bearer token (RNF005), não por cookie de navegador.
+`credentials: false` no CORS é consequência da autenticação ser por Bearer token (RNF-0005), não por cookie de navegador.
 
 ## Validação de entrada
 
@@ -99,9 +99,9 @@ Em `infra/http/errors/http-status-by-error-code.ts`. Código sem entrada no mapa
 | `VALIDATION_FAILED` | 422 | `ValidationError`, lançado pelo `ZodValidationPipe` |
 | `INVARIANT_VIOLATION` | 422 | `InvariantError`, lançado pela entidade ou Value Object |
 | `UNAUTHENTICATED` | 401 | `UnauthenticatedError`, do guard e do `@CurrentUser()` |
-| `INVALID_CREDENTIALS` | 401 | Login com e-mail ou senha errados (RN004) |
-| `INVALID_REFRESH_TOKEN` | 401 | Renovação com token inexistente, vencido ou já usado (RN007) |
-| `RESOURCE_NOT_FOUND` | 404 | Registro inexistente **ou de outro usuário** (RN011) |
+| `INVALID_CREDENTIALS` | 401 | Login com e-mail ou senha errados (RN-0004) |
+| `INVALID_REFRESH_TOKEN` | 401 | Renovação com token inexistente, vencido ou já usado (RN-0007) |
+| `RESOURCE_NOT_FOUND` | 404 | Registro inexistente **ou de outro usuário** (RN-0011) |
 | `NOT_ALLOWED` | 403 | Operação proibida sobre registro próprio |
 | `INSECURE_TRANSPORT` | 403 | `HttpsRedirectMiddleware` sem `Host` para onde redirecionar |
 | `EMAIL_ALREADY_IN_USE` | 409 | Conflito de e-mail no cadastro e na alteração de perfil |

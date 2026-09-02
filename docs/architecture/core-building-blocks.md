@@ -1,6 +1,6 @@
 # Blocos de construção — `src/core`
 
-> **Cobre** `server/src/core` · **Requisitos** RNF004 · RN065
+> **Cobre** `server/src/core` · **Requisitos** RNF-0004 · RN-0065
 
 `core/` é o que todo domínio herda e nenhum domínio possui: identidade, igualdade, retorno de caso de uso, erro base e dinheiro. Não há regra de negócio aqui, e nada de `core/` importa NestJS, Drizzle ou Zod.
 
@@ -43,7 +43,7 @@ No controller a distinção some: `if (result.isLeft()) throw result.value`, e o
 
 `ResourceNotFoundError` e `NotAllowedError` recebem a **frase inteira**, não um nome de recurso interpolado — `new ResourceNotFoundError('Conta não encontrada')`. É o que faz a concordância de gênero sair certa em português, e é por isso que a mensagem não é montada por template.
 
-## `Money` — dinheiro (RNF004)
+## `Money` — dinheiro (RNF-0004)
 
 Todo valor monetário é **inteiro em centavos**, da entrada à persistência; as duas casas decimais existem só na exibição. `number` cru não circula representando dinheiro: quem o representa é `Money`, imutável, criado por `Money.fromCents(n)` ou `Money.zero()`. Qualquer coisa que não seja inteiro seguro — fracionário, `NaN`, infinito, além do inteiro seguro — lança `InvariantError`.
 
@@ -51,7 +51,7 @@ Todo valor monetário é **inteiro em centavos**, da entrada à persistência; a
 | -------- | ------------- |
 | `add` / `subtract` | Devolvem um novo `Money`; valor negativo é válido (saldo devedor, estorno) |
 | `multiply(factor)` | Aceita fator fracionário e arredonda para o centavo mais próximo **afastando-se do zero** (`166.5 → 167`, `-166.5 → -167`), em vez do arredondamento do `Math.round`, que empurraria o negativo para cima |
-| `allocate(parts)` | Rateio em `parts` inteiras positivas; a diferença de arredondamento vai na **primeira** parte (RN065). A soma das partes é sempre igual ao total |
+| `allocate(parts)` | Rateio em `parts` inteiras positivas; a diferença de arredondamento vai na **primeira** parte (RN-0065). A soma das partes é sempre igual ao total |
 | `toString()` | Duas casas com ponto decimal (`123456 → "1234.56"`, `-5 → "-0.05"`) — sem símbolo de moeda e sem locale, que são decisão do cliente |
 
 As três bordas onde `Money` entra e sai:

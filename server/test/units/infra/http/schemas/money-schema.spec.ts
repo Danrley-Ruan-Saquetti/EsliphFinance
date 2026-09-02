@@ -4,7 +4,7 @@ import { Money } from '@core/value-objects/money'
 import { moneySchema } from '@infra/http/schemas/money-schema'
 
 describe('moneySchema', () => {
-  it('deve converter a entrada em centavos no objeto de valor monetário (RNF004)', () => {
+  it('deve converter a entrada em centavos no objeto de valor monetário (RNF-0004)', () => {
     const money = moneySchema.parse(123456)
 
     expect(money).toBeInstanceOf(Money)
@@ -16,7 +16,7 @@ describe('moneySchema', () => {
     expect(moneySchema.parse(-500).amountInCents).toBe(-500)
   })
 
-  it('deve rejeitar um valor fracionário (RNF004)', () => {
+  it('deve rejeitar um valor fracionário (RNF-0004)', () => {
     const result = moneySchema.safeParse(10.5)
 
     expect(result.success).toBe(false)
