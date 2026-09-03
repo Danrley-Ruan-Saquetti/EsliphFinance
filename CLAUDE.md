@@ -44,7 +44,7 @@ Cada fato mora em exatamente um arquivo, com um dono e uma skill responsável. `
 | O que ainda **não** foi decidido? | `docs/open-decisions.md` (**DA-nnnn**) | `decision-recorder` |
 | Que dívida assumimos de propósito, e quando se paga? | `docs/decisions/debt/` (**TDR-nnnn**) | `decision-recorder` |
 | Qual é a regra? | `docs/requirements/` (**RF/RNF/RN-nnnn**) | `requirements-keeper` · `business-analyst` |
-| O que **está** construído? | `docs/architecture/` | — |
+| O que **está** construído? | `docs/architecture/` | `platform-architect` |
 | Como se trabalha aqui? Quando está pronto? | `CONTRIBUTING.md`, `docs/definition-of-done.md` | `working-agreements-keeper` |
 
 Regras que o enforcement cobra, e que valem antes dele:

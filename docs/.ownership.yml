@@ -115,9 +115,10 @@ documents:
     skill: working-agreements-keeper
   # Camada 4 — o que ESTÁ construído. Fica fora do escopo do toolkit (spec
   # §Escopo), mas é o doc dono de metade dos `watches` abaixo, e CI-7 cobra dono
-  # de todo caminho vigiado. Sem skill dona: nenhuma das sete a cobre.
+  # de todo caminho vigiado.
   - path: docs/architecture/
     owner: "@DANRLEY-RUAN-SAQUETTI"
+    skill: platform-architect
 
 # Mecanismo 1: código → doc dono. HK-4 lembra depois da edição, HK-5 pergunta
 # antes do commit. Na Fase 7, CI-7 lê daqui também. Preencha com os caminhos do
