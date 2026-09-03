@@ -28,7 +28,7 @@ last-reviewed: 2026-09-02
 | Pergunta                     | Artefato                             |
 | ---------------------------- | ------------------------------------ |
 | Qual é a regra de X          | `docs/requirements/`                 |
-| Por que foi feito assim      | `docs/decisions/adr/`                |
+| Por que foi feito assim      | `docs/adr/`                          |
 | O que ainda não foi decidido | `docs/open-decisions.md`             |
 | O que se aceitou dever       | `docs/decisions/debt/`               |
 | Quem é dono de cada caminho  | `docs/.ownership.yml` e `CODEOWNERS` |
