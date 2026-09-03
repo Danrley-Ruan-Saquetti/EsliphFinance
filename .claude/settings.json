@@ -1,4 +1,12 @@
 {
+  "extraKnownMarketplaces": {
+    "esliph": {
+      "source": {
+        "source": "github",
+        "repo": "esliph/living-docs"
+      }
+    }
+  },
   "enabledPlugins": {
     "living-docs@esliph": true
   }
