@@ -42,7 +42,7 @@ A mensagem de erro é **em inglês** e distingue variável ausente (`X is requir
 
 `EnvModule` é `@Global()`, então `EnvService` é injetável em qualquer módulo. Ver [`modules-and-di.md`](modules-and-di.md).
 
-**A única exceção legítima é `drizzle.config.ts`**, que lê `process.env` com `dotenv/config` porque o Drizzle Kit roda fora do processo do Nest e não tem acesso ao container de injeção. Ver [`persistence.md`](persistence.md).
+**A única exceção legítima é `drizzle.config.ts`**, que lê `process.env` com `dotenv/config` porque o Drizzle Kit roda fora do processo do Nest e não tem acesso ao container de injeção — a mesma razão que faz os arquivos de schema importarem por caminho relativo (ADR-0009). Ver [`persistence.md`](persistence.md).
 
 Quando um caso de uso precisa de um valor de configuração, ele recebe **o valor**, resolvido na fábrica do provider — nunca o `EnvService`. É o que mantém a camada de aplicação livre da infraestrutura.
 

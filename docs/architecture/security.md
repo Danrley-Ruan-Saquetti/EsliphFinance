@@ -6,7 +6,7 @@ Quem é o usuário da requisição, o que ele pode alcançar, e com que primitiv
 
 ## Rota protegida por padrão
 
-`JwtAuthGuard` é registrado como `APP_GUARD` pelo `AuthModule`, então **toda rota nasce autenticada**. A inversão é deliberada: RN-0010 e RN-0011 dizem que todo registro pertence a um usuário, e uma rota aberta por esquecimento é o erro caro — o outro sentido do erro, uma rota protegida que deveria ser pública, aparece no primeiro teste.
+`JwtAuthGuard` é registrado como `APP_GUARD` pelo `AuthModule`, então **toda rota nasce autenticada**. A inversão é deliberada e está registrada em ADR-0006, com as alternativas descartadas e o que ela custa.
 
 Abrir uma rota é um ato explícito, com `@Public()` no controller ou no handler. Os únicos públicos hoje, e o motivo de cada um:
 
@@ -19,7 +19,7 @@ Abrir uma rota é um ato explícito, com `@Public()` no controller ou no handler
 
 `POST /sessions/logout` **não** é público: encerrar sessão exige estar autenticado.
 
-O guard exige `Authorization: Bearer <token de acesso>`, valida pela porta `AccessTokenVerifier` e anexa `{ id }` à requisição. Header ausente, esquema diferente de `Bearer`, assinatura inválida, token vencido e payload com `sub` que não seja UUID devolvem todos o **mesmo** `UnauthenticatedError` (401) — a indistinção é intencional, para não informar a quem sonda qual das condições falhou.
+O guard exige `Authorization: Bearer <token de acesso>`, valida pela porta `AccessTokenVerifier` e anexa `{ id }` à requisição. Header ausente, esquema diferente de `Bearer`, assinatura inválida, token vencido e payload com `sub` que não seja UUID devolvem todos o **mesmo** `UnauthenticatedError` (401). A indistinção é ADR-0007.
 
 O controller lê o usuário por `@CurrentUser()`, que devolve o `AuthenticatedUser` anexado pelo guard e lança `UnauthenticatedError` se ele não estiver lá. Esse segundo lançamento cobre o caso de alguém usar `@CurrentUser()` em rota marcada `@Public()`.
 
@@ -36,7 +36,7 @@ Duas camadas garantem isso, e as duas são obrigatórias:
 
 A ordem importa porque a primeira camada pode mudar sem que ninguém se lembre da segunda.
 
-Acesso a registro de outro usuário responde **`ResourceNotFoundError` (404)**, com a mesma mensagem do registro que não existe — nunca 403. Um 403 confirmaria que aquele identificador existe e pertence a alguém, e essa diferença é enumerável: o cliente legítimo não ganha nada com ela, e quem sonda o acervo alheio ganha um oráculo. Na prática o caso de uso reúne as duas condições em uma guard clause só:
+Acesso a registro de outro usuário responde **`ResourceNotFoundError` (404)**, com a mesma mensagem do registro que não existe — nunca 403 (ADR-0007). Na prática o caso de uso reúne as duas condições em uma guard clause só:
 
 ```ts
 const account = await this.accountsRepository.findById(accountId)
@@ -61,7 +61,7 @@ Todas ficam atrás de portas declaradas no domínio; `CryptographyModule` export
 | `AccessTokenVerifier` | `JwtAccessTokenVerifier` | Verifica assinatura e expiração e **valida o payload com Zod** (`sub` precisa ser UUID); qualquer falha vira `null`, sem propagar exceção da biblioteca |
 | `RefreshTokenGenerator` | `CryptoRefreshTokenGenerator` | 32 bytes aleatórios em `base64url` para o token, e SHA-256 para o valor guardado |
 
-O token de renovação **não é JWT**: é um segredo opaco, e o banco guarda apenas o SHA-256 dele. Quem vazar a tabela não consegue renovar sessão. É também o que permite invalidar o token na rotação (RN-0007) e no logout (RN-0008) — algo que um JWT autocontido não permitiria sem uma lista de revogados.
+O token de renovação **não é JWT**: é um segredo opaco, e o banco guarda apenas o SHA-256 dele — ADR-0008, que é também onde está o que essa escolha custa.
 
 O segredo tem mínimo de 32 caracteres, cobrado pelo `envSchema` no bootstrap. Ver [`configuration.md`](configuration.md).
 

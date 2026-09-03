@@ -21,7 +21,7 @@ Como as peças são montadas e por que a aplicação consegue depender do NestJS
 
 ## As três formas de prover
 
-**`useClass` para a implementação de uma porta.** A porta é a classe abstrata declarada no domínio, e ela é **o próprio token de injeção** — não há string nem símbolo:
+**`useClass` para a implementação de uma porta.** A porta é a classe abstrata declarada no domínio, e ela é **o próprio token de injeção** — não há string nem símbolo (ADR-0001):
 
 | Token (porta) | Implementação | Onde |
 | ------------- | ------------- | ---- |
@@ -32,7 +32,7 @@ O caso de uso declara o tipo abstrato no construtor e nunca sabe qual implementa
 
 **`useExisting` quando uma classe atende a duas portas.** `BcryptHasher` implementa `HashGenerator` e `HashComparer`; as duas apontam para a **mesma instância** via `useExisting`, não para duas cópias. Usar `useClass` nos dois lugares criaria dois objetos — inofensivo aqui, caro em qualquer implementação com estado ou conexão.
 
-**`useFactory` para caso de uso.** Casos de uso **não recebem `@Injectable()`**, para que a camada de aplicação não importe nada do NestJS. Em troca, cada um é montado à mão no `HttpModule`:
+**`useFactory` para caso de uso.** Casos de uso **não recebem `@Injectable()`**: a camada de aplicação não importa nada do NestJS (ADR-0001). Em troca, cada um é montado à mão no `HttpModule` — concentração que é dívida declarada em TDR-0002:
 
 ```ts
 {
@@ -71,5 +71,5 @@ Quando o caso de uso precisa de configuração, **ele recebe o valor, não o `En
 
 | Ausente | Consequência |
 | ------- | ------------ |
-| Um módulo por contexto de domínio | Todo caso de uso e todo controller são registrados no `HttpModule`, que cresce a cada feature e é ponto de conflito garantido em merge |
+| Um módulo por contexto de domínio | Todo caso de uso e todo controller são registrados no `HttpModule`, que cresce a cada feature e é ponto de conflito garantido em merge — TDR-0002 |
 | Módulo dinâmico ou provider com escopo de requisição | Tudo é singleton; não há contexto por requisição além do que trafega em parâmetro |

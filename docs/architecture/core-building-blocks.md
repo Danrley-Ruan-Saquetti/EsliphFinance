@@ -10,7 +10,7 @@
 | ----- | -------- | ------------------- |
 | `UniqueEntityID` | Encapsula um UUID; sem argumento, gera um `randomUUID()`. `toString()`, `toValue()`, `equals(id)` | Comparar com `===` — são objetos distintos; use `equals` ou `toValue()` |
 | `Entity<Props>` | Construtor `protected` (a criação passa por um factory estático da própria entidade), `props` protegido e mutável, `id` somente leitura. `equals` compara **identidade**, não conteúdo | Duas entidades com os mesmos dados e ids diferentes não são iguais — e é isso que se quer |
-| `AggregateRoot<Props>` | `Entity` + fila de `domainEvents`, com `addDomainEvent` protegido e `clearDomainEvents` público | Os eventos ficam acumulados: **ninguém os despacha hoje** |
+| `AggregateRoot<Props>` | `Entity` + fila de `domainEvents`, com `addDomainEvent` protegido e `clearDomainEvents` público | Os eventos ficam acumulados: **ninguém os despacha hoje** (TDR-0001) |
 | `ValueObject<Props>` | Construtor `protected`, `props` `readonly`. `equals` compara **conteúdo**, via `JSON.stringify(props)` | A comparação é sensível à **ordem das chaves**: dois VOs com os mesmos valores em ordem diferente saem como diferentes. Monte os props sempre na mesma ordem |
 | `DomainEvent` | Interface com `occurredAt` e `getAggregateId()` | Existe o contrato, não existe o mecanismo |
 
@@ -20,11 +20,11 @@ A escolha de fundo: entidade tem ciclo de vida e é igual a si mesma pelo id; Va
 
 `Either<L, R>` é `Left<L, R> | Right<L, R>`, construídos por `left(value)` e `right(value)`, com `isLeft()` e `isRight()` funcionando como type guards.
 
-A regra que ele impõe: **erro esperado de negócio é valor de retorno, não exceção**. E-mail já em uso, registro não encontrado, credencial inválida — tudo isso volta em `left` e o chamador é obrigado pelo compilador a tratar antes de chegar ao valor de sucesso.
+A regra que ele impõe: **erro esperado de negócio é valor de retorno, não exceção** (ADR-0002). E-mail já em uso, registro não encontrado, credencial inválida — tudo isso volta em `left` e o chamador é obrigado pelo compilador a tratar antes de chegar ao valor de sucesso.
 
 Exceção fica para duas coisas:
 
-- **Invariante de domínio violada** — a entidade lança `InvariantError`, porque um objeto inválido não pode existir e não há chamador razoável para tratar isso.
+- **Invariante de domínio violada** — a entidade lança `InvariantError`.
 - **Falha inesperada** — banco fora, bug.
 
 No controller a distinção some: `if (result.isLeft()) throw result.value`, e o filtro global responde. Ver [`request-lifecycle.md`](request-lifecycle.md).
@@ -41,11 +41,11 @@ No controller a distinção some: `if (result.isLeft()) throw result.value`, e o
 | `ResourceNotFoundError` | `RESOURCE_NOT_FOUND` | `Registro não encontrado` |
 | `NotAllowedError` | `NOT_ALLOWED` | `Operação não permitida` |
 
-`ResourceNotFoundError` e `NotAllowedError` recebem a **frase inteira**, não um nome de recurso interpolado — `new ResourceNotFoundError('Conta não encontrada')`. É o que faz a concordância de gênero sair certa em português, e é por isso que a mensagem não é montada por template.
+`ResourceNotFoundError` e `NotAllowedError` recebem a **frase inteira**, não um nome de recurso interpolado — `new ResourceNotFoundError('Conta não encontrada')`. A razão e o custo estão em ADR-0004.
 
 ## `Money` — dinheiro (RNF-0004)
 
-Todo valor monetário é **inteiro em centavos**, da entrada à persistência; as duas casas decimais existem só na exibição. `number` cru não circula representando dinheiro: quem o representa é `Money`, imutável, criado por `Money.fromCents(n)` ou `Money.zero()`. Qualquer coisa que não seja inteiro seguro — fracionário, `NaN`, infinito, além do inteiro seguro — lança `InvariantError`.
+Todo valor monetário é **inteiro em centavos**, da entrada à persistência; as duas casas decimais existem só na exibição (ADR-0003). `number` cru não circula representando dinheiro: quem o representa é `Money`, imutável, criado por `Money.fromCents(n)` ou `Money.zero()`. Qualquer coisa que não seja inteiro seguro — fracionário, `NaN`, infinito, além do inteiro seguro — lança `InvariantError`.
 
 | Operação | Comportamento |
 | -------- | ------------- |
@@ -70,6 +70,6 @@ As três bordas onde `Money` entra e sai:
 
 | Ausente | Consequência |
 | ------- | ------------ |
-| Despacho de eventos de domínio | `AggregateRoot` acumula, nada publica; feature que dependa de reação a evento não tem por onde começar |
-| Value Object de moeda (currency) | `Money` é sempre a mesma moeda implícita; multimoeda exigiria mudar o VO e a coluna |
-| `Either` com utilitários de composição (`map`, `chain`) | Encadear casos de uso é feito na mão, com `isLeft()` |
+| Despacho de eventos de domínio | `AggregateRoot` acumula, nada publica; feature que dependa de reação a evento não tem por onde começar — TDR-0001 |
+| Value Object de moeda (currency) | `Money` é sempre a mesma moeda implícita; multimoeda exigiria mudar o VO e a coluna (ADR-0003) |
+| `Either` com utilitários de composição (`map`, `chain`) | Encadear casos de uso é feito na mão, com `isLeft()` (ADR-0002) |

@@ -16,7 +16,7 @@ Da chegada da requisição à resposta, incluindo o caminho de erro. Toda respos
 | 6. Caso de uso | `domain/<ctx>/application/use-cases/` | A regra de negócio; devolve `Either` |
 | 7. Presenter | `infra/http/presenters/` | Entidade → JSON de resposta |
 
-O controller é fino de propósito e tem uma forma fixa: executa o caso de uso, e se o resultado for `left` **lança o erro** em vez de montar resposta. Quem traduz erro em status é o filtro global, um lugar só.
+O controller é fino de propósito e tem uma forma fixa: executa o caso de uso, e se o resultado for `left` **lança o erro** em vez de montar resposta (ADR-0002). Quem traduz erro em status é o filtro global, um lugar só (ADR-0004).
 
 ```ts
 const result = await this.createAccount.execute({ ...body, ownerId: currentUser.id })
@@ -45,7 +45,7 @@ O 308 é escolhido em vez de 301/302 porque preserva método e corpo — um `POS
 
 ## Validação de entrada
 
-O `ZodValidationPipe` recebe o schema no **construtor** e é aplicado **por parâmetro**, não globalmente:
+O `ZodValidationPipe` recebe o schema no **construtor** e é aplicado **por parâmetro**, não globalmente (ADR-0005):
 
 ```ts
 @Body(new ZodValidationPipe(createAccountBodySchema)) body: CreateAccountBody
@@ -62,7 +62,7 @@ Validação de entrada **não substitui** a invariante do domínio: o schema rec
 
 ## O caminho de erro
 
-O `AllExceptionsFilter` (`@Catch()` sem argumento, registrado como `APP_FILTER` no `HttpModule`) é o único ponto que traduz exceção em resposta. Ele classifica nesta ordem:
+O `AllExceptionsFilter` (`@Catch()` sem argumento, registrado como `APP_FILTER` no `HttpModule`) é o único ponto que traduz exceção em resposta — ADR-0004, que registra o porquê do formato e o que ele custa. Ele classifica nesta ordem:
 
 | Ordem | Exceção | Resposta |
 | ----- | ------- | -------- |
@@ -116,7 +116,7 @@ O filtro lê o `x-request-id` do header da requisição — que o `RequestIdMidd
 
 | Ausente | Consequência |
 | ------- | ------------ |
-| Interceptor de log de acesso | Requisição bem-sucedida não deixa registro nenhum |
+| Interceptor de log de acesso | Requisição bem-sucedida não deixa registro nenhum — dívida registrada em TDR-0003 |
 | Prefixo de versão nas rotas | Mudança incompatível não tem para onde ir |
 | Paginação padronizada | Cada listagem devolve a coleção inteira |
 | Documentação OpenAPI | O contrato só existe no código e neste documento |

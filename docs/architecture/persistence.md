@@ -18,11 +18,11 @@ O `db` é tipado com o schema inteiro (`NodePgDatabase<typeof schema>`), então 
 
 ## Schema, migrations e o barril
 
-O schema Drizzle em `infra/database/drizzle/schemas/` é a **fonte** das migrations. Alterar tabela é editar o schema e gerar a migration; nunca DDL manual, e **nunca editar SQL já aplicado** — o Drizzle Kit mantém `migrations/meta/_journal.json` e snapshots por versão, e mexer no passado desalinha os dois.
+O schema Drizzle em `infra/database/drizzle/schemas/` é a **fonte** das migrations (ADR-0009). Alterar tabela é editar o schema e gerar a migration; nunca DDL manual, e **nunca editar SQL já aplicado** — o Drizzle Kit mantém `migrations/meta/_journal.json` e snapshots por versão, e mexer no passado desalinha os dois.
 
 Três detalhes que custam caro descobrir:
 
-- **Os arquivos de schema importam os irmãos por caminho relativo** (`from './users'`), não pelo alias `@infra/...`. É deliberado: o Drizzle Kit lê esses arquivos fora do build do Nest, por `drizzle.config.ts`, e não resolve os path aliases do `tsconfig`. Um alias aqui quebra a geração de migration sem quebrar a aplicação.
+- **Os arquivos de schema importam os irmãos por caminho relativo** (`from './users'`), não pelo alias `@infra/...`, porque o Drizzle Kit lê esses arquivos fora do build do Nest e não resolve os path aliases do `tsconfig`. Um alias aqui quebra a geração de migration sem quebrar a aplicação.
 - **`schemas/index.ts` é um barril e tem função de runtime.** É o `schema` que o `drizzle.config.ts` aponta, é o que tipa o `db`, e é o que o helper de teste `cleanDatabase` varre com `isTable` para truncar tudo com `RESTART IDENTITY CASCADE`. Consequência: **tabela nova é limpa sozinha nos testes assim que entra no barril** — e tabela que ficar de fora não é gerada nem limpa.
 - **`drizzle.config.ts` lê `process.env` direto**, com `dotenv/config`, e é a única exceção legítima à regra de que toda variável passa pelo `EnvService`. Ele roda antes e fora do Nest. Ver [`configuration.md`](configuration.md).
 
@@ -43,7 +43,7 @@ Os tipos saem da própria tabela por inferência, então mudar uma coluna quebra
 
 ## Repositórios
 
-A porta é uma **classe abstrata** declarada no domínio, e é também o token de injeção. Há duas implementações de cada uma:
+A porta é uma **classe abstrata** declarada no domínio, e é também o token de injeção (ADR-0001). Há duas implementações de cada uma (ADR-0010):
 
 | Implementação | Onde | Quando é usada |
 | ------------- | ---- | -------------- |
@@ -52,7 +52,7 @@ A porta é uma **classe abstrata** declarada no domínio, e é também o token d
 
 As duas `extends` a classe abstrata (não `implements`), o que faz o compilador cobrar a assinatura completa em ambas.
 
-O in-memory não é um detalhe do teste: ele é o segundo implementador de cada porta, e é o que denuncia quando uma porta está pedindo demais. Ele também carrega acoplamento próprio — `InMemoryAccountsRepository` recebe `InMemoryAccountGroupsRepository` no construtor para conseguir filtrar por tipo de grupo, e quem não souber disso não monta o spec. Onde a consulta Drizzle faz junção, o in-memory precisa de acesso ao repositório vizinho.
+O in-memory não é um detalhe do teste: ele é o segundo implementador de cada porta. Ele carrega acoplamento próprio — `InMemoryAccountsRepository` recebe `InMemoryAccountGroupsRepository` no construtor para conseguir filtrar por tipo de grupo, e quem não souber disso não monta o spec. Onde a consulta Drizzle faz junção, o in-memory precisa de acesso ao repositório vizinho.
 
 Ordenação e filtros fazem parte do contrato da porta e precisam bater nas duas implementações — uma listagem ordenada por nome no SQL e não ordenada no in-memory passa no unitário e falha no e2e.
 

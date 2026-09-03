@@ -14,7 +14,7 @@ As setas apontam sempre para dentro. O domínio não conhece ninguém; a aplica�
 Infra (HTTP, Drizzle, Auth, Cryptography, Env)  →  Application (use-cases, ports)  →  Domain (entities, VOs)
 ```
 
-NestJS, Drizzle, Express e Zod são detalhes de infraestrutura e **não podem vazar** para dentro: nada de `@Injectable()`, `drizzle-orm` ou tipos de `express` em entidade ou caso de uso. O que torna isso verificável é o import — um `@nestjs/*` ou `drizzle-orm` dentro de `src/core` ou `src/domain` é violação, sem exceção conhecida hoje.
+NestJS, Drizzle, Express e Zod são detalhes de infraestrutura e **não podem vazar** para dentro: nada de `@Injectable()`, `drizzle-orm` ou tipos de `express` em entidade ou caso de uso. O que torna isso verificável é o import — um `@nestjs/*` ou `drizzle-orm` dentro de `src/core` ou `src/domain` é violação, sem exceção conhecida hoje. A decisão, com as alternativas descartadas e o que ela custa, está em ADR-0001.
 
 ## Os eixos
 
@@ -44,11 +44,31 @@ Não há `APP_PIPE` nem `APP_INTERCEPTOR`: a validação é por rota (ver [`requ
 
 | Ausente | Consequência |
 | ------- | ------------ |
-| Interceptor de log estruturado por requisição | Só o erro 5xx é logado, pelo `AllExceptionsFilter`; não há log de acesso nem de latência |
-| Despacho de eventos de domínio | `AggregateRoot` acumula eventos em `domainEvents`, mas nada os consome ou publica |
+| Interceptor de log estruturado por requisição | Só o erro 5xx é logado, pelo `AllExceptionsFilter`; não há log de acesso nem de latência — TDR-0003 |
+| Despacho de eventos de domínio | `AggregateRoot` acumula eventos em `domainEvents`, mas nada os consome ou publica — TDR-0001 |
 | Transação de banco atravessando repositórios | Cada repositório opera por conta própria; não há unidade de trabalho |
 | Cache, fila ou job agendado | Nenhum dos três existe — repetições e notificações previstas nos requisitos ainda não têm mecanismo |
 | Versionamento e documentação da API | Sem prefixo de versão nas rotas e sem OpenAPI |
+
+## Por que, e o que se deve de propósito
+
+Este diretório descreve **o que está construído**. O **porquê** de cada escolha custosa de reverter — com as alternativas descartadas e o que se aceita perder — mora em [`../adr/`](../adr/), e o que se assumiu dever de propósito, com o gatilho de pagamento, em [`../decisions/debt/`](../decisions/debt/). Os documentos acima citam o ADR ou o TDR em vez de repetir o raciocínio.
+
+| Decisão | Onde ela aparece aqui |
+| ------- | --------------------- |
+| ADR-0001 — domínio e aplicação sem NestJS | [`modules-and-di.md`](modules-and-di.md), [`persistence.md`](persistence.md) |
+| ADR-0002 — erro de negócio é retorno, não exceção | [`core-building-blocks.md`](core-building-blocks.md) |
+| ADR-0003 — dinheiro como inteiro em centavos | [`core-building-blocks.md`](core-building-blocks.md) |
+| ADR-0004 — contrato de erro único | [`request-lifecycle.md`](request-lifecycle.md) |
+| ADR-0005 — validação por parâmetro | [`request-lifecycle.md`](request-lifecycle.md) |
+| ADR-0006 — rota autenticada por padrão | [`security.md`](security.md) |
+| ADR-0007 — resposta que não distingue o caso | [`security.md`](security.md) |
+| ADR-0008 — token de renovação opaco | [`security.md`](security.md) |
+| ADR-0009 — schema Drizzle como fonte das migrations | [`persistence.md`](persistence.md), [`configuration.md`](configuration.md) |
+| ADR-0010 — segunda implementação in-memory | [`persistence.md`](persistence.md) |
+| TDR-0001 — eventos de domínio sem despacho | [`core-building-blocks.md`](core-building-blocks.md) |
+| TDR-0002 — `HttpModule` registra todo caso de uso | [`modules-and-di.md`](modules-and-di.md) |
+| TDR-0003 — API sem registro de acesso | [`request-lifecycle.md`](request-lifecycle.md) |
 
 ## Fora deste diretório
 
