@@ -1,29 +1,5 @@
 {
   "enabledPlugins": {
     "living-docs@esliph": true
-  },
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 ${CLAUDE_PROJECT_DIR}/.claude/hooks/block-host-server-commands.py",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 ${CLAUDE_PROJECT_DIR}/.claude/hooks/block-migration-edit.py",
-            "timeout": 5
-          }
-        ]
-      }
-    ]
   }
 }
