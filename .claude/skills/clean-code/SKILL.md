@@ -1,6 +1,6 @@
 ---
 name: clean-code
-description: Padrão de escrita, formatação e design de código do EsliphFinance (server NestJS) — código sem nenhum comentário, autodescritivo pelos nomes, formatado conforme o eslint.config.mjs e o .prettierrc do projeto. Use SEMPRE que for escrever, alterar ou refatorar qualquer arquivo TypeScript deste repositório, mesmo que o pedido seja só "cria o use-case X", "adiciona esse campo", "corrige esse bug" ou "arruma o import" — ela vale antes de escrever, para guiar o design, e é a fonte do padrão que a skill `code-reviewer` aplica na revisão. Também vale quando o pedido mencionar clean code, formatação, nomenclatura, coesão, legibilidade ou remoção de comentários. Não é a skill da revisão: "revisa isso", "esse código está bom?" e "o que faltou aqui" são da `code-reviewer`.
+description: Padrão de escrita, formatação e design de código do EsliphFinance (server NestJS) — código sem nenhum comentário, autodescritivo pelos nomes, formatado conforme o eslint.config.mjs e o .prettierrc do projeto. Use SEMPRE que for escrever, alterar ou refatorar qualquer arquivo TypeScript deste repositório, mesmo que o pedido seja só "cria o use-case X", "adiciona esse campo", "corrige esse bug" ou "arruma o import" — ela vale antes de escrever, para guiar o design, e é a fonte do padrão que qualquer revisão deste repositório cobra. Também vale quando o pedido mencionar clean code, formatação, nomenclatura, coesão, legibilidade ou remoção de comentários. Não cobre a avaliação de código já escrito: "revisa isso", "esse código está bom?" e "o que faltou aqui" pedem o confronto do código com tudo que o projeto decidiu, e isso é outro território.
 ---
 
 # Clean Code — EsliphFinance
@@ -9,11 +9,21 @@ Este repositório tem um estilo próprio e bastante opinado. Ele não é o "clea
 
 Vale para `server/`. O `mobile/` foi removido para ser reescrito do zero; quando voltar a existir, esta skill precisa ser revisada para cobri-lo de novo.
 
+## Fronteira
+
+**Território** — define o padrão de escrita do código deste repositório: formatação, nomes, ausência de comentário e as decisões de design que separam um artefato bem recortado de um mal recortado. É a **fonte** desse padrão: quem revisa o cobra daqui, e o texto normativo mora só neste arquivo.
+
+**Fora da fronteira** — que comportamento o código deve ter (isso está em `docs/requirements/`); onde cada arquivo mora e como as camadas se relacionam (isso está em `server/CLAUDE.md` e `docs/architecture/`); o que se testa e como o teste é escrito; como o comando de verificação é executado nesta máquina; e a avaliação de código já escrito, que confronta o diff com tudo que o projeto decidiu e não apenas com o estilo.
+
+**O que não preciso saber** — qual RN o código implementa. O estilo é o mesmo em qualquer regra, e conferir a regra aqui é começar uma revisão de especificação disfarçada de formatação. Estilo verde nunca significou código correto, e este arquivo não é o lugar de descobrir isso.
+
+**Contrato de borda** — recebo a intenção de escrever ou alterar um arquivo TypeScript. Entrego o código já no padrão, e o [checklist](#checklist) como a lista fechada do que este território cobra.
+
 ## Como usar
 
 **Antes de escrever**: leia esta skill inteira e decida os nomes primeiro. Nomes são o mecanismo pelo qual este código se explica — se você precisou de um comentário para justificar um trecho, o nome ainda não está pronto.
 
-**Depois de escrever**: rode a verificação — não entregue código que você não formatou. A revisão é da skill `code-reviewer`, que confronta o código com a RN, a arquitetura e os testes; o [checklist](#checklist) daqui é um dos eixos dela, e o mais raso deles. Estilo verde não significa código correto.
+**Depois de escrever**: rode a verificação — não entregue código que você não formatou. Formatar não é revisar: o [checklist](#checklist) daqui é o eixo mais raso de qualquer revisão séria deste repositório, porque estilo verde não diz nada sobre o código fazer a coisa certa.
 
 Isto aqui cobre _como_ escrever. A arquitetura — camadas, regra de dependência, onde cada arquivo mora, contratos de use-case e repositório — está em `server/CLAUDE.md` e, em detalhe, em `docs/architecture/`; as regras de negócio em `docs/requirements/`. Consulte-os; não duplique o conteúdo deles aqui.
 
@@ -161,16 +171,9 @@ Antes de dar a tarefa por concluída:
 
 ## Verificação
 
-Tudo no `server/` roda por Docker via `Makefile` — nunca `npm` direto no host:
+Antes de entregar, peça três coisas, nesta ordem — **a intenção, não o comando**: **formatar** o código, **passar o lint** com correção automática e **checar os tipos**. Ao fechar a tarefa, peça o **gate completo** do `server/`, que inclui os três mais os testes.
 
-```sh
-make format      # prettier --write
-make lint        # eslint --fix
-make typecheck   # tsc --noEmit
-make check       # typecheck + lint + testes (rode antes de fechar a tarefa)
-```
-
-Se o tempo total importar, a skill `check-dispatcher` paraleliza os mesmos grupos do `make check` em subagentes independentes, em vez da cadeia serial.
+Como cada uma dessas intenções vira comando nesta máquina não é decisão desta skill, e transcrever a linha aqui garante que ela fique errada no dia em que o alvo mudar. O índice do que dá para rodar está no `server/CLAUDE.md` e no `help` do `Makefile` — é ali que se confere, não na memória.
 
 Se o lint reclamar de algo que esta skill não cobre, a configuração ganha — e vale avisar, porque significa que esta skill está desatualizada.
 

@@ -1,13 +1,25 @@
 ---
 name: code-reviewer
-description: O revisor de código do EsliphFinance — confronta o que foi escrito com tudo que o repositório já decidiu: a RN em `docs/requirements/`, o mapa em `docs/domains/` e `docs/architecture/`, o padrão de teste da `spec-writer` e o estilo da `clean-code`. Use SEMPRE que a tarefa for avaliar código já escrito — "revisa isso", "esse código está bom?", "o que faltou aqui", "revisa o diff da branch", "isso está no padrão do projeto?" — e SEMPRE ao terminar de escrever ou alterar qualquer arquivo TypeScript, antes de dar a tarefa por concluída, porque conferir o estilo não pega divergência de especificação. Vale também quando o pedido mencionar revisão, review, PR, pull request, code review, qualidade, "está pronto para commitar" ou "o que você mudaria". Não define o padrão: o estilo é da `clean-code`, a regra de negócio é da `business-analyst`, o padrão de teste é da `spec-writer` — ela aplica os três.
+description: O revisor de código do EsliphFinance — confronta o que foi escrito com tudo que o repositório já decidiu: a regra de negócio em `docs/requirements/`, o que está construído em `docs/architecture/`, o padrão de teste e o padrão de escrita do projeto. Use SEMPRE que a tarefa for avaliar código já escrito — "revisa isso", "esse código está bom?", "o que faltou aqui", "revisa o diff da branch", "isso está no padrão do projeto?" — e SEMPRE ao terminar de escrever ou alterar qualquer arquivo TypeScript, antes de dar a tarefa por concluída, porque conferir o estilo não pega divergência de especificação. Vale também quando o pedido mencionar revisão, review, PR, pull request, code review, qualidade, "está pronto para commitar" ou "o que você mudaria". Não define nenhum dos padrões que cobra: ela os aplica, e a fonte de cada um mora em outro lugar.
 ---
 
 # Code Reviewer — EsliphFinance
 
 Você é o revisor deste repositório. O seu trabalho não é achar bug: é achar **divergência** — código que passa no `tsc`, passa no lint, passa nos testes e mesmo assim contraria alguma coisa que este projeto já decidiu e escreveu.
 
-Essa é a falha mais cara daqui e a única que nenhuma ferramenta genérica enxerga. Um linter não sabe que a RN-0024 exige arquivamento em vez de exclusão; não sabe que o tipo do grupo decide os campos válidos da conta e que essa checagem mora no caso de uso; não sabe que `docs/domains/account.md` afirma uma coisa que o código deixou de fazer há dois commits. Você sabe, porque tudo isso está escrito — o repositório é anormalmente documentado, e a revisão aqui é o ato de confrontar o diff com essa documentação.
+Essa é a falha mais cara daqui e a única que nenhuma ferramenta genérica enxerga. Um linter não sabe que a RN-0024 exige arquivamento em vez de exclusão; não sabe que o tipo do grupo decide os campos válidos da conta e que essa checagem mora no caso de uso; não sabe que um documento de arquitetura afirma uma coisa que o código deixou de fazer há dois commits. Você sabe, porque tudo isso está escrito — o repositório é anormalmente documentado, e a revisão aqui é o ato de confrontar o diff com essa documentação.
+
+## Fronteira
+
+**Território** — arbitra o que é **divergência** entre o que foi escrito e o que o repositório já decidiu, e em que ordem de severidade ela precisa ser resolvida. Define o escopo do que está sendo revisado, o que conta como achado e o que é opinião, e a forma do relatório.
+
+**Fora da fronteira** — a definição de cada padrão que você cobra: qual é a regra de negócio, qual é o padrão de escrita do código, qual é o padrão de teste, o que está construído e onde. Você **aplica** os quatro e não reescreve nenhum. Fora também: a correção, que só sai a pedido; e a decisão sobre o que fazer com o achado, que é do usuário.
+
+**O que não preciso saber** — como o gate é executado nesta máquina, e como o autor chegou naquele código. O segundo é deliberado: conhecer o raciocínio que produziu o diff é herdar o ponto cego dele, e o valor da revisão está exatamente em não compartilhá-lo.
+
+**Contrato de borda** — recebo um diff, uma lista de caminhos ou um recorte pedido. Entrego achados agrupados por eixo, cada um com arquivo, linha, cenário de falha concreto e a âncora que o sustenta — ou a afirmação explícita de que não houve achado.
+
+**Dependência dura** — a documentação que serve de âncora. Sem `docs/requirements/` e `docs/architecture/` esta skill não tem contra o que confrontar, e degenera exatamente no comentário de estilo que uma ferramenta já produz. Encontrando um achado sem âncora possível, o certo é dizer isso — não inventar a regra que o justificaria.
 
 Isso te obriga a uma disciplina: **revisão sem leitura não é revisão**. Ler o diff e opinar produz comentário de estilo, que é justamente o eixo que uma ferramenta já cobre. O valor aparece quando você abre a RN, abre o mapa do domínio e volta ao diff sabendo o que ele deveria estar fazendo.
 
@@ -15,23 +27,22 @@ Isso te obriga a uma disciplina: **revisão sem leitura não é revisão**. Ler 
 
 | É seu | Não é seu |
 | ----- | --------- |
-| Confrontar o diff com a RN, a arquitetura, os testes e o estilo | Definir o estilo (`clean-code`) ou a regra de negócio (`business-analyst`) |
+| Confrontar o diff com a RN, a arquitetura, os testes e o estilo | Definir qualquer um desses quatro padrões |
 | Achado com arquivo, linha, severidade e cenário de falha concreto | Preferência estética sem consequência |
 | Dizer o que está faltando: teste, documento, migration, factory, variável no `.env.example` | Escrever a correção, salvo se pedido |
 | Revisão do diff da branch ou de um recorte pedido | Auditoria do repositório inteiro |
 
-Você **aplica** o padrão das outras skills; não o reescreve. Quando um achado é de estilo, a âncora é a seção da `clean-code` — não uma regra sua. Quando é de teste, a âncora é a `spec-writer`. Copiar o conteúdo delas para cá cria uma segunda cópia que vai divergir da primeira, e aí o revisor passa a cobrar uma regra que não existe mais.
+Você **aplica** o padrão; não o reescreve. Um achado de estilo ancora na fonte do padrão de escrita deste repositório; um achado de teste, na fonte do padrão de teste. Copiar o texto delas para cá cria uma segunda cópia que vai divergir da primeira, e aí o revisor passa a cobrar uma regra que já foi revogada — o pior defeito possível num revisor, porque ele soa autorizado.
 
-### Ao lado do `/code-review` embutido, do `ultrareview` e do agent `code-reviewer`
+### Escolhendo entre as revisões disponíveis
 
-Quatro coisas com propósito parecido e escopo diferente — vale dizer qual é qual quando o usuário estiver escolhendo:
+Há mais de uma forma de revisar aqui, com propósito parecido e escopo diferente. Quando o usuário estiver escolhendo, a arbitragem é esta — e o critério é **o que se quer pegar** e **quem pode ter contaminado o olhar**:
 
-- **`/code-review` embutido** — caça defeito no código como código: caso não tratado, condição invertida, vazamento, corrida. Não conhece as RNs nem `docs/`.
-- **`ultrareview` (`/code-review ultra`)** — a mesma caça, com mais fôlego e em múltiplos agentes na nuvem. É disparado pelo usuário e é cobrado; você não o dispara.
-- **Esta skill** — caça divergência entre o código e o que o repositório decidiu, rodando **inline**, na mesma conversa que produziu o código. Use quando o achado precisar virar discussão ali mesmo — um achado do eixo 1 frequentemente deve mudar a RN, não o código, e isso se resolve em conversa.
-- **O agent `code-reviewer`** (`.claude/agents/code-reviewer.md`, mesmo checklist desta skill) — a mesma caça de divergência, mas em **contexto isolado**: recebe só o diff, sem ter visto como o código foi escrito nem por quê. É o que se usa antes do commit, porque quem acabou de escrever tende a revisar com o mesmo raciocínio que gerou o código.
+- **Caça a defeito no código como código** — caso não tratado, condição invertida, vazamento, corrida. É o que a revisão embutida do harness faz, com ou sem fôlego extra na nuvem. Ela não conhece a documentação deste repositório, então não pega divergência de especificação. A variante de maior fôlego é cobrada e é o usuário quem a dispara.
+- **Caça a divergência, inline** — é esta skill, rodando na mesma conversa que produziu o código. Use quando o achado precisa virar discussão ali mesmo: um achado do eixo 1 frequentemente deve mudar a RN e não o código, e isso não se resolve num relatório.
+- **Caça a divergência, em contexto isolado** — o mesmo trabalho executado por um agente que recebe só o diff, sem ter visto como o código foi escrito nem por quê. É o que se usa antes do commit, porque quem acabou de escrever revisa com o raciocínio que gerou o código e não enxerga o próprio ponto cego.
 
-Rodar o embutido (ou o `ultrareview`) junto com o agent é o ideal antes de um PR grande: um pega bug, o outro pega divergência, e nenhum compartilha contexto com quem escreveu.
+Antes de um PR grande, o ideal é combinar a caça a defeito com a caça a divergência em contexto isolado: uma pega bug, a outra pega divergência, e nenhuma compartilha contexto com quem escreveu.
 
 ## Passo 1 — Definir e declarar o escopo
 
@@ -50,11 +61,11 @@ Se o diff for grande demais para uma leitura honesta, diga o tamanho e proponha 
 Com a lista de arquivos na mão, você já sabe onde procurar. Nesta ordem, porque cada leitura torna a próxima mais barata:
 
 - **A RN.** `docs/requirements/rules.md`, pelo identificador. Se o diff não deixa claro qual regra ele implementa, esse já é o primeiro achado. Confirme também em `docs/open-decisions.md` que o comportamento não é um **DA-00xx** ainda em aberto.
-- **O mapa do domínio.** `docs/domains/<contexto>.md` — a tabela "Regras que o código garante" diz onde cada RN deveria estar aplicada, e é o que separa "a validação está no lugar errado" de "está onde o projeto decidiu que fica".
-- **O eixo transversal**, quando o diff toca módulo, guard, pipe, filtro, presenter genérico, `core/` ou variável de ambiente: `docs/architecture/<eixo>.md`.
+- **O eixo transversal**, quando o diff toca módulo, guard, pipe, filtro, presenter genérico, `core/` ou variável de ambiente: `docs/architecture/<eixo>.md`. É o que separa "está no lugar errado" de "está onde o projeto decidiu que fica".
+- **O documento que aquele caminho arrasta.** `docs/.ownership.yml` declara, em `watches`, qual documento cada caminho de código obriga a atualizar. Consulte-o em vez de adivinhar: ele é a lista fechada do que este diff deveria ter mexido além do código.
 - **O código vizinho não tocado.** O padrão real deste repositório está no que já existe. Um use-case novo se compara com os que estão lá; um mapper, com os outros mappers.
 
-**RN citada é RN lida.** Um número de RN inventado em um achado é pior que nenhum achado: ele é copiado dali para o nome de um teste e vira uma mentira permanente.
+**RN citada é RN lida.** Um número de RN inventado em um achado é pior que nenhum achado: ele é copiado dali para dentro do repositório — para o nome de um teste, para um commit — e vira uma mentira permanente.
 
 ## Os eixos, em ordem de severidade
 
@@ -64,15 +75,15 @@ A ordem importa porque um achado do eixo 1 torna irrelevante qualquer achado do 
 
 O código faz o que a RN manda? A RN citada no nome do teste é mesmo a que rege o caso? Há comportamento implementado que **não tem RN** — regra inventada em silêncio? Há comportamento que está em `open-decisions.md` como DA e foi implementado mesmo assim?
 
-Este é o achado mais grave e o mais invisível: compila, os testes passam, e o produto faz a coisa errada. Ele só aparece com a RN aberta do lado. Quando a suspeita for de que a regra é que está mal escrita, e não o código, acione a `business-analyst` em vez de decidir — as duas coisas se parecem muito de fora.
+Este é o achado mais grave e o mais invisível: compila, os testes passam, e o produto faz a coisa errada. Ele só aparece com a RN aberta do lado. Quando a suspeita for de que a **regra** é que está mal escrita, e não o código, isso deixou de ser um achado de revisão e virou uma decisão de domínio — reporte-o como tal e não decida no relatório. As duas coisas se parecem muito de fora, e escolher errado aqui conserta o código certo.
 
 ### 2. Camada
 
 A regra mora onde deveria? Os erros recorrentes daqui:
 
-- Regra de negócio dentro de controller — o erro estrutural mais comum neste repositório, e a própria `clean-code` já o nomeia.
+- Regra de negócio dentro de controller — o erro estrutural mais comum neste repositório, e o padrão de escrita do projeto já o nomeia como erro.
 - Invariante que pertence à entidade e ficou no caso de uso, onde qualquer caminho novo até a entidade passa por fora dela.
-- Validação que existe só no schema Zod e não no value object — ou o inverso. Cuidado: **duplicação às vezes é deliberada**. A RN-0020 é conferida no Zod *e* no `BillingDay`, e `docs/domains/account.md` explica por quê (o Zod dá o `details[].field` para o cliente; o VO protege quem chega pelo mapper). Antes de apontar redundância, confira se o mapa não a documenta como intencional.
+- Validação que existe só no schema Zod e não no value object — ou o inverso. Cuidado: **duplicação às vezes é deliberada**, e a forma típica é a mesma regra conferida no schema *e* no value object, porque o schema dá o `details[].field` para o cliente enquanto o VO protege quem chega por outro caminho, como um mapper. Antes de apontar redundância, confira se a documentação não a registra como intencional — apontar uma duplicação decidida de propósito ensina o leitor a descartar o relatório inteiro.
 - `throw` para sinalizar erro de negócio, onde o contrato é `Either` com `left`.
 
 ### 3. Propriedade e segurança
@@ -89,7 +100,7 @@ Junto com ele:
 
 Existe spec unitário para cada use-case, entidade, VO, mapper, presenter, pipe e controller tocado? O caminho espelha `src/` sob `test/units/` com sufixo `.spec.ts` — um arquivo fora do padrão não é coletado por ninguém e some para sempre. O nome do `it` cita a RN quando prova regra de negócio? Os edge cases estão lá, ou só o caminho feliz? A factory acompanhou o campo novo? O e2e continuou enxuto ou virou teste de regra disfarçado?
 
-Aqui você **aponta a ausência e a lacuna; não ensina a escrever o teste** — isso é da `spec-writer`, e a correção, se pedida, sai por ela. "Falta o caso do registro de outro usuário em `create-account.spec.ts` (RN-0010)" é achado; um bloco de código de teste pronto no meio do relatório não é.
+Aqui você **aponta a ausência e a lacuna; não ensina a escrever o teste**. "Falta o caso do registro de outro usuário em `create-account.spec.ts` (RN-0010)" é achado; um bloco de código de teste pronto no meio do relatório não é — ele empurra uma solução antes de o usuário concordar com o problema.
 
 ### 5. Consistência interna
 
@@ -97,20 +108,20 @@ O que quebra depois, longe de quem mexeu:
 
 - In-memory e Drizzle honram a mesma porta? Divergência entre os dois só aparece no e2e, e o unitário continua verde afirmando o contrário.
 - O mapper vai e volta sem perder campo, incluindo os nulos?
-- A migration corresponde ao schema, e foi gerada pelo alvo do `Makefile`?
+- A migration corresponde ao schema, e foi gerada pela ferramenta em vez de escrita à mão?
 - Tabela nova entrou em `schemas/index.ts`? Se não, o `cleanDatabase` não a limpa e os e2e ficam intermitentes.
 - Variável nova está no `.env.example` e registrada no `EnvService`?
 - Rota nova está registrada no módulo, com o provider injetado?
 
 ### 6. Estilo
 
-O [checklist da `clean-code`](../clean-code/SKILL.md#checklist), aplicado por inteiro — é a fonte, e você não a duplica aqui. Último porque é o único eixo que uma ferramenta já pega.
+O padrão de escrita deste repositório, aplicado por inteiro pelo checklist da fonte dele — que você consulta e não transcreve aqui. Último porque é o único eixo que uma ferramenta já pega.
 
 Dois pontos merecem atenção manual porque o lint não os alcança: **comentário** (arquivo tocado sai sem nenhum, inclusive longe da linha alterada) e **agrupamento de imports**, que é disciplina e não plugin.
 
 ### 7. Documentação
 
-`docs/domains/` e `docs/architecture/` ainda descrevem a realidade depois deste diff? Caso de uso novo, rota nova, coluna nova, erro novo, item que saiu de "Ainda não existe" — tudo isso muda o mapa, e o commit que muda o código é o commit que atualiza o documento.
+Os documentos que este diff arrasta ainda descrevem a realidade depois dele? `docs/.ownership.yml` diz quais são, por caminho de código — não confie na memória para isso. Caso de uso novo, rota nova, coluna nova, erro novo, item que saiu de "ainda não existe": tudo isso muda o mapa, e o commit que muda o código é o commit que atualiza o documento.
 
 Um mapa que mente é pior que mapa nenhum, porque a próxima tarefa confia nele e decide errado com confiança.
 
@@ -118,16 +129,16 @@ Um mapa que mente é pior que mapa nenhum, porque a próxima tarefa confia nele 
 
 Achado precisa doer para ser levado a sério. Quatro elementos, sempre:
 
-- **Arquivo e linha** — `server/src/domain/account/application/use-cases/create-account.ts:42`. Caminho é clicável; "no caso de uso de conta" obriga quem lê a procurar.
+- **Arquivo e linha** — `server/src/infra/http/controllers/list-accounts.controller.ts:28`. Caminho é clicável; "no caso de uso de conta" obriga quem lê a procurar.
 - **A afirmação**, em uma frase: o que está errado. Não como consertar.
 - **O cenário de falha concreto**: entrada específica → resultado errado. "Poderia dar problema" não é achado.
-- **A âncora**: a RN, o documento ou a seção da skill que o achado viola.
+- **A âncora**: a RN ou o documento que o achado viola. Um achado sem âncora não é achado.
 
 Um achado real, na forma:
 
 > **[Especificação] `server/src/infra/http/controllers/list-accounts.controller.ts:28`** — a listagem devolve contas arquivadas junto com as ativas quando o filtro `archived` é omitido.
 > Com uma conta arquivada e duas ativas, `GET /accounts` sem query devolve as três, e a tela do usuário mostra uma conta encerrada como se ainda operasse.
-> Âncora: RN-0025 e a linha do filtro em `docs/domains/account.md`.
+> Âncora: RN-0025.
 
 Agrupe por eixo, na ordem acima, e dentro do eixo pelo impacto. Nunca por ordem de arquivo — a ordem do relatório é o que comunica o que precisa ser resolvido antes do commit e o que pode esperar.
 
@@ -138,24 +149,24 @@ Feche com o que está faltando e não é uma linha de código: o spec ausente, o
 ## O que não é achado
 
 - Preferência de nome quando o nome atual já é claro e está no padrão.
-- Abstração ausente para um caso só — a `clean-code` proíbe explicitamente inventar camada "para o futuro".
+- Abstração ausente para um caso só — o padrão de escrita deste repositório proíbe explicitamente inventar camada "para o futuro", então cobrá-la é cobrar o contrário do que o projeto decidiu.
 - Reescrita de código que o diff não tocou. A exceção é comentário: arquivo tocado sai sem comentário nenhum, inclusive longe da linha alterada.
-- Divergência de formatação que o `make -C server format` conserta sozinho — mande rodar, não liste item por item.
-- Duplicação que o mapa do domínio documenta como intencional.
-- Achado que você não conseguiu ancorar. Se não há RN, documento nem seção de skill que o sustente, é opinião — ou é uma lacuna de regra, e aí o encaminhamento é a `business-analyst`, não um item no relatório.
+- Divergência de formatação que a formatação automática conserta sozinha — mande formatar, não liste item por item.
+- Duplicação que a documentação registra como intencional.
+- Achado que você não conseguiu ancorar. Se não há RN nem documento que o sustente, é opinião — ou é uma lacuna de regra, e lacuna é decisão de domínio a ser levantada, não um item no relatório.
 
 ## Apontar, não consertar
 
 Por padrão você aponta e para. Achado e correção no mesmo passo tiram do usuário a chance de discordar do achado — e um achado do eixo 1 frequentemente **deve** ser discutido, porque a saída pode ser mudar a RN e não o código.
 
-Quando o usuário pedir a correção, aplique-a pelas skills donas do assunto: `clean-code` para estilo, `spec-writer` para teste, e o documento correspondente em `docs/domains/` ou `docs/architecture/` quando o mapa ficou desatualizado. E rode `make -C server check` antes de devolver — pela `stack-runner`, nunca `npm` no host; se o tempo total importar, a `check-dispatcher` paraleliza os mesmos grupos.
+Quando o usuário pedir a correção, ela sai no vocabulário de quem responde por aquele assunto: o padrão de escrita para estilo, o padrão de teste para spec, e o documento que aquele caminho arrasta quando o mapa ficou desatualizado. Antes de devolver, **rode o gate de fechamento** do `server/` — a correção que você aplicou é código novo, e código novo não escapa do gate por ter nascido dentro de uma revisão.
 
 ## Checklist
 
 - [ ] O escopo está declarado na primeira linha do relatório, e a base do diff foi descoberta, não assumida.
 - [ ] Toda RN citada foi lida agora em `docs/requirements/`; nenhuma foi inventada.
 - [ ] `docs/open-decisions.md` conferido: nada implementado sobre um DA ainda em aberto.
-- [ ] O mapa do domínio foi lido antes do diff, e a duplicação apontada não é a que ele documenta como intencional.
+- [ ] Os documentos que os caminhos do diff arrastam, segundo `docs/.ownership.yml`, foram lidos antes do diff — e a duplicação apontada não é a que eles registram como intencional.
 - [ ] Toda leitura e toda escrita do diff foi percorrida atrás da checagem de propriedade (RN-0010, RN-0011).
 - [ ] Cada artefato tocado foi conferido contra o spec espelhado que deveria existir.
 - [ ] Cada achado tem arquivo, linha, cenário de falha concreto e âncora.

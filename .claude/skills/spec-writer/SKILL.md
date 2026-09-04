@@ -7,7 +7,17 @@ description: Como escrever e manter os testes automatizados do EsliphFinance com
 
 O teste aqui não é uma rede de segurança opcional escrita depois: ele é a forma executável de `docs/requirements/`. As RNs são a especificação do produto, e o único lugar onde elas viram algo verificável é o nome e o corpo de um `it(...)`. É por isso que a regra prática deste projeto é **a implementação serve ao teste**, e não o contrário — quando os dois discordam, a suspeita recai primeiro sobre a implementação.
 
-Esta skill cobre **o que testar, onde colocar e como escrever**. O estilo do código (zero comentários, sem ponto e vírgula, linha em branco antes do `return`) está na skill `clean-code` e vale integralmente dentro dos arquivos de teste. Os comandos estão em `server/CLAUDE.md`, a arquitetura transversal em `docs/architecture/`, e o mapa do domínio que você vai testar — quais arquivos formam a fatia e onde cada RN é aplicada — está em `docs/domains/`.
+## Fronteira
+
+**Território** — define **o que** deste repositório precisa de teste, **onde** o arquivo mora, **qual forma** ele tem e **quais casos** ele precisa cobrir. Arbitra a fronteira entre unitário e e2e, e o que fazer quando o teste e a implementação discordam.
+
+**Fora da fronteira** — qual é a regra que o teste prova (ela está escrita em `docs/requirements/`, e não se decide aqui); o padrão de escrita e formatação do código, que vale integralmente dentro dos arquivos de teste mas é normatizado em outro lugar; como a suíte é executada nesta máquina; e a avaliação de código já escrito.
+
+**O que não preciso saber** — como o comando de teste chega ao container, e por que a arquitetura transversal é como é. Nenhum dos dois muda um `it(...)`. O que precisa ser sabido sobre a estrutura de `src/` já está no espelhamento de caminho, que é mecânico.
+
+**Contrato de borda** — recebo um arquivo de `server/src` criado ou alterado, com a RN que ele implementa. Entrego o spec espelhado, com a citação da RN no nome do `it(...)` — que é o único rastro entre `docs/requirements/` e a linha implementada, já que o código de produção não leva comentário.
+
+**Dependência dura** — `docs/requirements/`. Um teste sem regra escrita por trás é uma regra inventada em silêncio; sem esse arquivo, esta skill produz especificação de fato que ninguém aprovou.
 
 ## A pirâmide deste projeto
 
@@ -172,7 +182,7 @@ Ficam fora da conta (`coverage.exclude`) só os arquivos sem lógica própria ou
 
 Tudo o mais é testável sem infraestrutura e entra na conta — inclusive **mappers** (tradução pura registro ↔ entidade, incluindo os campos nulos), **presenters**, **pipes**, **schemas Zod** e **controllers** (instancie a classe com um stub do use-case e verifique a tradução de `Either` para status HTTP; é onde 404 e 403 se separam).
 
-Depois de escrever, confira o arquivo na tabela do `make test-cov` — não a média geral. A média esconde exatamente o arquivo novo que ficou de fora.
+Depois de escrever, confira o arquivo na tabela do relatório de cobertura — não a média geral. A média esconde exatamente o arquivo novo que ficou de fora.
 
 ## Encontrar os edge cases
 
@@ -188,7 +198,7 @@ Cobrir 100% das linhas com um caso feliz por método é fácil e quase inútil. 
 - **Coleção vazia e ausência**: listar sem nenhum registro, buscar id inexistente, campo opcional ausente e `null` — não são a mesma coisa no mapper.
 - **Idempotência e estado repetido**: pagar fatura já paga, arquivar o que já está arquivado, usar duas vezes o token de renovação (RN-0007).
 
-Quando o comportamento não estiver em nenhuma RN, **pergunte antes de inventar** — uma regra chutada dentro de um teste vira especificação de fato sem ninguém ter decidido nada. Quem responde por isso é a skill `business-analyst`, dona de `docs/requirements/` e de `docs/open-decisions.md`: acione-a para localizar a regra, ou para transformar a lacuna em uma RN nova ou em uma pendência **DA-00xx**. Um ponto que ainda está em `docs/open-decisions.md` não tem regra e não deve ganhar teste.
+Quando o comportamento não estiver em nenhuma RN, **pare e declare a lacuna** — uma regra chutada dentro de um teste vira especificação de fato sem ninguém ter decidido nada, e o nome do `it(...)` é o que a torna permanente. O que falta aí é uma decisão de domínio: ou a regra existe e precisa ser localizada em `docs/requirements/`, ou não existe e precisa ser decidida e registrada antes do teste. Nenhuma das duas se resolve escrevendo o spec. E um ponto que já está em `docs/open-decisions.md` como **DA-00xx** não tem regra: ele não ganha teste.
 
 ## E2E: só a comunicação
 
@@ -208,7 +218,7 @@ A forma é a dos specs existentes: `Test.createTestingModule({ imports: [AppModu
 
 O `cleanDatabase` trunca **todas** as tabelas declaradas em `@infra/database/drizzle/schemas`, na ordem que o `CASCADE` resolver. Nenhum spec lista as tabelas que usa: tabela nova entra no `schemas/index.ts` e passa a ser limpa em todo lugar, sem tocar em spec nenhum. Só importe uma tabela no spec quando for consultá-la em uma asserção.
 
-Os e2e exigem banco no ar com as migrations aplicadas (`make db-migrate`), rodam sem coverage e **em série** (`fileParallelism: false`): todos compartilham a mesma instância do Postgres, então dois arquivos limpando a mesma tabela em paralelo produziriam falha intermitente, que é o pior tipo de teste — o que ninguém confia nem investiga.
+Os e2e exigem banco no ar com as migrations já aplicadas, rodam sem coverage e **em série** (`fileParallelism: false`): todos compartilham a mesma instância do Postgres, então dois arquivos limpando a mesma tabela em paralelo produziriam falha intermitente, que é o pior tipo de teste — o que ninguém confia nem investiga.
 
 ## Fluxo para cada alteração de código
 
@@ -216,9 +226,9 @@ Nenhuma mudança em `src/` fecha sem teste. Na prática:
 
 1. **Localize a RN** em `docs/requirements/rules.md`. Ela costuma trazer restrição que o nome da feature não sugere.
 2. **Escreva ou atualize o spec espelhado** antes de mexer na implementação, listando os edge cases da seção acima. Não é obrigatório rodar o ciclo vermelho-verde do TDD, mas escrever o teste primeiro é o que garante que ele descreve a regra, e não o código que você acabou de escrever.
-3. `make test-file FILE=<caminho do spec>` enquanto implementa.
-4. `make test-cov` e confira **a linha do arquivo alterado**.
-5. `make check` (typecheck + lint + testes) antes de dar a tarefa por concluída — ou, pela `check-dispatcher`, os mesmos grupos em paralelo quando o tempo total importar.
+3. **Rode só o spec que você está escrevendo** enquanto implementa — o ciclo curto é o que torna o teste barato de escrever.
+4. **Rode o relatório de cobertura** e confira **a linha do arquivo alterado**, não a média geral.
+5. **Rode o gate de fechamento** do `server/` antes de dar a tarefa por concluída.
 
 **Alterou código já coberto?** Atualize o spec no mesmo commit. Teste desatualizado é pior que teste ausente: ele afirma um comportamento que não existe mais e dá confiança falsa.
 
@@ -243,20 +253,14 @@ Nenhuma mudança em `src/` fecha sem teste. Na prática:
 - [ ] `Either` verificado pelo lado **e** pela classe do erro; invariante verificada com `toThrow(InvariantError)`.
 - [ ] Efeito colateral verificado no repositório in-memory, não só o retorno.
 - [ ] Edge cases da lista percorridos: limites, datas inexistentes, arredondamento de centavos, registro de outro usuário, vínculos, coleção vazia.
-- [ ] Sem comentário, sem ponto e vírgula, imports agrupados — a skill `clean-code` vale aqui também.
-- [ ] `make test-cov` mostra o arquivo alterado coberto; `make check` passa.
+- [ ] O arquivo de teste obedece ao padrão de escrita do repositório, igual ao código de produção — ele não é exceção.
+- [ ] O relatório de cobertura mostra o arquivo alterado coberto; o gate de fechamento passou.
 - [ ] E2E só ganhou cenário novo se a rota é nova, em um arquivo por controller espelhado — regra de negócio ficou no unitário.
 
-## Comandos
+## O que você precisa conseguir rodar
 
-Tudo roda no container, pelo `Makefile` — nunca `npm` direto no host:
+Peça pela intenção; a forma do comando nesta máquina não é decisão desta skill, e a linha transcrita aqui envelhece sem ninguém perceber. O índice do que existe está no `server/CLAUDE.md` e no `help` do `Makefile`.
 
-```sh
-make test                             # unitários
-make test-watch                       # vitest em watch
-make test-file FILE=<caminho|padrão>  # um arquivo
-make test-name NAME="<nome do it>"    # um caso isolado
-make test-cov                         # relatório de cobertura
-make test-e2e                         # e2e (exige make up + make db-migrate)
-make check                            # typecheck + lint + testes
-```
+- **Enquanto escreve** — a suíte unitária inteira, um spec isolado, um caso isolado pelo nome, ou o modo watch.
+- **Ao fechar** — o relatório de cobertura (leia a linha do arquivo alterado, nunca a média) e o gate completo do `server/`.
+- **Antes de um e2e** — as migrations aplicadas no banco. Sem isso os e2e quebram em tabela inexistente, e a mensagem não diz que o problema é esse.

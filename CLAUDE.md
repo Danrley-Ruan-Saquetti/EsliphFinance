@@ -22,7 +22,7 @@ Todo o domínio está especificado em `docs/requirements/`, em português, com i
 
 Antes de implementar qualquer comportamento, localize a RN correspondente — ela costuma conter restrições que não são óbvias pelo nome da feature (exclusão lógica vs. arquivamento, compatibilidade de natureza entre categoria e transação, atribuição de lançamentos a faturas, escopo de edição de séries repetidas). Ao escrever código ou testes, referencie a RN. Se o requisito não cobrir o caso, pergunte em vez de inventar a regra: os pontos ainda indefinidos ficam em `docs/open-decisions.md`, identificados por **DA-00xx**, e um item que ainda está lá não tem regra e não deve ser implementado.
 
-A manutenção desses documentos é da skill `business-analyst` — use-a sempre que precisar localizar, interpretar, criar ou alterar um requisito.
+Esses documentos têm dois papéis distintos, e confundi-los é a origem de meia dúzia de discussões: **o que a regra diz** é da skill `business-analyst` — use-a para localizar, interpretar, propor ou alterar um requisito; **como ela é gravada** (marcador, tipografia, ciclo do identificador, estrutura da seção) é da skill declarada em `docs/.ownership.yml` para aquele artefato, e é o que o gate cobra.
 
 O que sustenta todos os domínios está em `docs/architecture/`, um arquivo por eixo transversal; `server/CLAUDE.md` diz quando consultá-los. A contrapartida por contexto de domínio — `docs/domains/` — foi removida junto com `server/src/domain` e volta com ela.
 
@@ -43,7 +43,8 @@ Cada fato mora em exatamente um arquivo, com um dono e uma skill responsável. `
 | Por que isto e não aquilo? | `docs/adr/` (**ADR-nnnn**) | `decision-recorder` |
 | O que ainda **não** foi decidido? | `docs/open-decisions.md` (**DA-nnnn**) | `decision-recorder` |
 | Que dívida assumimos de propósito, e quando se paga? | `docs/decisions/debt/` (**TDR-nnnn**) | `decision-recorder` |
-| Qual é a regra? | `docs/requirements/` (**RF/RNF/RN-nnnn**) | `requirements-keeper` · `business-analyst` |
+| Qual é a regra — o que ela diz? | `docs/requirements/` (**RF/RNF/RN-nnnn**) | `business-analyst` |
+| Como a regra é gravada e como o ID vive? | `docs/requirements/` (**RF/RNF/RN-nnnn**) | `requirements-keeper` |
 | O que **está** construído? | `docs/architecture/` | `platform-architect` |
 | Como se trabalha aqui? Quando está pronto? | `CONTRIBUTING.md`, `docs/definition-of-done.md` | `working-agreements-keeper` |
 
